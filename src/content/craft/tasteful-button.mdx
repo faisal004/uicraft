@@ -1,0 +1,115 @@
+---
+title: Tasteful button
+description: A familiar button with just enough light, depth, and movement to feel physical.
+publishedAt: 2026-09-10
+category: Button
+preview: tasteful-button
+kind: craft
+order: 1
+---
+
+<TastefulButtonDemo />
+
+<TastefulButtonPlayground />
+
+## Implementation
+
+This is the finished version. Copy it as-is, then adjust the label and destination for your project.
+
+```tsx title="craft.tsx"
+import { ArrowUpRight } from "lucide-react"
+
+export function TastefulButton() {
+  return (
+    <button
+      type="button"
+      className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-800 bg-linear-to-b from-zinc-700 via-zinc-800 to-zinc-950 px-4 text-sm font-medium text-white shadow-[0_1px_1px_rgb(0_0_0/0.08),0_2px_6px_rgb(0_0_0/0.16),inset_0_1px_0_rgb(255_255_255/0.18)] transition-[filter,transform,box-shadow] duration-150 ease-out hover:brightness-105 active:translate-y-px active:scale-[0.98]"
+    >
+      View project
+      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+    </button>
+  )
+}
+```
+
+The treatment is intentionally self-contained: no extra stylesheet, state, or animation library is required.
+
+## How it works
+
+### 01 — Start with the default
+
+A plain button already carries the right meaning and keyboard behavior. Keep that foundation instead of rebuilding the control from a generic container.
+
+<TastefulButtonStepPreview stage="default" />
+
+```tsx title="craft.tsx"
+export function TastefulButton() {
+  return <button type="button">View project</button>
+}
+```
+
+### 02 — Create structure
+
+Set a compact height, give the label comfortable horizontal space, and use a radius that feels native to the surrounding interface. The arrow makes the destination feel external without adding another word.
+
+<TastefulButtonStepPreview stage="structure" />
+
+```tsx title="craft.tsx"
+import { ArrowUpRight } from "lucide-react"
+
+export function TastefulButton() {
+  return (
+    <button
+      type="button"
+      className="inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white"
+    >
+      View project
+      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+    </button>
+  )
+}
+```
+
+### 03 — Add material
+
+A quiet vertical gradient establishes a light source. The one-pixel inset highlight defines the top edge, while the outer shadows separate the button from the page without making it float.
+
+<TastefulButtonStepPreview stage="material" />
+
+```tsx title="craft.tsx"
+import { ArrowUpRight } from "lucide-react"
+
+export function TastefulButton() {
+  return (
+    <button
+      type="button"
+      className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-800 bg-linear-to-b from-zinc-700 via-zinc-800 to-zinc-950 px-4 text-sm font-medium text-white shadow-[0_1px_1px_rgb(0_0_0/0.08),0_2px_6px_rgb(0_0_0/0.16),inset_0_1px_0_rgb(255_255_255/0.18)]"
+    >
+      View project
+      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+    </button>
+  )
+}
+```
+
+### 04 — Make the press honest
+
+Move the button down by one pixel and reduce its scale slightly while it is pressed. The response is visible and physical, but short enough that it never slows the action.
+
+<TastefulButtonStepPreview stage="press" />
+
+```tsx title="craft.tsx"
+import { ArrowUpRight } from "lucide-react"
+
+export function TastefulButton() {
+  return (
+    <button
+      type="button"
+      className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-800 bg-linear-to-b from-zinc-700 via-zinc-800 to-zinc-950 px-4 text-sm font-medium text-white shadow-[0_1px_1px_rgb(0_0_0/0.08),0_2px_6px_rgb(0_0_0/0.16),inset_0_1px_0_rgb(255_255_255/0.18)] transition-[filter,transform,box-shadow] duration-150 ease-out hover:brightness-105 active:translate-y-px active:scale-[0.98]"
+    >
+      View project
+      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+    </button>
+  )
+}
+```

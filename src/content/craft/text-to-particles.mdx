@@ -1,0 +1,151 @@
+---
+title: Text to Particles
+description: Read a word as pixels, scatter those coordinates, and animate them back into dense, readable type.
+publishedAt: 2026-09-20
+category: Canvas
+preview: text-to-particles
+order: 4
+kind: craft
+---
+
+<TextToParticlesDemo />
+
+<TextToParticlesPlayground />
+
+## Implementation
+
+This version uses only Canvas 2D and `requestAnimationFrame`. It draws the message into an offscreen canvas, samples the opaque pixels, and treats every sampled coordinate as a particle destination.
+
+```tsx title="text-to-particles.tsx"
+"use client"
+
+import { useEffect, useRef } from "react"
+
+type Particle = {
+  startX: number
+  startY: number
+  targetX: number
+  targetY: number
+  delayMs: number
+  travelMs: number
+}
+
+const clamp = (value: number) => Math.max(0, Math.min(1, value))
+const ease = (value: number) => 1 - Math.pow(1 - value, 3)
+
+export function TextToParticles({ text = "SNAP" }: { text?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const message = text.trim().slice(0, 24) || "SNAP"
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const context = canvas?.getContext("2d")
+    if (!canvas || !context) return
+
+    let particles: Particle[] = []
+    let width = 0
+    let height = 0
+    let frame = 0
+    let elapsed = 0
+    let lastTime = performance.now()
+
+    function rebuild() {
+      const rect = canvas.getBoundingClientRect()
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      width = rect.width
+      height = rect.height
+      canvas.width = Math.round(width * dpr)
+      canvas.height = Math.round(height * dpr)
+      context.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+      const mask = document.createElement("canvas")
+      mask.width = Math.round(width)
+      mask.height = Math.round(height)
+      const maskContext = mask.getContext("2d")
+      if (!maskContext) return
+
+      maskContext.fillStyle = "white"
+      maskContext.font = `800 ${Math.min(140, height * 0.3)}px system-ui`
+      maskContext.textAlign = "center"
+      maskContext.textBaseline = "middle"
+      maskContext.fillText(message, width / 2, height / 2)
+
+      const pixels = maskContext.getImageData(0, 0, mask.width, mask.height).data
+      const targets: Array<[number, number]> = []
+
+      for (let y = 0; y < mask.height; y += 1) {
+        for (let x = 0; x < mask.width; x += 1) {
+          if (pixels[(y * mask.width + x) * 4 + 3] > 120) {
+            targets.push([x, y])
+          }
+        }
+      }
+
+      const stride = Math.max(1, Math.ceil(targets.length / 20_000))
+      particles = targets
+        .filter((_, index) => index % stride === 0)
+        .map(([targetX, targetY]) => ({
+          startX: targetX + (Math.random() * 4 - 2) * width,
+          startY: targetY + (Math.random() > 0.5 ? 1 : -1) * (height + Math.random() * height),
+          targetX,
+          targetY,
+          delayMs: (targetX / width * 0.22 + Math.random() * 0.11) * 3500,
+          travelMs: 770 + Math.random() * 1575,
+        }))
+    }
+
+    function draw(time: number) {
+      elapsed += Math.min(time - lastTime, 32)
+      lastTime = time
+
+      const cycle = elapsed % 9000
+      const progress = cycle < 3500
+        ? cycle / 3500
+        : cycle < 5000
+          ? 1
+          : cycle < 8500
+            ? 1 - (cycle - 5000) / 3500
+            : 0
+
+      context.clearRect(0, 0, width, height)
+      context.fillStyle = "#f7f7f4"
+      context.globalAlpha = 0.18 + ease(progress) * 0.82
+      context.beginPath()
+
+      for (const particle of particles) {
+        const formationTime = progress * 3500
+        const local = ease(clamp((formationTime - particle.delayMs) / particle.travelMs))
+        const x = particle.startX + (particle.targetX - particle.startX) * local
+        const y = particle.startY + (particle.targetY - particle.startY) * local
+        context.rect(x, y, 2.1, 2.1)
+      }
+
+      context.fill()
+      frame = requestAnimationFrame(draw)
+    }
+
+    const observer = new ResizeObserver(rebuild)
+    rebuild()
+    observer.observe(canvas)
+    frame = requestAnimationFrame(draw)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [message])
+
+  return (
+    <div className="h-[30rem] overflow-hidden bg-[#090a0b]">
+      <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
+      <span className="sr-only">Particles converge to form {message}.</span>
+    </div>
+  )
+}
+```
+
+The live component adds deterministic scattering, automatic font fitting, mobile particle limits, offscreen pausing, reduced-motion handling, and stable resize cleanup. Those are production safeguards rather than requirements for understanding the effect.
+
+## How it works
+
+I am working on this.

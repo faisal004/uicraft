@@ -1,0 +1,234 @@
+---
+title: Dot Matrix Ticker
+description: Turn ordinary text into a configurable LED display with one mask and a stepped loop.
+publishedAt: 2026-09-09
+category: Animation
+preview: dot-matrix-ticker
+kind: craft
+order: 2
+---
+
+<DotMatrixTickerDemo />
+
+<DotMatrixTickerPlayground />
+
+## Implementation
+
+Copy this component and the keyframe below. The enclosure, glass, and matrix are CSS. Duration is measured from the track so the stepped loop stays aligned with the dots.
+
+```tsx title="dot-matrix-ticker.tsx"
+"use client"
+
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
+
+const COLORS = ["#4ade80", "#fb923c", "#f87171", "#60a5fa", "#f8fafc"]
+
+type DotShape = "circle" | "square" | "diamond"
+
+type TickerStyle = CSSProperties & {
+  "--ticker-color": string
+  "--ticker-duration": string
+  "--ticker-steps": number
+  "--ticker-glow-shadow": string
+}
+
+export function DotMatrixTicker({
+  text,
+  speed = 1.5,
+  steps = 200,
+  color,
+  glow = 1,
+  dotShape = "circle",
+  dotSize = 3,
+  dotSpacing = 1,
+  className = "",
+}: {
+  text: string
+  speed?: number
+  steps?: number
+  color?: string
+  glow?: number
+  dotShape?: DotShape
+  dotSize?: number
+  dotSpacing?: number
+  className?: string
+}) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [duration, setDuration] = useState(12)
+  const [colorIndex, setColorIndex] = useState(0)
+  const displayText = `${text.trim().toUpperCase() || "DOT MATRIX TICKER"} `
+
+  const updateDuration = useCallback(() => {
+    const track = trackRef.current
+    if (!track) return
+
+    const normalizedSpeed = Math.min(Math.max(speed, 0), 10)
+    if (normalizedSpeed === 0) return
+
+    setDuration(track.scrollWidth / 2 / (normalizedSpeed * 100))
+  }, [speed])
+
+  useEffect(() => {
+    updateDuration()
+    const track = trackRef.current
+    if (!track) return
+
+    const observer = new ResizeObserver(updateDuration)
+    observer.observe(track)
+    return () => observer.disconnect()
+  }, [displayText, updateDuration])
+
+  const canChangeColor = color === undefined
+  const currentColor = color ?? COLORS[colorIndex]
+  const glowStrength = Math.min(Math.max(glow, 0), 3)
+  const glowShadow = glowStrength === 0
+    ? "none"
+    : `0 0 ${4 * glowStrength}px currentColor, 0 0 ${9 * glowStrength}px currentColor, 0 0 ${16 * glowStrength}px currentColor`
+
+  const size = Math.min(Math.max(dotSize, 1), 6)
+  const spacing = Math.min(Math.max(dotSpacing, 0.5), 4)
+  const center = size / 2
+  const masks: Record<DotShape, string> = {
+    circle: `radial-gradient(circle at ${center}px ${center}px, transparent 0 ${center}px, #000 ${center + 0.2}px)`,
+    square: `conic-gradient(from 90deg at ${size}px ${size}px, transparent 25%, #000 0)`,
+    diamond: `linear-gradient(45deg, #000 0 32%, transparent 32% 68%, #000 68%), linear-gradient(-45deg, #000 0 32%, transparent 32% 68%, #000 68%)`,
+  }
+
+  return (
+    <div
+      role={canChangeColor ? "button" : "img"}
+      tabIndex={canChangeColor ? 0 : undefined}
+      aria-label={`Ticker displaying “${text}”.`}
+      onClick={() => canChangeColor && setColorIndex((current) => (current + 1) % COLORS.length)}
+      style={{
+        "--ticker-color": currentColor,
+        "--ticker-duration": `${duration}s`,
+        "--ticker-steps": Math.max(1, Math.round(steps)),
+        "--ticker-glow-shadow": glowShadow,
+      } as TickerStyle}
+      className={`relative w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-[inset_0_0_16px_rgba(0,0,0,0.9),0_8px_30px_rgba(0,0,0,0.35)] outline-none ${className}`}
+    >
+      <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+        <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),transparent_35%,transparent_65%,rgba(255,255,255,0.08))]" />
+        <div className="pointer-events-none absolute -left-[10%] -top-[80%] z-20 h-[220%] w-full -skew-x-[55deg] bg-[linear-gradient(10deg,transparent_35%,rgba(255,255,255,0.16),transparent_65%)] blur-xl" />
+
+        <div className="relative py-3 sm:py-4">
+          <div
+            ref={trackRef}
+            aria-hidden="true"
+            className={`flex w-max animate-dot-matrix-ticker whitespace-nowrap text-[var(--ticker-color)] motion-reduce:animate-none ${speed <= 0 ? "[animation-play-state:paused]" : ""}`}
+          >
+            {[0, 1].map((copy) => (
+              <span
+                key={copy}
+                className="pr-8 font-mono text-3xl font-medium leading-none tracking-[0.08em] [text-shadow:var(--ticker-glow-shadow)] sm:text-4xl"
+              >
+                {displayText}
+              </span>
+            ))}
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-10 bg-black"
+            style={{
+              maskImage: masks[dotShape],
+              WebkitMaskImage: masks[dotShape],
+              maskSize: `${size + spacing}px ${size + spacing}px`,
+              WebkitMaskSize: `${size + spacing}px ${size + spacing}px`,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+```css title="globals.css"
+@theme inline {
+  --animate-dot-matrix-ticker: dot-matrix-ticker-scroll var(--ticker-duration)
+    steps(var(--ticker-steps), end) infinite;
+}
+
+@keyframes dot-matrix-ticker-scroll {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+```
+
+## How it works
+
+### 01 — Begin with readable text
+
+<DotMatrixTickerStep step="0" />
+
+The effect starts with a normal monospace sentence. Keeping real text underneath the treatment makes the component easier to size and maintain.
+
+```tsx title="01-readable-text.tsx"
+const message = `${text.trim().toUpperCase() || "DOT MATRIX TICKER"} `
+
+<span className="font-mono text-4xl font-medium tracking-[0.08em]">
+  {message}
+</span>
+```
+
+### 02 — Treat the type as light
+
+<DotMatrixTickerStep step="1" />
+
+A black enclosure, a bright foreground, and three text shadows establish the light source before the matrix is introduced.
+
+```tsx title="02-add-light.tsx"
+<div className="overflow-hidden bg-black p-4 text-green-400">
+  <span className="font-mono text-4xl [text-shadow:0_0_4px_currentColor,0_0_9px_currentColor,0_0_16px_currentColor]">
+    {message}
+  </span>
+</div>
+```
+
+### 03 — Punch out the dots
+
+<DotMatrixTickerStep step="2" />
+
+The overlay is black everywhere except the center of each repeating cell. Those transparent holes reveal the glowing text as individual LEDs.
+
+```css
+mask-image: radial-gradient(circle at 1.5px 1.5px,
+  transparent 0 1.5px,
+  #000 1.7px
+);
+mask-size: 4px 4px;
+```
+
+```tsx title="03-dot-mask.tsx"
+<div className="relative overflow-hidden bg-black p-4 text-green-400">
+  <span className="font-mono text-4xl">{message}</span>
+  <span className="pointer-events-none absolute inset-0 bg-black dot-mask" />
+</div>
+```
+
+### 04 — Close the enclosure
+
+<DotMatrixTickerStep step="3" />
+
+Render the message twice, move the track by exactly half its width, and the second copy arrives where the first one began. A stepped timing function keeps the movement aligned with the matrix. Edge fade, inset shadow, and a glass streak make the panel feel manufactured rather than like masked type on a rectangle.
+
+```tsx title="04-seamless-loop.tsx"
+<div className="flex w-max animate-dot-matrix-ticker whitespace-nowrap">
+  <span className="pr-8">{message}</span>
+  <span className="pr-8" aria-hidden="true">{message}</span>
+</div>
+```
+
+```css title="04-seamless-loop.css"
+@keyframes dot-matrix-ticker-scroll {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+```
+
+Speed changes duration, not distance. Measure that duration from the track’s actual width so the loop stays seamless at every setting.
