@@ -88,6 +88,15 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-[#10121b]/10 p-2">
+        <a
+          href="https://github.com/faisal004/uicraft"
+          target="_blank"
+          rel="noreferrer"
+          className="flex h-8 items-center justify-between px-2 text-[13px] text-[#10121b]/55 transition-colors duration-150 hover:text-[#3155d9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3155d9]"
+        >
+          Source on GitHub
+          <ArrowUpRight className="size-4" aria-hidden="true" />
+        </a>
         <Link
           href="/"
           className="flex h-8 items-center justify-between px-2 text-[13px] text-[#10121b]/55 transition-colors duration-150 hover:text-[#3155d9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3155d9]"
