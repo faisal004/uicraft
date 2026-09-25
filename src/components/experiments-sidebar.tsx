@@ -24,16 +24,16 @@ import { cn } from "@/lib/utils";
 export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
   const pathname = usePathname();
   const footerAction =
-    "flex min-h-16 flex-col items-center justify-center gap-2 border border-foreground/10 bg-[var(--craft-surface)] px-1 text-center text-[11px] font-medium text-foreground/65 transition-colors hover:border-[var(--craft-accent)] hover:text-[var(--craft-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--craft-accent)]";
+    "flex min-h-16 flex-col items-center justify-center gap-2 border border-foreground/10 bg-(--craft-surface) px-1 text-center text-[11px] font-medium text-foreground/65 transition-colors hover:border-(--craft-accent) hover:text-(--craft-accent) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--craft-accent)";
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-foreground/10 bg-[var(--craft-sidebar)]">
+    <Sidebar collapsible="offcanvas" className="border-foreground/10 bg-(--craft-sidebar)">
       <SidebarHeader className="h-12 justify-center border-b border-foreground/10 px-3">
         <Link
           href="/"
-          className="group flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--craft-accent)]"
+          className="group flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--craft-accent)"
         >
-          <span className="size-3 rounded-full bg-[var(--craft-accent)]" />
+          <span className="size-3 rounded-full bg-(--craft-accent)" />
           <span className="font-heading text-sm">UIcraft</span>
         </Link>
       </SidebarHeader>
@@ -49,7 +49,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
                 <SidebarMenuButton
                   render={<Link href="/craft" />}
                   isActive={pathname === "/craft"}
-                  className="h-8 rounded-none px-2 text-[13px] hover:bg-[var(--craft-accent-soft)] data-active:bg-[var(--craft-accent-soft)] data-active:font-medium data-active:text-[var(--craft-accent)]"
+                  className="h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)"
                 >
                   <span>Introduction</span>
                 </SidebarMenuButton>
@@ -74,8 +74,8 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
                       render={<Link href={href} />}
                       isActive={isActive}
                       className={cn(
-                        "h-8 rounded-none px-2 text-[13px] hover:bg-[var(--craft-accent-soft)] data-active:bg-[var(--craft-accent-soft)] data-active:font-medium data-active:text-[var(--craft-accent)]",
-                        isActive && "text-[var(--craft-accent)]",
+                        "h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)",
+                        isActive && "text-(--craft-accent)",
                       )}
                     >
                       <span className="w-4 font-mono text-[10px] tabular-nums text-current opacity-40">

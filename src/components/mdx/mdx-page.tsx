@@ -18,16 +18,16 @@ const components = {
     <h3 className="mt-10 text-balance text-lg font-medium text-foreground" {...props} />
   ),
   p: (props: React.ComponentProps<"p">) => (
-    <p className="mt-4 max-w-2xl text-pretty text-base leading-8 text-[var(--craft-muted)]" {...props} />
+    <p className="mt-4 max-w-2xl text-pretty text-base leading-8 text-(--craft-muted)" {...props} />
   ),
   a: (props: React.ComponentProps<"a">) => (
-    <a className="text-[var(--craft-accent)] underline decoration-[var(--craft-accent)]/25 underline-offset-4 hover:decoration-[var(--craft-accent)]" {...props} />
+    <a className="text-(--craft-accent) underline decoration-(--craft-accent)/25 underline-offset-4 hover:decoration-(--craft-accent)" {...props} />
   ),
   ul: (props: React.ComponentProps<"ul">) => (
-    <ul className="mt-4 max-w-2xl list-disc space-y-2 pl-5 text-base leading-8 text-[var(--craft-muted)]" {...props} />
+    <ul className="mt-4 max-w-2xl list-disc space-y-2 pl-5 text-base leading-8 text-(--craft-muted)" {...props} />
   ),
   ol: (props: React.ComponentProps<"ol">) => (
-    <ol className="mt-4 max-w-2xl list-decimal space-y-2 pl-5 text-base leading-8 text-[var(--craft-muted)]" {...props} />
+    <ol className="mt-4 max-w-2xl list-decimal space-y-2 pl-5 text-base leading-8 text-(--craft-muted)" {...props} />
   ),
   li: (props: React.ComponentProps<"li">) => <li className="text-pretty" {...props} />,
   pre: CodeBlock,
@@ -92,11 +92,11 @@ export function MdxPage({ document }: { document: ContentDocument }) {
       <div className="min-w-0 px-5 py-16 sm:px-10 sm:py-20 lg:px-14 xl:px-20">
         <article className="mx-auto max-w-7xl pb-24">
           <header className="border-b border-foreground/10 pb-16 sm:pb-24">
-            <p className="text-sm text-[var(--craft-accent)]">A living archive of interface studies</p>
+            <p className="text-sm text-(--craft-accent)">A living archive of interface studies</p>
             <h1 className="font-heading mt-8 max-w-5xl text-balance text-5xl leading-[0.98] sm:text-7xl lg:text-8xl">
               Small interactions, studied closely.
             </h1>
-            <p className="mt-8 max-w-2xl text-pretty text-lg leading-8 text-[var(--craft-muted)] sm:text-xl sm:leading-9">
+            <p className="mt-8 max-w-2xl text-pretty text-lg leading-8 text-(--craft-muted) sm:text-xl sm:leading-9">
               {document.description}
             </p>
           </header>
@@ -109,9 +109,9 @@ export function MdxPage({ document }: { document: ContentDocument }) {
   return (
     <div className="min-w-0 px-5 py-10 sm:px-10 sm:py-12 lg:px-14 xl:px-20">
       <article className="mx-auto max-w-6xl pb-24">
-        <header className="grid grid-cols-2 border-l border-t border-foreground/10 sm:grid-cols-12 bg-[var(--craft-surface)]">
+        <header className="grid grid-cols-2 border-l border-t border-foreground/10 sm:grid-cols-12 bg-(--craft-surface)">
           <div className="flex min-h-16 items-center border-r border-b border-foreground/10 px-4 py-3 sm:col-span-4">
-            <p className="text-sm text-[var(--craft-accent)]">{eyebrow}</p>
+            <p className="text-sm text-(--craft-accent)">{eyebrow}</p>
           </div>
           <div className="flex min-h-16 items-center justify-end gap-4 border-r border-b border-foreground/10 px-4 py-3 sm:col-span-8">
             {document.publishedAt ? (
@@ -134,7 +134,7 @@ export function MdxPage({ document }: { document: ContentDocument }) {
             </h1>
           </div>
           <div className="col-span-2 flex border-r border-b border-foreground/10 p-5 sm:col-span-12 sm:p-6">
-            <p className="max-w-2xl text-pretty text-base leading-7 text-[var(--craft-muted)]">
+            <p className="max-w-2xl text-pretty text-base leading-7 text-(--craft-muted)">
               {document.description}
             </p>
           </div>

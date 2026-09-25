@@ -20,7 +20,7 @@ export function ShareButton({ path }: { path: string }) {
       <button
         type="button"
         onClick={copyLink}
-        className="inline-flex min-h-9 items-center gap-2 border border-foreground/15 px-3 text-xs font-medium text-foreground transition-colors hover:bg-[var(--craft-muted-surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--craft-accent)]"
+        className="inline-flex min-h-9 items-center gap-2 border border-foreground/15 px-3 text-xs font-medium text-foreground transition-colors hover:bg-(--craft-muted-surface) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--craft-accent)"
         aria-label={`Copy link to ${path.split("/").at(-1)?.replaceAll("-", " ")}`}
       >
         {status === "copied" ? <Check className="size-4" aria-hidden="true" /> : <Link2 className="size-4" aria-hidden="true" />}

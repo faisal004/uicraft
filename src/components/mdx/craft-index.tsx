@@ -23,9 +23,9 @@ export function CraftIndex() {
             <Link
               key={craft.slug}
               href={`/craft/${craft.slug}`}
-              className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--craft-accent)]"
+              className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--craft-accent)"
             >
-              <div className="grid aspect-[4/3] place-items-center overflow-hidden border border-foreground/10 bg-[var(--craft-muted-surface)] p-6">
+              <div className="grid aspect-[4/3] place-items-center overflow-hidden border border-foreground/10 bg-(--craft-muted-surface) p-6">
                 {Preview ? <Preview /> : <span className="font-heading text-sm">Preview</span>}
               </div>
               <div className="pt-5">
@@ -43,11 +43,11 @@ export function CraftIndex() {
                 <div className="mt-3 flex items-start justify-between gap-4">
                   <h3 className="text-balance text-xl font-medium text-foreground">{craft.title}</h3>
                   <ArrowUpRight
-                    className="mt-0.5 size-4 shrink-0 text-[var(--craft-accent)]"
+                    className="mt-0.5 size-4 shrink-0 text-(--craft-accent)"
                     aria-hidden="true"
                   />
                 </div>
-                <p className="mt-2 line-clamp-2 text-pretty text-sm leading-6 text-[var(--craft-muted)]">
+                <p className="mt-2 line-clamp-2 text-pretty text-sm leading-6 text-(--craft-muted)">
                   {craft.description}
                 </p>
               </div>
