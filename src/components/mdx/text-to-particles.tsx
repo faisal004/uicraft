@@ -228,7 +228,7 @@ export function TextToParticlesPlayground() {
 
   return (
     <CraftFrame label="Playground" meta="Particle controls">
-      <div className="border-b border-[#181916]/15">
+      <div className="border-b border-[var(--demo-border)]">
         <TextToParticles
           text={text}
           sampleGap={sampleGap}
@@ -240,26 +240,26 @@ export function TextToParticlesPlayground() {
       </div>
       <div className="grid gap-4 p-4 sm:p-5">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-2">
-          <label className="grid min-w-0 gap-2 text-xs text-[#595b55]">
+          <label className="grid min-w-0 gap-2 text-xs text-[var(--demo-muted)]">
             <span className="font-heading">Text</span>
             <input
               value={text}
               maxLength={24}
               onChange={(event) => setText(event.target.value)}
-              className="h-9 min-w-0 border border-[#181916]/15 bg-white px-3 text-sm text-[#181916] outline-none focus:ring-2 focus:ring-[#1736f5]/20"
+              className="h-9 min-w-0 border border-[var(--demo-border)] bg-[var(--demo-bg)] px-3 text-sm text-[var(--demo-ink)] outline-none focus:ring-2 focus:ring-[#1736f5]/20"
             />
           </label>
           <button
             type="button"
             onClick={() => setReplay((value) => value + 1)}
-            className="h-9 border border-[#181916] bg-[#181916] px-3 text-xs text-white"
+            className="h-9 border border-[var(--demo-ink)] bg-[var(--demo-ink)] px-3 text-xs text-[var(--demo-bg)]"
           >
             Replay
           </button>
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-9 items-center gap-1.5 border border-[#181916]/15 px-3 text-xs text-[#595b55] hover:bg-[#eeeeeb]"
+            className="inline-flex h-9 items-center gap-1.5 border border-[var(--demo-border)] px-3 text-xs text-[var(--demo-muted)] hover:bg-[var(--demo-bar)]"
           >
             <RotateCcw className="size-3" aria-hidden="true" /> Reset
           </button>

@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import { ExperimentsSidebar } from "@/components/experiments-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -13,14 +14,17 @@ export default function CraftLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider
-      className="min-h-dvh bg-[#f2f2ef]"
+      className="min-h-dvh bg-[var(--craft-sidebar)]"
       style={{ "--sidebar-width": "15rem" } as CSSProperties}
     >
       <ExperimentsSidebar crafts={crafts} />
-      <SidebarInset className="bg-[#f7f7f7] text-[#10121b]">
-        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[#10121b]/10 px-4 md:hidden">
+      <SidebarInset className="bg-[var(--craft-page)] text-foreground">
+        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-foreground/10 px-4 md:hidden">
           <SidebarTrigger aria-label="Open experiments navigation" />
           <span className="font-heading text-sm">UIcraft / Craft</span>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         {children}
       </SidebarInset>

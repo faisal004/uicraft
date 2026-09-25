@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export function TastefulButtonDemo() {
   return (
-    <div className="grid min-h-72 place-items-center rounded-xl border border-[#181916]/15 bg-white p-8">
+    <div className="grid min-h-72 place-items-center rounded-xl border border-[var(--demo-border)] bg-[var(--demo-bg)] p-8">
       <button
         type="button"
         className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-800 bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-950 px-4 text-sm font-medium text-white shadow-[0_1px_1px_rgb(0_0_0/0.08),0_2px_6px_rgb(0_0_0/0.16),inset_0_1px_0_rgb(255_255_255/0.18)] transition-[filter,transform,box-shadow] duration-150 ease-out hover:brightness-105 active:translate-y-px active:scale-[0.98]"
@@ -36,19 +36,19 @@ export function TastefulButtonPlayground() {
   ];
 
   return (
-    <div className="not-prose my-6 overflow-hidden border border-[#181916]/15 bg-white">
-      <div className="flex items-center justify-between border-b border-[#181916]/15 bg-[#eeeeeb] px-4 py-2.5">
-        <span className="font-heading text-xs text-[#181916]">Playground</span>
-        <span className="font-mono text-[10px] text-[#696b64]">Build stages</span>
+    <div className="not-prose my-6 overflow-hidden border border-[var(--demo-border)] bg-[var(--demo-bg)]">
+      <div className="flex items-center justify-between border-b border-[var(--demo-border)] bg-[var(--demo-bar)] px-4 py-2.5">
+        <span className="font-heading text-xs text-[var(--demo-ink)]">Playground</span>
+        <span className="font-mono text-[10px] text-[var(--demo-subtle)]">Build stages</span>
       </div>
       <div className="grid sm:grid-cols-[12rem_1fr]">
-        <nav aria-label="Button build stages" className="grid border-b border-[#181916]/15 sm:border-r sm:border-b-0">
+        <nav aria-label="Button build stages" className="grid border-b border-[var(--demo-border)] sm:border-r sm:border-b-0">
           {options.map((option, index) => (
             <button
               key={option.label}
               type="button"
               onClick={() => setActive(index)}
-              className={`flex items-center gap-3 border-b border-[#181916]/10 px-4 py-3 text-left text-xs last:border-b-0 ${active === index ? "bg-[#181916] text-white" : "text-[#595b55] hover:bg-[#eeeeeb]"}`}
+              className={`flex items-center gap-3 border-b border-[var(--demo-border)] px-4 py-3 text-left text-xs last:border-b-0 ${active === index ? "bg-[var(--demo-ink)] text-[var(--demo-bg)]" : "text-[var(--demo-muted)] hover:bg-[var(--demo-bar)]"}`}
             >
               <span className="font-mono text-[10px] opacity-60">{String(index + 1).padStart(2, "0")}</span>
               {option.label}
@@ -69,7 +69,7 @@ const stages = [
     title: "Default",
     note: "The browser gives us function, but no character.",
     preview: (
-      <span className="inline-flex h-9 items-center rounded-md border border-[#181916]/25 bg-white px-4 text-sm text-[#181916]">
+      <span className="inline-flex h-9 items-center rounded-md border border-[var(--demo-border)] bg-[var(--demo-bg)] px-4 text-sm text-[var(--demo-ink)]">
         View project
       </span>
     ),
@@ -130,7 +130,7 @@ export function TastefulButtonStepPreview({
   if (bare) return buttonByStage[stage];
 
   return (
-    <div className="not-prose my-6 grid min-h-44 place-items-center rounded-xl border border-[#181916]/15 bg-[#eeeeeb] p-6">
+    <div className="not-prose my-6 grid min-h-44 place-items-center rounded-xl border border-[var(--demo-border)] bg-[var(--demo-bar)] p-6">
       {buttonByStage[stage]}
     </div>
   );
@@ -138,18 +138,18 @@ export function TastefulButtonStepPreview({
 
 export function TastefulButtonProgression() {
   return (
-    <div className="not-prose mt-2 grid overflow-hidden rounded-xl border border-[#181916]/15 bg-[#eeeeeb] md:grid-cols-3">
+    <div className="not-prose mt-2 grid overflow-hidden rounded-xl border border-[var(--demo-border)] bg-[var(--demo-bar)] md:grid-cols-3">
       {stages.map((stage) => (
         <div
           key={stage.number}
-          className="flex min-h-56 flex-col border-b border-[#181916]/15 p-5 last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0"
+          className="flex min-h-56 flex-col border-b border-[var(--demo-border)] p-5 last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0"
         >
           <div className="flex items-center justify-between gap-4">
-            <span className="font-heading text-xs text-[#696b64]">{stage.number}</span>
-            <span className="text-xs text-[#696b64]">{stage.title}</span>
+            <span className="font-heading text-xs text-[var(--demo-subtle)]">{stage.number}</span>
+            <span className="text-xs text-[var(--demo-subtle)]">{stage.title}</span>
           </div>
           <div className="grid flex-1 place-items-center py-7">{stage.preview}</div>
-          <p className="text-sm leading-6 text-[#595b55]">{stage.note}</p>
+          <p className="text-sm leading-6 text-[var(--demo-muted)]">{stage.note}</p>
         </div>
       ))}
     </div>

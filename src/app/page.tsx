@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AsciiField } from "@/components/ascii-field";
 import { JsonLd } from "@/components/json-ld";
 import { SiteFooter } from "@/components/site-footer";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { siteConfig, siteUrl } from "@/lib/site";
 
 export default function Home() {
@@ -18,7 +19,7 @@ export default function Home() {
           inLanguage: "en",
         }}
       />
-      <main className="relative isolate flex h-dvh flex-col overflow-hidden bg-[#1736f5] px-5 text-[#f4ff8c] sm:px-8 lg:px-12">
+      <main className="relative isolate flex h-dvh flex-col overflow-hidden bg-[#1736f5] px-5 text-[#f4ff8c] dark:bg-[#111933] sm:px-8 lg:px-12">
       <AsciiField />
       <div className="noise pointer-events-none absolute inset-0 -z-10" />
 
@@ -26,7 +27,10 @@ export default function Home() {
         <Link href="/" className="font-heading text-base transition-opacity duration-150 hover:opacity-55">
           UIcraft
         </Link>
-        <p className="hidden text-sm text-current opacity-70 sm:block">Personal experiments, ongoing</p>
+        <div className="flex items-center gap-4">
+          <p className="hidden text-sm text-current opacity-70 sm:block">Personal experiments, ongoing</p>
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 items-center py-4 sm:py-6">

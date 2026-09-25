@@ -9,9 +9,9 @@ export function CraftIndex() {
 
   return (
     <section className="not-prose pt-16 sm:pt-24">
-      <div className="mb-8 flex items-end justify-between gap-6 border-b border-[#10121b]/10 pb-5 sm:mb-10">
+      <div className="mb-8 flex items-end justify-between gap-6 border-b border-foreground/10 pb-5 sm:mb-10">
         <h2 className="text-balance text-3xl font-medium sm:text-4xl">All experiments</h2>
-        <p className="font-mono text-xs tabular-nums text-[#10121b]/40">
+        <p className="font-mono text-xs tabular-nums text-foreground/40">
           {String(crafts.length).padStart(2, "0")} studies
         </p>
       </div>
@@ -23,13 +23,13 @@ export function CraftIndex() {
             <Link
               key={craft.slug}
               href={`/craft/${craft.slug}`}
-              className="group focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3155d9]"
+              className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--craft-accent)]"
             >
-              <div className="grid aspect-[4/3] place-items-center overflow-hidden border border-[#10121b]/10 bg-[#ededeb] p-6">
+              <div className="grid aspect-[4/3] place-items-center overflow-hidden border border-foreground/10 bg-[var(--craft-muted-surface)] p-6">
                 {Preview ? <Preview /> : <span className="font-heading text-sm">Preview</span>}
               </div>
               <div className="pt-5">
-                <div className="flex items-center justify-between gap-4 font-mono text-[10px] uppercase text-[#10121b]/45">
+                <div className="flex items-center justify-between gap-4 font-mono text-[10px] uppercase text-foreground/45">
                   <span>{String(index + 1).padStart(2, "0")} / {craft.category}</span>
                   {craft.publishedAt ? (
                     <time dateTime={craft.publishedAt} className="tabular-nums">
@@ -41,13 +41,13 @@ export function CraftIndex() {
                   ) : null}
                 </div>
                 <div className="mt-3 flex items-start justify-between gap-4">
-                  <h3 className="text-balance text-xl font-medium text-[#10121b]">{craft.title}</h3>
+                  <h3 className="text-balance text-xl font-medium text-foreground">{craft.title}</h3>
                   <ArrowUpRight
-                    className="mt-0.5 size-4 shrink-0 text-[#3155d9]"
+                    className="mt-0.5 size-4 shrink-0 text-[var(--craft-accent)]"
                     aria-hidden="true"
                   />
                 </div>
-                <p className="mt-2 line-clamp-2 text-pretty text-sm leading-6 text-[#5d5e62]">
+                <p className="mt-2 line-clamp-2 text-pretty text-sm leading-6 text-[var(--craft-muted)]">
                   {craft.description}
                 </p>
               </div>

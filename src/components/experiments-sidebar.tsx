@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
+import { ExternalLink, House } from "lucide-react";
 
 import {
   Sidebar,
@@ -18,26 +18,29 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import type { ContentEntry } from "@/lib/content";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
   const pathname = usePathname();
+  const footerAction =
+    "flex min-h-16 flex-col items-center justify-center gap-2 border border-foreground/10 bg-[var(--craft-surface)] px-1 text-center text-[11px] font-medium text-foreground/65 transition-colors hover:border-[var(--craft-accent)] hover:text-[var(--craft-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--craft-accent)]";
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-[#10121b]/10 bg-[#f2f2ef]">
-      <SidebarHeader className="h-12 justify-center border-b border-[#10121b]/10 px-3">
+    <Sidebar collapsible="offcanvas" className="border-foreground/10 bg-[var(--craft-sidebar)]">
+      <SidebarHeader className="h-12 justify-center border-b border-foreground/10 px-3">
         <Link
           href="/"
-          className="group flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3155d9]"
+          className="group flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--craft-accent)]"
         >
-          <span className="size-3 rounded-full bg-[#3155d9]" />
+          <span className="size-3 rounded-full bg-[var(--craft-accent)]" />
           <span className="font-heading text-sm">UIcraft</span>
         </Link>
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
         <SidebarGroup className="p-0">
-          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-[#10121b]/45">
+          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-foreground/45">
             Start here
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -46,7 +49,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
                 <SidebarMenuButton
                   render={<Link href="/craft" />}
                   isActive={pathname === "/craft"}
-                  className="h-8 rounded-none px-2 text-[13px] hover:bg-[#3155d9]/8 data-active:bg-[#3155d9]/8 data-active:font-medium data-active:text-[#3155d9]"
+                  className="h-8 rounded-none px-2 text-[13px] hover:bg-[var(--craft-accent-soft)] data-active:bg-[var(--craft-accent-soft)] data-active:font-medium data-active:text-[var(--craft-accent)]"
                 >
                   <span>Introduction</span>
                 </SidebarMenuButton>
@@ -56,7 +59,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
         </SidebarGroup>
 
         <SidebarGroup className="mt-4 p-0">
-          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-[#10121b]/45">
+          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-foreground/45">
             Experiments
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -71,8 +74,8 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
                       render={<Link href={href} />}
                       isActive={isActive}
                       className={cn(
-                        "h-8 rounded-none px-2 text-[13px] hover:bg-[#3155d9]/8 data-active:bg-[#3155d9]/8 data-active:font-medium data-active:text-[#3155d9]",
-                        isActive && "text-[#3155d9]",
+                        "h-8 rounded-none px-2 text-[13px] hover:bg-[var(--craft-accent-soft)] data-active:bg-[var(--craft-accent-soft)] data-active:font-medium data-active:text-[var(--craft-accent)]",
+                        isActive && "text-[var(--craft-accent)]",
                       )}
                     >
                       <span className="w-4 font-mono text-[10px] tabular-nums text-current opacity-40">
@@ -87,22 +90,21 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-[#10121b]/10 p-2">
+      <SidebarFooter className="grid grid-cols-3 gap-2 border-t border-foreground/10 p-2">
+        <ThemeToggle className={footerAction} label="Theme" />
         <a
           href="https://github.com/faisal004/uicraft"
           target="_blank"
           rel="noreferrer"
-          className="flex h-8 items-center justify-between px-2 text-[13px] text-[#10121b]/55 transition-colors duration-150 hover:text-[#3155d9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3155d9]"
+          aria-label="Source on GitHub"
+          className={footerAction}
         >
-          Source on GitHub
-          <ArrowUpRight className="size-4" aria-hidden="true" />
+          <ExternalLink className="size-4" aria-hidden="true" />
+          <span>GitHub</span>
         </a>
-        <Link
-          href="/"
-          className="flex h-8 items-center justify-between px-2 text-[13px] text-[#10121b]/55 transition-colors duration-150 hover:text-[#3155d9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3155d9]"
-        >
-          Back to landing
-          <ArrowUpRight className="size-4" aria-hidden="true" />
+        <Link href="/" className={footerAction}>
+          <House className="size-4" aria-hidden="true" />
+          <span>Home</span>
         </Link>
       </SidebarFooter>
       <SidebarRail />

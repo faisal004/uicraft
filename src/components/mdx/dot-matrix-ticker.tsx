@@ -224,7 +224,7 @@ export function DotMatrixTickerPlayground() {
   return (
     <DotMatrixBoundary>
       <CraftFrame label="Playground" meta="Display controls">
-        <div className="surface-grid flex min-h-56 min-w-0 max-w-full items-center overflow-hidden border-b border-[#181916]/15 p-5 sm:p-8">
+        <div className="surface-grid flex min-h-56 min-w-0 max-w-full items-center overflow-hidden border-b border-[var(--demo-border)] p-5 sm:p-8">
           <DotMatrixTicker
             text={text}
             speed={speed}
@@ -239,13 +239,13 @@ export function DotMatrixTickerPlayground() {
         <div className="grid min-w-0 max-w-full gap-5 p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-[#181916]">Display controls</p>
-              <p className="mt-0.5 text-xs text-[#595b55]">Tune the message, matrix, and movement.</p>
+              <p className="text-sm font-medium text-[var(--demo-ink)]">Display controls</p>
+              <p className="mt-0.5 text-xs text-[var(--demo-muted)]">Tune the message, matrix, and movement.</p>
             </div>
             <button
               type="button"
               onClick={reset}
-              className="inline-flex h-8 items-center gap-1.5 border border-[#181916]/15 bg-white px-2.5 text-[11px] font-medium text-[#595b55] outline-none transition-[background-color,color,transform] duration-150 ease-out hover:bg-[#eeeeeb] hover:text-[#181916] focus-visible:ring-2 focus-visible:ring-[#1736f5]/25 active:scale-[0.97]"
+              className="inline-flex h-8 items-center gap-1.5 border border-[var(--demo-border)] bg-[var(--demo-bg)] px-2.5 text-[11px] font-medium text-[var(--demo-muted)] outline-none transition-[background-color,color,transform] duration-150 ease-out hover:bg-[var(--demo-bar)] hover:text-[var(--demo-ink)] focus-visible:ring-2 focus-visible:ring-[#1736f5]/25 active:scale-[0.97]"
             >
               <RotateCcw className="size-3" aria-hidden="true" />
               Reset
@@ -254,7 +254,7 @@ export function DotMatrixTickerPlayground() {
 
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <label className="grid min-w-0 gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#595b55]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--demo-muted)]">
                 Message
               </span>
               <input
@@ -262,12 +262,12 @@ export function DotMatrixTickerPlayground() {
                 maxLength={80}
                 onChange={(event) => setText(event.target.value)}
                 placeholder="Type a ticker message"
-                className="h-10 min-w-0 w-full border border-[#181916]/15 bg-white px-3 text-sm text-[#181916] outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-[#696b64] focus:border-[#181916]/50 focus:ring-2 focus:ring-[#1736f5]/20"
+                className="h-10 min-w-0 w-full border border-[var(--demo-border)] bg-[var(--demo-bg)] px-3 text-sm text-[var(--demo-ink)] outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-[var(--demo-subtle)] focus:border-[#181916]/50 focus:ring-2 focus:ring-[#1736f5]/20"
               />
             </label>
 
             <div className="grid gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#595b55]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--demo-muted)]">
                 Color
               </span>
               <div className="flex gap-1.5" role="group" aria-label="Ticker color">
@@ -293,10 +293,10 @@ export function DotMatrixTickerPlayground() {
           </div>
 
           <div className="grid gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#595b55]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--demo-muted)]">
               Matrix shape
             </span>
-            <div className="grid grid-cols-3 border border-[#181916]/15 bg-[#eeeeeb] p-1" role="group" aria-label="Dot shape">
+            <div className="grid grid-cols-3 border border-[var(--demo-border)] bg-[var(--demo-bar)] p-1" role="group" aria-label="Dot shape">
               {(["circle", "square", "diamond"] as const).map((item) => (
                 <button
                   key={item}
@@ -306,8 +306,8 @@ export function DotMatrixTickerPlayground() {
                   className={cn(
                     "px-3 py-2 text-xs font-medium capitalize outline-none transition-[background-color,color,box-shadow] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1736f5]/25",
                     shape === item
-                      ? "bg-white text-[#181916] shadow-[0_1px_3px_rgb(24_25_22/0.12)]"
-                      : "text-[#595b55] hover:text-[#181916]",
+                      ? "bg-[var(--demo-bg)] text-[var(--demo-ink)] shadow-[0_1px_3px_rgb(24_25_22/0.12)]"
+                      : "text-[var(--demo-muted)] hover:text-[var(--demo-ink)]",
                   )}
                 >
                   {item}
@@ -337,7 +337,7 @@ export function DotMatrixTickerStep({ step }: { step: number | string }) {
     <CraftFrame label={`Stage ${String(current + 1).padStart(2, "0")}`} meta={labels[current]}>
       <div className="surface-grid flex min-h-48 min-w-0 items-center overflow-hidden p-5 sm:p-8">
         {current === 0 ? (
-          <p className="font-mono text-xl font-medium tracking-[0.04em] text-[#181916] sm:text-2xl">
+          <p className="font-mono text-xl font-medium tracking-[0.04em] text-[var(--demo-ink)] sm:text-2xl">
             Ship interfaces that feel fast.
           </p>
         ) : current === 1 ? (

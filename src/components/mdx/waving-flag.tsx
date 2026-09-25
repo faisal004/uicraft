@@ -38,7 +38,7 @@ function Flag({
       {Array.from({ length: columns }, (_, index) => (
         <span
           key={index}
-          className={`waving-flag__column ${animated ? "is-waving" : ""} ${showCuts ? "border-r border-[#181916]/25 last:border-r-0" : ""}`}
+          className={`waving-flag__column ${animated ? "is-waving" : ""} ${showCuts ? "border-r border-[var(--demo-border)] last:border-r-0" : ""}`}
           style={
             {
               "--billow": `${uniform ? billow : index * billow}px`,
@@ -83,16 +83,16 @@ export function WavingFlagPlayground() {
 
   return (
     <CraftFrame label="Playground" meta="Cloth controls">
-      <div className="surface-grid grid min-h-60 place-items-center border-b border-[#181916]/15 p-8">
+      <div className="surface-grid grid min-h-60 place-items-center border-b border-[var(--demo-border)] p-8">
         <Flag columns={columns} stagger={stagger} billow={billow} />
       </div>
       <div className="grid gap-4 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-[#595b55]">Break the wave on purpose. It is only three numbers.</p>
+          <p className="text-sm text-[var(--demo-muted)]">Break the wave on purpose. It is only three numbers.</p>
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-8 items-center gap-1.5 border border-[#181916]/15 bg-white px-2.5 text-xs text-[#595b55] hover:bg-[#eeeeeb]"
+            className="inline-flex h-8 items-center gap-1.5 border border-[var(--demo-border)] bg-[var(--demo-bg)] px-2.5 text-xs text-[var(--demo-muted)] hover:bg-[var(--demo-bar)]"
           >
             <RotateCcw className="size-3" aria-hidden="true" /> Reset
           </button>

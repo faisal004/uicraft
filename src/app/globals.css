@@ -50,8 +50,8 @@
 }
 
 .surface-grid {
-  background-image: linear-gradient(to right, rgb(24 25 22 / 8%) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(24 25 22 / 8%) 1px, transparent 1px);
+  background-image: linear-gradient(to right, var(--demo-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--demo-grid) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -95,6 +95,21 @@
 }
 
 :root {
+  --craft-page: #f7f7f7;
+  --craft-sidebar: #f2f2ef;
+  --craft-surface: #fff;
+  --craft-muted-surface: #ededeb;
+  --craft-muted: #5d5e62;
+  --craft-accent: #3155d9;
+  --craft-accent-soft: rgb(49 85 217 / 8%);
+  --demo-bg: var(--craft-surface);
+  --demo-bar: #eeeeeb;
+  --demo-ink: #181916;
+  --demo-muted: #595b55;
+  --demo-subtle: #696b64;
+  --demo-border: rgb(24 25 22 / 15%);
+  --demo-grid: rgb(24 25 22 / 8%);
+  --demo-track: #d8d8d4;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -130,6 +145,20 @@
 }
 
 .dark {
+  --craft-page: #1a1a1a;
+  --craft-sidebar: var(--sidebar);
+  --craft-surface: var(--sidebar);
+  --craft-muted-surface: #292d36;
+  --craft-muted: #b2b6c1;
+  --craft-accent: #91a7ff;
+  --craft-accent-soft: rgb(145 167 255 / 12%);
+  --demo-bar: #242424;
+  --demo-ink: #f4f4f4;
+  --demo-muted: #bdbdbd;
+  --demo-subtle: #a3a3a3;
+  --demo-border: rgb(255 255 255 / 13%);
+  --demo-grid: rgb(255 255 255 / 7%);
+  --demo-track: #4b4b4b;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
