@@ -18,7 +18,7 @@ const components = {
     <h3 className="mt-10 text-balance text-lg font-medium text-foreground" {...props} />
   ),
   p: (props: React.ComponentProps<"p">) => (
-    <p className="mt-4 max-w-2xl text-pretty text-base leading-8 text-(--craft-muted)" {...props} />
+    <p className="mt-4  text-pretty text-base leading-8 text-(--craft-muted)" {...props} />
   ),
   a: (props: React.ComponentProps<"a">) => (
     <a className="text-(--craft-accent) underline decoration-(--craft-accent)/25 underline-offset-4 hover:decoration-(--craft-accent)" {...props} />

@@ -1,0 +1,50 @@
+---
+title: Thanos Snap
+description: Turn a heading, paragraph, and link into fine dust with a staggered left-to-right dissolve.
+publishedAt: 2026-09-27
+category: Animation
+preview: thanos-snap
+order: 5
+kind: craft
+---
+
+<ThanosSnapDemo />
+
+The full page demo recreates a familiar search results layout without advertisements. Click the gauntlet to dissolve half the result blocks, then click it again to restore them.
+
+The gauntlet sprites and snap, dust, and reverse sounds come from the [elgooG restoration](https://elgoog.im/thanos/). They are served locally by this demo. The 48 sprite frames play at 50 ms each; the result dust begins after the hand animation finishes.
+
+## Implementation
+
+The effect works on complete search result blocks: URL, title, and description. Clicking the gauntlet selects alternating results. For each selected result, it makes masked visual copies. A canvas mask assigns individual device pixels to each copy, with later copies receiving pixels farther to the right. Each copy then drifts and fades with a staggered delay. Clicking again reverses the motion.
+
+```tsx title="dust-layers.ts"
+const scale = Math.min(window.devicePixelRatio || 1, 2)
+const pixelWidth = Math.ceil(width * scale)
+const pixelHeight = Math.ceil(height * scale)
+const layers = Array.from({ length: 20 }, () => document.createElement("canvas"))
+
+for (let y = 0; y < pixelHeight; y += 1) {
+  for (let x = 0; x < pixelWidth; x += 1) {
+    const index = Math.max(0, Math.min(19, Math.floor(
+      20 * (0.1 + 0.8 * x / pixelWidth) + (Math.random() - 0.5) * 20 / 6
+    )))
+    layers[index].getContext("2d")?.fillRect(x, y, 1, 1)
+  }
+}
+
+layers.forEach((mask, index) => {
+  const copy = content.cloneNode(true)
+  copy.style.maskImage = `url(${mask.toDataURL()})`
+  stage.append(copy)
+  copy.animate(
+    [{ opacity: 1, transform: "translate(0, 0)" },
+     { opacity: 0, transform: "translate(70px, -20px) rotate(5deg)" }],
+    { duration: 1100, delay: index / 20 * waveDuration, fill: "forwards" }
+  )
+})
+```
+
+## How it works
+
+This follows the layered approach in the supplied Thanos example. The original uses `html2canvas` to turn a block into an image, then divides pixels among canvases. Here each layer is a masked DOM copy, so result titles and descriptions retain their browser styling without adding a screenshot dependency. The masks use one physical pixel per grain by default; the earlier three-pixel squares made the effect look blocky. The horizontal bias creates the sweeping edge, and random assignment breaks it into dust. The gauntlet also respects reduced motion.
