@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { MdxPage } from "@/components/mdx/mdx-page";
-import { getAllContent, getContentBySlug } from "@/lib/content";
+import { getContentBySlug, getCraftContent } from "@/lib/content";
 import { siteConfig, siteUrl } from "@/lib/site";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 };
 
 export function generateStaticParams() {
-  return getAllContent().filter((entry) => entry.kind === "craft").map(({ slug }) => ({ slug }));
+  return getCraftContent().map(({ slug }) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

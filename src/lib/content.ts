@@ -13,7 +13,6 @@ export type ContentEntry = {
   publishedAt?: string;
   category?: string;
   preview?: string;
-  listed: boolean;
   order: number;
   kind: "introduction" | "craft";
 };
@@ -42,7 +41,6 @@ function readDocument(filename: string): ContentDocument {
     publishedAt,
     category: data.category ? String(data.category) : undefined,
     preview: data.preview ? String(data.preview) : undefined,
-    listed: data.listed !== false,
     order: Number(data.order ?? 999),
     kind: data.kind === "introduction" ? "introduction" : "craft",
     body: content,
@@ -61,7 +59,6 @@ export function getAllContent(): ContentEntry[] {
       publishedAt: document.publishedAt,
       category: document.category,
       preview: document.preview,
-      listed: document.listed,
       order: document.order,
       kind: document.kind,
     }))
@@ -69,7 +66,7 @@ export function getAllContent(): ContentEntry[] {
 }
 
 export function getCraftContent(): ContentEntry[] {
-  return getAllContent().filter((entry) => entry.kind === "craft" && entry.listed);
+  return getAllContent().filter((entry) => entry.kind === "craft");
 }
 
 export function getContentBySlug(slug: string): ContentDocument | undefined {

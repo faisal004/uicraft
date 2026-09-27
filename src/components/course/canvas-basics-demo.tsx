@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const WIDTH = 600;
 const HEIGHT = 300;
@@ -8,13 +8,11 @@ const stages = ["Coordinates", "Rectangle", "Circle", "Text", "Animation", "Pixe
 
 export function CanvasBasicsDemo({
   initialStep = 0,
-  showControls = true,
 }: {
   initialStep?: number;
-  showControls?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [step, setStep] = useState(initialStep);
+  const step = initialStep;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -112,23 +110,7 @@ export function CanvasBasicsDemo({
       >
         {stages[step]} canvas example.
       </canvas>
-      {showControls ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, borderTop: "1px solid #dce4ee", padding: 12 }}>
-          {stages.map((label, index) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => setStep(index)}
-              aria-pressed={step === index}
-              style={{ border: "1px solid #cbd5e1", padding: "7px 10px", background: step === index ? "#2563eb" : "white", color: step === index ? "white" : "#334155", cursor: "pointer" }}
-            >
-              {index + 1}. {label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p style={{ margin: 0, borderTop: "1px solid #dce4ee", padding: "8px 12px", fontSize: 12, color: "#475569" }}>Live stage {step + 1}: {stages[step]}</p>
-      )}
+      <p style={{ margin: 0, borderTop: "1px solid #dce4ee", padding: "8px 12px", fontSize: 12, color: "#475569" }}>Live example: {stages[step]}</p>
     </div>
   );
 }
