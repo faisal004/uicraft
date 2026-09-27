@@ -24,6 +24,7 @@ import {
   TextToParticlesThumbnail,
 } from "@/components/mdx/text-to-particles";
 import { ThanosSnapDemo, ThanosSnapThumbnail } from "@/components/mdx/thanos-snap";
+import { ThanosSnapSource } from "@/components/mdx/thanos-snap-source";
 
 export const mdxComponents = {
   TastefulButtonDemo,
@@ -40,6 +41,7 @@ export const mdxComponents = {
   TextToParticlesPlayground,
   TextToParticlesStep,
   ThanosSnapDemo,
+  ThanosSnapSource,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {

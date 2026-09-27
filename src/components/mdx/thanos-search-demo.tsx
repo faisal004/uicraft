@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, BookOpen, ImageIcon, Mic, MoreVertical, RotateCcw, Search, Video, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { animateDust } from "@/components/mdx/dust-effect";
+import { animateDust } from "@/components/mdx/thanos-snap-demo";
 
 const results = [
   {
