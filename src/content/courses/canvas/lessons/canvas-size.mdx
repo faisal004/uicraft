@@ -1,0 +1,26 @@
+---
+title: "Canvas size: pixels inside versus size on screen"
+description: Understand the drawing buffer, CSS size, and device pixel ratio.
+order: 2
+---
+
+This is the first common trap. `<canvas width="300" height="150">` creates a **300 × 150 drawing buffer**. CSS `width` and `height` change how large that buffer appears on screen. If CSS makes it 300 × 270 without changing the buffer, the browser stretches the old image. A circle becomes an oval.
+
+Move the height slider. First leave the checkbox off, then turn it on. Look at the blue circle.
+
+<CanvasSizeDemo />
+
+For a fixed 300 × 150 canvas, give the CSS box the same proportions. For a responsive canvas, measure the box and update the drawing buffer too. On a high-density screen, multiply the buffer by `devicePixelRatio` and scale the context so your drawing commands still use CSS pixels.
+
+```js
+const box = canvas.getBoundingClientRect()
+const dpr = window.devicePixelRatio || 1
+canvas.width = Math.round(box.width * dpr)
+canvas.height = Math.round(box.height * dpr)
+ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+// Now draw using box.width and box.height as your logical size.
+```
+
+Setting `canvas.width` or `canvas.height` **clears the drawing** and resets context settings. Resize first, then set styles and draw again. CSS alone can resize the box, but it cannot add detail to an undersized drawing buffer.
+
+**Try this:** make the displayed height 270. With the checkbox off, predict the circle's shape. Then turn it on and compare.

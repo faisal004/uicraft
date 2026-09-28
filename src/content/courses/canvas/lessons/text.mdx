@@ -1,0 +1,19 @@
+---
+title: "Text is also drawing"
+description: Draw text and understand when HTML text is better.
+order: 6
+---
+
+Choose a font and call `fillText`. By default, its `x` value marks the text's left edge and its `y` value marks the **baseline** the letters sit on. You can change alignment with `textAlign` and `textBaseline`.
+
+```js
+ctx.fillStyle = "#0f172a"
+ctx.font = "bold 44px Arial"
+ctx.fillText("Hello, canvas!", 150, 242)
+```
+
+<CanvasBasicsStep step="3" />
+
+Canvas text becomes pixels. It is not selectable or readable like an ordinary `<h1>`. Use real HTML for meaningful page content. Draw text on canvas when the pixels themselves are part of the effect.
+
+**Try this:** change `242` to `200`. Predict whether the words move up or down.

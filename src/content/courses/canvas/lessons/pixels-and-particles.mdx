@@ -1,0 +1,41 @@
+---
+title: "Read pixels and make the bridge to particles"
+description: Read pixel data and discover how text becomes particles.
+order: 10
+---
+
+`getImageData` lets you inspect the colored pixels in a canvas. Each pixel uses four numbers: **red, green, blue, alpha**. Alpha is 0 for transparent and 255 for fully opaque. The position of pixel `(x, y)` in the flat array is `(y * width + x) * 4`.
+
+Here is a useful trick: draw a word on a second, offscreen canvas; read its alpha values; draw a dot where the letters have visible pixels.
+
+```js
+const mask = document.createElement("canvas")
+mask.width = 600
+mask.height = 300
+const pen = mask.getContext("2d")
+pen.font = "bold 110px Arial"
+pen.textAlign = "center"
+pen.textBaseline = "middle"
+pen.fillText("HELLO", 300, 150)
+
+const pixels = pen.getImageData(0, 0, 600, 300).data
+ctx.fillStyle = "#2563eb"
+for (let y = 0; y < 300; y += 5) {
+  for (let x = 0; x < 600; x += 5) {
+    const alpha = pixels[(y * 600 + x) * 4 + 3]
+    if (alpha > 128) ctx.fillRect(x, y, 3, 3)
+  }
+}
+```
+
+<CanvasBasicsStep step="5" />
+
+The `5` controls sampling distance. Smaller steps create more dots and more work. Larger steps create a rougher image. Those `(x, y)` locations can become particles: store them, change their positions each frame, then redraw. That is the core idea behind Text to Particles.
+
+**Try this:** imagine replacing `fillRect(x, y, 3, 3)` with `fillRect(x + 20, y, 3, 3)`. Which way would the dotted word move?
+
+## Your first small project
+
+Make a circle follow your pointer. Use lesson 1 to create the canvas, lesson 5 to draw a circle, lesson 7 to clear the old drawing, and lesson 9 to convert pointer coordinates. When that works, draw a word on an offscreen canvas and sample its pixels as in lesson 10. You now have the pieces needed to understand [Text to Particles](/craft/text-to-particles) and [Thanos Snap](/craft/thanos-snap).
+
+If you get stuck, identify the kind of problem first: **size**, **coordinates**, **drawing state**, **animation loop**, or **pixel data**. Most canvas bugs belong to one of those five buckets.
