@@ -148,4 +148,172 @@ The live component adds deterministic scattering, automatic font fitting, mobile
 
 ## How it works
 
-I am working on this.
+The word you read is never a moving HTML element. A hidden canvas records where the ink is, and every one of those pixels becomes a particle that flies back to its coordinate.
+
+### Step 1. Start with a canvas
+
+A `<canvas>` is a blank bitmap. Unlike a heading, the browser will not lay out text inside it. You paint onto it yourself. Give the canvas a sized parent so it has a width and height to measure later.
+
+The canvas is marked `aria-hidden` because the picture is decorative. The sentence next to it is what a screen reader announces.
+
+```tsx
+<div className="h-[30rem] overflow-hidden bg-[#090a0b]">
+  <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
+  <span className="sr-only">Particles converge to form {message}.</span>
+</div>
+```
+
+**What you see:** a dark empty rectangle. Nothing is drawn yet.
+
+### Step 2. Draw the word
+
+<TextToParticlesStep step="0" />
+
+`getContext("2d")` is the pen for a canvas. `fillText` paints a string at a point. `textAlign: "center"` and `textBaseline: "middle"` mean that point is the middle of the word, not its top-left corner.
+
+Measure the canvas with `getBoundingClientRect` before drawing. That size is in CSS pixels. `devicePixelRatio` is how many screen pixels fit into one CSS pixel. Set the bitmap to that multiple, capped at two, so the type stays sharp without a huge canvas. `setTransform(dpr, 0, 0, dpr, 0, 0)` then lets every later coordinate stay in CSS pixels.
+
+```ts
+const rect = canvas.getBoundingClientRect()
+const dpr = Math.min(window.devicePixelRatio || 1, 2)
+width = rect.width
+height = rect.height
+canvas.width = Math.round(width * dpr)
+canvas.height = Math.round(height * dpr)
+context.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+context.fillStyle = "#f7f7f4"
+context.font = `800 ${Math.min(140, height * 0.3)}px system-ui`
+context.textAlign = "center"
+context.textBaseline = "middle"
+context.fillText(message, width / 2, height / 2)
+```
+
+**What you see:** the word in the center, drawn as ordinary type. This frame is the target. The particles will rebuild it.
+
+### Step 3. Read the ink as coordinates
+
+<TextToParticlesStep step="1" />
+
+Draw the same word a second time, in white, on a canvas you never attach to the page. `document.createElement("canvas")` makes that hidden bitmap. It uses CSS pixels on purpose: after `setTransform`, those coordinates match the visible canvas.
+
+`getImageData` copies every pixel into one flat list. Each pixel is four numbers in a row: red, green, blue, and alpha. Alpha is `0` for empty and `255` for solid ink. The alpha of pixel `(x, y)` is at index `(y * width + x) * 4 + 3`.
+
+Keep a coordinate when alpha is above `120`. That skips the faint gray fringe around the letters and keeps the solid strokes. Drawing a `2.1` pixel square at each kept coordinate rebuilds the word out of dust. Put every square in one path and call `fill` once. Filling thousands of separate squares is much slower.
+
+A large word can contain more opaque pixels than we want to move. `stride` keeps about 20,000 of them by taking every nth coordinate.
+
+```ts
+const pixels = maskContext.getImageData(0, 0, mask.width, mask.height).data
+const targets = []
+
+for (let y = 0; y < mask.height; y += 1) {
+  for (let x = 0; x < mask.width; x += 1) {
+    if (pixels[(y * mask.width + x) * 4 + 3] > 120) {
+      targets.push([x, y])
+    }
+  }
+}
+
+const stride = Math.max(1, Math.ceil(targets.length / 20_000))
+context.beginPath()
+for (const [x, y] of targets.filter((_, index) => index % stride === 0)) {
+  context.rect(x, y, 2.1, 2.1)
+}
+context.fill()
+```
+
+**What you see:** the same word, now made of small squares. The smooth type is gone. These squares are the destinations.
+
+### Step 4. Send every square outside the canvas
+
+<TextToParticlesStep step="2" />
+
+Each kept coordinate becomes a particle. `targetX` and `targetY` are the pixel on the letter. `startX` and `startY` are where that particle begins.
+
+The horizontal start is the target shifted by a random amount of up to two canvas widths. The vertical start is at least one full canvas height above or below the target. `Math.random() > 0.5` picks up or down. Both offsets put the particle off screen.
+
+```ts
+{
+  startX: targetX + (Math.random() * 4 - 2) * width,
+  startY: targetY + (Math.random() > 0.5 ? 1 : -1) * (height + Math.random() * height),
+  targetX,
+  targetY,
+  delayMs: (targetX / width * 0.22 + Math.random() * 0.11) * 3500,
+  travelMs: 770 + Math.random() * 1575,
+}
+```
+
+`delayMs` is how long a particle waits before it moves. Pixels farther right wait longer, so the word gathers from left to right. The small random term keeps that edge from looking like a hard line. `travelMs` is how long the particle moves once the wait is over. Some trips last about 770 ms and some last about 2,300 ms, so the cloud does not arrive as one sheet.
+
+**What you see:** the squares have left the letter shapes. They sit between the outside of the canvas and the word.
+
+### Step 5. Move each particle toward its pixel
+
+<TextToParticlesStep step="3" />
+
+`requestAnimationFrame` asks the browser to call `draw` before the next paint. `draw` then asks for another frame. That loop is the animation.
+
+Each frame starts with `clearRect`, which erases the previous dots. Without it, the particles would smear across the canvas.
+
+`progress` runs from 0 to 1. Multiply it by `3500` to get `formationTime`, the clock a particle compares with its own delay. `clamp` forces a number into the range 0–1. Before the delay, the result is 0 and the particle stays at its start. After `delayMs + travelMs`, the result is 1 and it sits on the letter.
+
+`ease` is `1 - (1 - t)³`. The particle covers most of the distance early, then slows as it lands. Moving by raw `t` would travel at one speed and stop abruptly.
+
+The position on a frame is the start plus the traveled fraction of the gap:
+
+```ts
+const local = ease(clamp((formationTime - particle.delayMs) / particle.travelMs))
+const x = particle.startX + (particle.targetX - particle.startX) * local
+const y = particle.startY + (particle.targetY - particle.startY) * local
+context.rect(x, y, 2.1, 2.1)
+```
+
+`globalAlpha` fades the whole cloud from `0.18` to `1` as `progress` goes from 0 to 1, using the same ease curve. Scattered dots stay faint. The formed word is solid.
+
+**What you see:** particles stream in from outside the canvas. The left side of the word locks in first, until the letters are readable.
+
+### Step 6. Let the word form, rest, and break apart
+
+The same particles play backward when `progress` falls from 1 to 0. `elapsed` adds the time between frames, capped at 32 ms, so a background tab does not jump the animation when it wakes up. One cycle is 9,000 ms:
+
+- 0–3,500 ms: `progress` rises from 0 to 1. The word forms.
+- 3,500–5,000 ms: `progress` stays at 1. The word holds.
+- 5,000–8,500 ms: `progress` falls from 1 to 0. The particles return to their starts.
+- 8,500–9,000 ms: `progress` stays at 0. Then `elapsed % 9000` begins again.
+
+```ts
+elapsed += Math.min(time - lastTime, 32)
+const cycle = elapsed % 9000
+const progress = cycle < 3500
+  ? cycle / 3500
+  : cycle < 5000
+    ? 1
+    : cycle < 8500
+      ? 1 - (cycle - 5000) / 3500
+      : 0
+```
+
+**What you see:** the word assembles, rests long enough to read, then dissolves into the same particles and repeats.
+
+### Step 7. Rebuild on resize and stop the loop
+
+`ResizeObserver` calls `rebuild` when the canvas box changes size. Rebuild measures the canvas again, redraws the hidden word, and creates a new particle list. Without it, a resized page would keep painting into the old bitmap.
+
+When the component unmounts, `cancelAnimationFrame` stops the loop and `disconnect` stops the observer. Leaving either one running would keep drawing after the canvas is gone.
+
+```ts
+const observer = new ResizeObserver(rebuild)
+rebuild()
+observer.observe(canvas)
+frame = requestAnimationFrame(draw)
+
+return () => {
+  cancelAnimationFrame(frame)
+  observer.disconnect()
+}
+```
+
+**What you see:** resizing the window samples the word again at the new size. Leaving the page stops the animation.
+
+The playground above changes how far apart the samples are, how big each dot is, and how long formation takes. A wider sample gap keeps fewer pixels. A longer formation gives each particle more time to arrive. The live component also fits the font to the box, uses fewer particles on a phone, and pauses while the canvas is offscreen. [Thanos Snap](/craft/thanos-snap) takes the same dust idea into a real HTML heading and paragraph.

@@ -1,0 +1,18 @@
+---
+title: "Rectangles and color"
+description: Paint rectangles, choose colors, and learn drawing order.
+order: 4
+---
+
+`fillStyle` chooses the color for future fills. `fillRect(x, y, width, height)` paints a rectangle. Its first two numbers locate the top-left corner; the next two describe its size.
+
+```js
+ctx.fillStyle = "#2563eb"
+ctx.fillRect(50, 65, 180, 100)
+```
+
+<CanvasBasicsStep step="1" />
+
+**Try this:** change `50` to `150`. Predict which way the rectangle moves before you look at the grid. A negative width is not how you position it; move its `x` instead.
+
+Drawing order matters. A later shape can cover an earlier one, like adding paint on top of paint. `strokeRect` draws an outline, and `clearRect` erases a region back to transparency.

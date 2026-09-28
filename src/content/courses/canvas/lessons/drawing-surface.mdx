@@ -1,0 +1,27 @@
+---
+title: "The drawing surface"
+description: Meet the canvas element and its 2D drawing context.
+order: 1
+---
+
+Before you begin, remember one idea: **canvas is a bitmap you draw into with JavaScript.** A circle on canvas is colored pixels, not a circle element you can inspect in the DOM. Work through the lessons in order. Change one number in each snippet before moving on.
+
+Start with ordinary HTML. The `<canvas>` element gives you an empty drawing surface. Its `width` and `height` attributes set the number of drawing units inside it. The text between the tags is a fallback for browsers that cannot use canvas.
+
+```html
+<canvas id="board" width="600" height="300">
+  Your browser does not support canvas.
+</canvas>
+```
+
+JavaScript asks that element for a **2D context**. Call it `ctx`: it is the pen you will use for almost everything in this course. If the context is unavailable, stop before drawing.
+
+```js
+const canvas = document.querySelector("#board")
+const ctx = canvas.getContext("2d")
+if (!ctx) throw new Error("2D canvas is unavailable")
+```
+
+At this point the canvas is still blank. Unlike HTML, drawing does not happen because you added child elements. You must issue drawing commands.
+
+**Check yourself:** What are `canvas` and `ctx`? The canvas is the surface; `ctx` is the API used to draw on it.

@@ -1,0 +1,20 @@
+---
+title: "Paths and circles"
+description: Build circles and lines with paths.
+order: 5
+---
+
+Rectangles have a shortcut, but most shapes use a **path**: begin one, describe its geometry, then fill or stroke it. `arc` takes a center, radius, start angle, and end angle. A full circle ends at `Math.PI * 2` radians.
+
+```js
+ctx.beginPath()
+ctx.arc(430, 115, 50, 0, Math.PI * 2)
+ctx.fillStyle = "#f59e0b"
+ctx.fill()
+```
+
+<CanvasBasicsStep step="2" />
+
+`beginPath()` matters. Without it, a later `fill()` or `stroke()` can reuse parts of a previous path. To draw a line, use `moveTo(x, y)`, then `lineTo(x, y)`, then `stroke()`.
+
+**Try this:** the circle's center is `(430, 115)` and its radius is `50`. What are its left and right edges? They are `x = 380` and `x = 480`.

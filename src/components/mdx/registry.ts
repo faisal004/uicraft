@@ -23,6 +23,7 @@ import {
   TextToParticlesStep,
   TextToParticlesThumbnail,
 } from "@/components/mdx/text-to-particles";
+import { ThanosSnapDemo, ThanosSnapThumbnail } from "@/components/mdx/thanos-snap";
 
 export const mdxComponents = {
   TastefulButtonDemo,
@@ -38,6 +39,7 @@ export const mdxComponents = {
   TextToParticlesDemo,
   TextToParticlesPlayground,
   TextToParticlesStep,
+  ThanosSnapDemo,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
@@ -45,4 +47,5 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,
   "text-to-particles": TextToParticlesThumbnail,
+  "thanos-snap": ThanosSnapThumbnail,
 };

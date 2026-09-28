@@ -1,0 +1,22 @@
+---
+title: "A pointer uses a different coordinate system"
+description: Map pointer positions into canvas coordinates.
+order: 9
+---
+
+Pointer events report coordinates in the browser window. Canvas drawing uses coordinates inside the drawing buffer. First subtract the canvas's position on screen; then account for any CSS scaling. Move your pointer over this demo and watch the numbers.
+
+<CanvasPointerDemo />
+
+```js
+canvas.addEventListener("pointermove", (event) => {
+  const box = canvas.getBoundingClientRect()
+  const x = (event.clientX - box.left) * canvas.width / box.width
+  const y = (event.clientY - box.top) * canvas.height / box.height
+  // Draw at (x, y), then redraw the scene on the next move.
+})
+```
+
+If you use a high-density buffer and called `ctx.setTransform(dpr, 0, 0, dpr, 0, 0)`, draw with **CSS-pixel coordinates** instead: use `event.clientX - box.left` and `event.clientY - box.top`. Keep your input coordinates and drawing coordinates in the same system.
+
+**Try this:** shrink the browser width. The dot should still follow the pointer even though the canvas looks smaller.

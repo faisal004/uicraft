@@ -1,0 +1,27 @@
+---
+title: "State, clearing, and drawing again"
+description: Keep drawing styles under control and clear old frames.
+order: 7
+---
+
+Canvas keeps its drawing until you erase it or change its size. Styles such as `fillStyle`, line width, alignment, and transforms also stay in the context until changed. `save()` and `restore()` let you temporarily change settings without leaking them into the next drawing.
+
+```js
+ctx.save()
+ctx.fillStyle = "tomato"
+ctx.fillRect(20, 20, 80, 80)
+ctx.restore()
+// The fillStyle is now whatever it was before save().
+```
+
+To replace a frame, clear it and draw the new one. `clearRect` makes pixels transparent. If you want a solid background, paint a full-size rectangle after clearing.
+
+```js
+ctx.clearRect(0, 0, canvas.width, canvas.height)
+ctx.fillStyle = "white"
+ctx.fillRect(0, 0, canvas.width, canvas.height)
+```
+
+That clearing example assumes the context has its default scale. If you used `setTransform(dpr, ...)` in lesson 2, clear using the **logical CSS width and height** instead, because your drawing coordinates are scaled.
+
+**Check yourself:** What happens if you draw a moving circle without clearing? Every old circle remains, making a trail.

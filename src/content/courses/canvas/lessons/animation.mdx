@@ -1,0 +1,31 @@
+---
+title: "Animation is repeated drawing"
+description: Create motion with requestAnimationFrame.
+order: 8
+---
+
+There is no “move this circle” command because the circle is already pixels. Instead, clear the old image, calculate a new position, draw again, and ask the browser for the next frame. `requestAnimationFrame` gives you a timestamp so motion depends on time rather than computer speed.
+
+```js
+let frame
+const started = performance.now()
+
+function draw(time) {
+  ctx.clearRect(0, 0, 600, 300)
+  const x = 80 + (Math.sin((time - started) / 700) + 1) * 200
+  ctx.beginPath()
+  ctx.arc(x, 150, 34, 0, Math.PI * 2)
+  ctx.fillStyle = "#2563eb"
+  ctx.fill()
+  frame = requestAnimationFrame(draw)
+}
+
+frame = requestAnimationFrame(draw)
+// When leaving this page or stopping: cancelAnimationFrame(frame)
+```
+
+<CanvasBasicsStep step="4" />
+
+The `Math.sin(...)` part makes `x` travel back and forth. Ignore the formula at first; focus on the loop: **clear → calculate → draw → repeat**. The live example redraws the grid each frame too.
+
+**Try this:** change `700` to `1400`. Will the circle move faster or slower? Slower.
