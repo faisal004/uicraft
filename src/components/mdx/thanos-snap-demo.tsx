@@ -129,7 +129,7 @@ export function ThanosSnapDemo() {
   };
 
   return (
-    <div style={{ border: "1px solid #dadce0", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ border: "1px solid var(--demo-border, #dadce0)", fontFamily: "Arial, sans-serif" }}>
       <div style={{ minHeight: 220, padding: 32, background: "white", color: "#202124" }}>
         <div style={{ position: "relative", maxWidth: 640, margin: "0 auto" }}>
           <div ref={contentRef}>
@@ -138,7 +138,7 @@ export function ThanosSnapDemo() {
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid #dadce0", padding: 16 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--demo-border, #dadce0)", padding: 16 }}>
         <span role="status" style={{ fontSize: 12, color: "#5f6368" }}>{status === "gone" ? "Gone. Reset to replay." : status === "dissolving" ? "Dissolving…" : "Ready to snap."}</span>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={snap} disabled={status !== "ready"} style={{ border: 0, padding: "9px 14px", background: "#202124", color: "white", cursor: "pointer", opacity: status === "ready" ? 1 : 0.4 }}>Snap</button>

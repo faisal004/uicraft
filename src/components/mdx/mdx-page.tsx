@@ -8,6 +8,11 @@ import { ShareButton } from "@/components/share-button";
 import { mdxComponents } from "@/components/mdx/registry";
 import type { ContentDocument } from "@/lib/content";
 
+function mdxLinkTarget(href?: string) {
+  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return {};
+  return { target: "_blank" as const, rel: "noopener noreferrer" };
+}
+
 const components = {
   ...mdxComponents,
   CraftIndex,
@@ -21,7 +26,11 @@ const components = {
     <p className="mt-4  text-pretty text-base leading-8 text-(--craft-muted)" {...props} />
   ),
   a: (props: React.ComponentProps<"a">) => (
-    <a className="text-(--craft-accent) underline decoration-(--craft-accent)/25 underline-offset-4 hover:decoration-(--craft-accent)" {...props} />
+    <a
+      className="text-(--craft-accent) underline decoration-(--craft-accent)/25 underline-offset-4 hover:decoration-(--craft-accent)"
+      {...props}
+      {...mdxLinkTarget(props.href)}
+    />
   ),
   ul: (props: React.ComponentProps<"ul">) => (
     <ul className="mt-4 max-w-2xl list-disc space-y-2 pl-5 text-base leading-8 text-(--craft-muted)" {...props} />
