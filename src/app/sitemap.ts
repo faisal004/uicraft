@@ -16,14 +16,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: latestPublishedAt,
       changeFrequency: "monthly",
       priority: 1,
-      images: [new URL("/og.png", siteUrl).href],
+      images: [new URL("/opengraph-image", siteUrl).href],
     },
     {
       url: new URL("/craft", siteUrl).href,
       lastModified: latestPublishedAt,
       changeFrequency: "weekly",
       priority: 0.9,
-      images: [new URL("/og.png", siteUrl).href],
+      images: [new URL("/opengraph-image", siteUrl).href],
     },
     ...crafts.map((craft) => ({
       url: new URL(`/craft/${craft.slug}`, siteUrl).href,

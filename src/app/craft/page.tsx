@@ -15,20 +15,11 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: "Craft | UIcraft",
     description: "A growing collection of rebuilt interface interactions and animations.",
-    images: [
-      {
-        url: "/og.png",
-        width: 1200,
-        height: 630,
-        alt: "UIcraft — interface interaction studies rebuilt from scratch",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Craft | UIcraft",
     description: "A growing collection of rebuilt interface interactions and animations.",
-    images: ["/og.png"],
   },
 };
 
