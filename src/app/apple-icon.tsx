@@ -13,19 +13,22 @@ export default function AppleIcon() {
       <div
         style={{
           alignItems: "center",
-          background: "#1736f5",
-          color: "#f4ff8c",
+          background: "#ffffff",
           display: "flex",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          fontSize: 112,
-          fontWeight: 900,
           height: "100%",
           justifyContent: "center",
-          letterSpacing: "-0.08em",
           width: "100%",
         }}
       >
-        U
+        <div
+          style={{
+            background: "#91a7ff",
+            borderRadius: 999,
+            display: "flex",
+            height: 68,
+            width: 68,
+          }}
+        />
       </div>
     ),
     size,

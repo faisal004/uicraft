@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     shortcut: "/favicon.svg",
     apple: "/apple-icon",
-    other: [{ rel: "mask-icon", url: "/favicon.svg", color: "#1736f5" }],
+    other: [{ rel: "mask-icon", url: "/favicon.svg", color: "#91a7ff" }],
   },
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION
