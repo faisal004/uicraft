@@ -1,6 +1,6 @@
 ---
 title: World Clock Board
-description: Show five world clocks in fixed LED blocks, then shuffle each city name when its time changes.
+description: Show three world clocks in fixed LED blocks, then shuffle each city name when its time changes.
 publishedAt: 2026-10-04
 category: Animation
 preview: world-clock-board
@@ -20,7 +20,7 @@ Copy this component. Each row has five separate blocks for `HH:MM`, a clear gap,
 import { useEffect, useRef, useState } from "react";
 
 const FONT: Record<string, string> = {
-  " ": "0000000000000000000000000000000000000",
+  " ": "00000000000000000000000000000000000",
   "0": "01110100011001110101110011000101110",
   "1": "00100011000010000100001000010001110",
   "2": "01110100010000100010001000100011111",
@@ -112,6 +112,19 @@ function lit(character: string, x: number, y: number) {
   return glyph[y * CELL_W + x] === "1";
 }
 
+function LedGlyph({ character }: { character: string }) {
+  return (
+    <div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
+      {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+        <span
+          key={dot}
+          className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 function LedMatrix({ lines }: { lines: string[] }) {
   return (
     <div
@@ -126,15 +139,9 @@ function LedMatrix({ lines }: { lines: string[] }) {
           {[...line].map((character, column) => (
             <div
               key={column}
-              className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]"
               style={column === TIME_SLOTS ? { gridColumn: column + 2 } : undefined}
             >
-              {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-                <span
-                  key={dot}
-                  className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
-                />
-              ))}
+              <LedGlyph character={character} />
             </div>
           ))}
         </div>
@@ -270,156 +277,73 @@ Pass `cities` to change the rows. Each entry needs a label and an IANA time zone
 
 ## How it works
 
-This board is made of separate character blocks. Each block is a 5-dot-wide, 7-dot-tall picture of one character, with actual space around the block. A dot is always drawn: bright means on, dark means off. To change the display, a wave moves from left to right; each block briefly shows random characters before settling on its target.
+Thanks to [@kayanoesasaki's post](https://x.com/kayanoesasaki/status/2105807084860104738) for the idea behind this board. The interesting part to build is the tiny bitmap font: how a number, letter, colon, or blank space becomes a pattern of LEDs.
 
-The sample below uses the same five cities as the live board. The times are fixed here so the steps stay still while you read them.
-
-### 01 — Start with the times as text
+### 01 — Start with the visible text
 
 <WorldClockBoardStep step="0" />
 
-The visible starting point is five lines of text: a time, a gap, and a city. `Date` represents one moment. `Intl.DateTimeFormat` is the browser API that expresses that moment in a chosen time zone. `formatToParts` gives us separate hour and minute values. `hourCycle: "h23"` gives a 24-hour clock, so every time has five characters: two digits, a colon, two digits.
+The starting point is ordinary text: five characters for a 24-hour time (`HH:MM`) and a city name. We need a way to draw each of those characters with dots instead of a browser font. Each character gets its own block, five dots across and seven dots down.
 
-```tsx title="01-clock-text.tsx"
-const parts = new Intl.DateTimeFormat("en-GB", {
-  timeZone,
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-}).formatToParts(date)
-
-const hour = parts.find((part) => part.type === "hour")?.value ?? "00"
-const minute = parts.find((part) => part.type === "minute")?.value ?? "00"
-const time = `${hour}:${minute}`
+```tsx title="01-plain-text.tsx"
+<p>19:45 NEW YORK CITY</p>
 ```
 
-**What you see:** five readable rows. New York, Tokyo, Hawaii, Los Angeles, and New Delhi each have a time in front of the name.
+**What you see:** readable text. There are no LEDs yet.
 
-### 02 — Reserve five time blocks and 15 city blocks
+### 02 — Draw a character with zeros and ones
 
 <WorldClockBoardStep step="1" />
 
-Every character gets the same size block, whether it is a narrow `I`, a wide `M`, or a space. The first five blocks hold `HH:MM`; the next 15 hold the city name. A CSS grid track with no LEDs separates those groups. `padEnd(15, " ")` fills unused city blocks with spaces, so `TOKYO` still occupies a 15-block field. `slice(0, 15)` keeps longer names inside it.
+A **bitmap** is a picture stored as a grid of values. For this font, `1` means a bright LED and `0` means a dark LED. Here is the board's actual pattern for the number `0`. Read one line as one row of five dots:
 
-```tsx title="02-pad-rows.tsx"
-const name = (city.name.trim().toUpperCase() || "CITY").slice(0, CITY_SLOTS)
-const line = `${time}${name.padEnd(CITY_SLOTS, " ")}`
+```text
+01110  ·●●●·
+10001  ●···●
+10011  ●··●●
+10101  ●·●·●
+11001  ●●··●
+10001  ●···●
+01110  ·●●●·
 ```
 
-**What you see:** each time takes exactly five blocks. Each city begins after a real empty gap and has exactly 15 blocks, including dark ones after a short name.
+The seven rows are joined into one 35-character string in `FONT`. `A` has a different pattern, the colon lights only two small groups of dots, and a space has 35 zeros. That is the whole font-making idea: draw a 5×7 picture for every character the board can show.
 
-### 03 — Draw every LED, including the dark ones
+```tsx title="02-bitmap-font.tsx"
+const FONT: Record<string, string> = {
+  "0": "01110100011001110101110011000101110",
+  A: "01110100011000111111100011000110001",
+  ":": "00000001000010000000001000010000000",
+  " ": "00000000000000000000000000000000000",
+}
+```
+
+**What you see:** four separate LED blocks show `0`, `A`, `:`, and a dark space. Each block has the same 35 dots; only the on/off pattern changes.
+
+### 03 — Turn the bitmap into an LED board
 
 <WorldClockBoardStep step="2" />
 
-The `FONT` object is a tiny bitmap font. **Bitmap** means a picture described one dot at a time. Each character maps to a string of 35 zeros and ones: seven rows × five columns. For `H`, split its string every five digits:
+To draw one block, make 35 circular elements in a five-column CSS grid. The dot number runs from 0 to 34. `dot % 5` gives its column (`x`, from 0 to 4); `Math.floor(dot / 5)` gives its row (`y`, from 0 to 6). The lookup `y * 5 + x` finds that dot in the character's bitmap. If the value is `1`, paint it bright; otherwise paint it dark.
 
-```text
-10001  ●···●
-10001  ●···●
-10001  ●···●
-11111  ●●●●●
-10001  ●···●
-10001  ●···●
-10001  ●···●
-```
-
-Here `1` means a bright dot and `0` means a dark dot. We store the seven rows as one string to make lookup simple. Coordinates start at zero: `x` counts across from 0 to 4, and `y` counts down from 0 to 6. In `y * 5 + x`, multiplying by five skips the rows above; adding `x` picks the dot in the current row. For example, `(x=2, y=3)` reads position 17, the center dot of `H`'s crossbar.
-
-Lit lamps are `#f2f2f2`. Dark lamps are `#434343`. There is no glow, so the dots stay sharp.
-
-`H` is a useful one to read by hand: the left and right columns are on, and the middle row connects them.
-
-```tsx title="03-glyph.tsx"
-const H = "10001100011000111111100011000110001"
-
+```tsx title="03-read-one-dot.tsx"
 function lit(character: string, x: number, y: number) {
   const glyph = FONT[character] ?? FONT[" "]
-  return glyph[y * 5 + x] === "1"
+  return glyph[y * CELL_W + x] === "1"
 }
 ```
 
-The board renders one little grid for each character block. `Array.from` makes 35 dots for that block. `dot % 5` gives the horizontal position, and `Math.floor(dot / 5)` gives the vertical position. The outer grid leaves space *between* blocks, and its empty track separates the time and city. Row gap separates the five clocks. No extra dark LEDs are inserted into those gaps.
-
-```tsx title="03-separate-blocks.tsx"
-<div
-  className="grid items-start gap-x-[clamp(4px,0.7cqi,8px)]"
-  style={{ gridTemplateColumns: `repeat(5, minmax(0, 1fr)) minmax(0, 1fr) repeat(15, minmax(0, 1fr))` }}
->
-  {/* Five time blocks, an empty track, then 15 city blocks */}
+```tsx title="03-draw-one-block.tsx"
+<div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
+  {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+    <span
+      key={dot}
+      className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+    />
+  ))}
 </div>
 ```
 
-```tsx title="03-paint-dots.tsx"
-{Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-  <span
-    key={dot}
-    className={lit(character, dot % CELL_W, Math.floor(dot / CELL_W))
-      ? "bg-[#f2f2f2]"
-      : "bg-[#434343]"}
-  />
-))}
-```
+The board places five blocks for `HH:MM` and 15 for the city on each row. A genuinely empty grid track separates the groups; CSS gaps separate neighboring blocks and rows. A short name is padded with spaces, so its remaining LED blocks stay dark. The live animation briefly changes which character each block receives, then settles on the target. The same bitmap renderer draws every frame. Its timer is cleared when the animation ends or the component leaves the page; reduced-motion settings skip the shuffle. The LED picture is hidden from screen readers, which receive the clock text through the component's accessible label.
 
-**What you see:** bright dots draw `19:45` and the city name. Each 5×7 block has its own boundary of black space. Unused city blocks remain dark, but still have the same 35 dots.
-
-### 04 — Shuffle each block, then settle it
-
-<WorldClockBoardStep step="3" />
-
-`performance.now()` gives a steadily increasing time in milliseconds. Each block gets a start delay based on its position. `Math.cos` shapes the delay into a smooth wave: slow at the left edge, faster through the middle, and slow again at the right edge. Before its turn, the block keeps its old character. It then shuffles random letters and digits from `CHARSET` for `HOLD_MS` milliseconds and settles on its target. The same 5×7 bitmap lookup turns each temporary character into dots.
-
-`setInterval` calls `paint` every `cycleMs` milliseconds while blocks are shuffling. It returns a timer ID. `clearInterval` cancels that timer when all blocks settle. React also calls the effect's cleanup if the time changes again or the component leaves the page, so the previous timer cannot keep repainting it.
-
-`matchMedia("(prefers-reduced-motion: reduce)")` reads the operating system setting for less motion. When that matches, no cell is marked dirty, the interval never starts, and the final text appears at once.
-
-```tsx title="04-lock.tsx"
-const city = column >= TIME_SLOTS
-const position = city ? column - TIME_SLOTS : column
-const last = city ? CITY_SLOTS - 1 : TIME_SLOTS - 1
-const delay = stagger * last * (1 - Math.cos(Math.PI * position / last)) / 2
-if (!dirty[rowIndex]?.[column] || now >= started + delay + HOLD_MS) {
-  line += goal
-} else if (now < started + delay) {
-  pending = true
-  line += prior?.[rowIndex]?.[column] ?? " "
-} else {
-  pending = true
-  line += CHARSET[Math.floor(Math.random() * CHARSET.length)]
-}
-```
-
-```tsx title="04-timer.tsx"
-if (paint()) timer = window.setInterval(paint, cycle)
-return () => window.clearInterval(timer)
-```
-
-**What you see:** blocks shuffle from left to right, then settle on the time and city.
-
-### 05 — Update the clock and shuffle the city
-
-<WorldClockBoardStep step="4" />
-
-A React ref remembers the last completed rows without causing a render. Once a second, a timer makes a new `Date` and formats the times again. If the displayed text is unchanged, the state update is skipped. When a displayed minute changes, the changed time digits shuffle and **all 15 city blocks in that row** shuffle, even the blocks that will end as spaces. The gap is empty throughout.
-
-Comparing the first five characters of the old and new row tells us whether that city's time changed. `replay` deliberately marks every time and city block for another shuffle. `matchMedia("(prefers-reduced-motion: reduce)")` reads the operating system's motion preference; when it matches, the final text appears immediately and no timer starts.
-
-The dots are `aria-hidden`, so a screen reader does not try to read a picture of text. The paragraph next to them is the real sentence, visually hidden with `sr-only`. Leave `announce` on and that paragraph uses `aria-live="polite"`. When the label changes, assistive tech can announce the new times without interrupting what the person is doing. The tutorial previews turn `announce` off so the same times are not spoken twice.
-
-```tsx title="05-changed-cells.tsx"
-if (reduce) return false
-if (force || prior === null) return true
-if (column >= TIME_SLOTS && prior[rowIndex]?.slice(0, TIME_SLOTS) !== row.slice(0, TIME_SLOTS)) return true
-return prior[rowIndex]?.[column] !== character
-```
-
-```tsx title="05-live-text.tsx"
-<p className="sr-only" aria-live={announce ? "polite" : undefined}>
-  {label}
-</p>
-<div aria-hidden="true">
-  <LedMatrix lines={shown} />
-</div>
-```
-
-**What you see:** the board holds still between changes. When a city's minute changes, its changed digits and all 15 city blocks shuffle, then the name reappears with dark blocks after it.
+**What you see:** the same bitmaps, repeated and spaced into a complete clock board.

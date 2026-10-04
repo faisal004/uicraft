@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CraftFrame } from "@/components/mdx/craft-controls";
 
 const FONT: Record<string, string> = {
-  " ": "0000000000000000000000000000000000000",
+  " ": "00000000000000000000000000000000000",
   "0": "01110100011001110101110011000101110",
   "1": "00100011000010000100001000010001110",
   "2": "01110100010000100010001000100011111",
@@ -97,6 +97,19 @@ function lit(character: string, x: number, y: number) {
   return glyph[y * CELL_W + x] === "1";
 }
 
+function LedGlyph({ character }: { character: string }) {
+  return (
+    <div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
+      {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+        <span
+          key={dot}
+          className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 function LedMatrix({ lines }: { lines: string[] }) {
   return (
     <div
@@ -111,15 +124,9 @@ function LedMatrix({ lines }: { lines: string[] }) {
           {[...line].map((character, column) => (
             <div
               key={column}
-              className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]"
               style={column === TIME_SLOTS ? { gridColumn: column + 2 } : undefined}
             >
-              {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-                <span
-                  key={dot}
-                  className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
-                />
-              ))}
+              <LedGlyph character={character} />
             </div>
           ))}
         </div>
@@ -250,16 +257,7 @@ export function WorldClockBoard({
   );
 }
 
-const SAMPLE = clockLines(
-  [
-    { name: "NEW YORK CITY", timeZone: "America/New_York" },
-    { name: "TOKYO", timeZone: "Asia/Tokyo" },
-    { name: "HAWAII", timeZone: "Pacific/Honolulu" },
-    { name: "LOS ANGELES", timeZone: "America/Los_Angeles" },
-    { name: "NEW DELHI", timeZone: "Asia/Kolkata" },
-  ],
-  new Date("2026-10-04T23:45:00Z"),
-);
+const SAMPLE = clockLines(DEFAULT_CITIES, new Date("2026-10-04T23:45:00Z"));
 
 function BoardFrame({
   children,
@@ -310,55 +308,37 @@ export function WorldClockBoardDemo() {
   );
 }
 
-function FlapSample() {
-  const [replay, setReplay] = useState(0);
-  const shown = useFlapRows(SAMPLE, 70, 80, replay);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setReplay((value) => value + 1), 4200);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  return (
-    <div
-      className="w-full overflow-hidden rounded-xl border border-white/10 bg-black px-3 py-6 sm:px-5 sm:py-7"
-      style={{ containerType: "inline-size" }}
-    >
-      <LedMatrix lines={shown} />
-    </div>
-  );
-}
-
 export function WorldClockBoardStep({ step }: { step: number | string }) {
   const current = Number(step);
-  const labels = ["Plain text", "Fixed slots", "LED matrix", "Shuffle", "Live clock"];
+  const labels = ["Plain text", "Bitmap glyphs", "LED board"];
 
   return (
     <CraftFrame label={`Stage ${String(current + 1).padStart(2, "0")}`} meta={labels[current]}>
       <div className="surface-grid p-5 sm:p-8">
         {current === 0 ? (
           <div className="grid gap-2 font-mono text-sm text-(--demo-ink) sm:text-base">
-            {["19:45   NEW YORK CITY", "08:45   TOKYO", "13:45   HAWAII", "16:45   LOS ANGELES", "05:15   NEW DELHI"].map(
-              (line) => (
-                <p key={line}>{line}</p>
-              ),
-            )}
+            {SAMPLE.map((line) => (
+              <p key={line}>{line.slice(0, TIME_SLOTS)} &nbsp; {line.slice(TIME_SLOTS).trim()}</p>
+            ))}
           </div>
         ) : current === 1 ? (
-          <pre className="overflow-x-auto font-mono text-xs leading-6 text-(--demo-ink) sm:text-sm">
-            {SAMPLE.map((line) => `${line.slice(0, TIME_SLOTS)}   ${line.slice(TIME_SLOTS).replaceAll(" ", "·")}`).join("\n")}
-          </pre>
-        ) : current === 2 ? (
+          <div className="flex flex-wrap gap-4">
+            {["0", "A", ":", " "].map((character) => (
+              <div key={character} className="grid gap-2 text-center font-mono text-xs text-(--demo-ink)">
+                <div className="w-16 rounded bg-black p-2" style={{ containerType: "inline-size" }} aria-hidden="true">
+                  <LedGlyph character={character} />
+                </div>
+                <span>{character === " " ? "space" : character}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
           <div
             className="w-full overflow-hidden rounded-xl border border-white/10 bg-black px-3 py-6 sm:px-5 sm:py-7"
             style={{ containerType: "inline-size" }}
           >
-            <LedMatrix lines={SAMPLE} />
+            <div aria-hidden="true"><LedMatrix lines={SAMPLE} /></div>
           </div>
-        ) : current === 3 ? (
-          <FlapSample />
-        ) : (
-          <WorldClockBoard announce={false} />
         )}
       </div>
     </CraftFrame>
