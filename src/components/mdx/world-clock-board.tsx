@@ -315,76 +315,99 @@ export function WorldClockBitmapWorkshop() {
 
   return (
     <CraftFrame label="Make one bitmap letter" meta="5 × 7 lights">
-      <div className="surface-grid grid gap-5 p-4 sm:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-2 text-xs text-(--demo-muted)">Start with</span>
+      <div className="surface-grid grid gap-4 p-4 sm:p-6">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">Start with</span>
           {["0", "A", ":", " "].map((character) => (
             <button
               key={character}
               type="button"
+              aria-pressed={glyph === FONT[character]}
               onClick={() => { setGlyph(FONT[character]); setSelected(17); }}
-              className="min-w-9 border border-(--demo-border) bg-(--demo-bg) px-2 py-1 font-mono text-xs text-(--demo-ink) outline-none hover:border-(--demo-ink) focus-visible:ring-2 focus-visible:ring-(--craft-accent)"
+              className={`min-w-9 border px-2.5 py-1.5 font-mono text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-(--craft-accent) motion-reduce:transition-none ${glyph === FONT[character] ? "border-(--demo-ink) bg-(--demo-ink) text-(--demo-bg)" : "border-(--demo-border) bg-(--demo-bg) text-(--demo-ink) hover:border-(--demo-ink)"}`}
             >
               {character === " " ? "Blank" : character}
             </button>
           ))}
-          <span className="text-xs text-(--demo-muted)">Then tap any square to change it.</span>
+          <span className="text-xs text-(--demo-muted)">Choose a shape, then edit its lights.</span>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="border border-(--demo-border) bg-(--demo-bg) p-4">
-            <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">1 / Draw with switches</p>
-            <div className="grid w-full max-w-[252px] grid-cols-[14px_repeat(5,minmax(0,1fr))] gap-1 bg-black p-2">
-              <span />
-              {Array.from({ length: CELL_W }, (_, x) => <span key={x} className="text-center font-mono text-[10px] text-white/60">{x + 1}</span>)}
-              {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-                <div key={dot} className="contents">
-                  {dot % CELL_W === 0 ? <span className="self-center font-mono text-[10px] text-white/60">{Math.floor(dot / CELL_W) + 1}</span> : null}
-                  <button
-                    type="button"
-                    aria-label={`Row ${Math.floor(dot / CELL_W) + 1}, column ${dot % CELL_W + 1}: ${glyph[dot] === "1" ? "on" : "off"}. Toggle light.`}
-                    aria-pressed={glyph[dot] === "1"}
-                    onClick={() => {
-                      setSelected(dot);
-                      setGlyph((current) => current.slice(0, dot) + (current[dot] === "1" ? "0" : "1") + current.slice(dot + 1));
-                    }}
-                    className={`aspect-square border outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) ${glyph[dot] === "1" ? "border-white bg-white" : "border-[#505050] bg-[#242424]"} ${selected === dot ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-black" : ""}`}
-                  />
-                </div>
-              ))}
+        <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
+          <div className="border border-(--demo-border) bg-(--demo-bg)">
+            <div className="flex items-center justify-between gap-3 border-b border-(--demo-border) px-4 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">01 / Draw with switches</p>
+              <span className="font-mono text-[10px] tabular-nums text-(--demo-muted)">R{row + 1} · C{column + 1}</span>
             </div>
-            <p className="mt-4 text-xs text-(--demo-muted)">White square = on. Dark square = off. Tap one and watch the other panels.</p>
-            <div className="mt-4 flex items-center gap-4 bg-black p-4 text-white">
-              <div className="w-16 shrink-0" style={{ containerType: "inline-size" }} aria-hidden="true"><LedGlyph glyph={glyph} /></div>
-              <p className="text-xs leading-5 text-white/70">The same picture, made from round LEDs.</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4">
-            <div className="border border-(--demo-border) bg-(--demo-bg) p-4">
-              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">2 / Save the drawing</p>
-              <div className="grid gap-1 font-mono text-sm tabular-nums">
-                {Array.from({ length: CELL_H }, (_, y) => (
-                  <div key={y} className={`flex items-center gap-3 px-2 py-0.5 ${row === y ? "bg-amber-400/15" : ""}`}>
-                    <span className="w-10 text-[10px] text-(--demo-muted)">row {y + 1}</span>
-                    <span className="flex gap-1">
-                      {[...glyph.slice(y * CELL_W, (y + 1) * CELL_W)].map((bit, x) => (
-                        <span key={x} className={selected === y * CELL_W + x ? "text-amber-600 dark:text-amber-300" : ""}>{bit}</span>
-                      ))}
-                    </span>
+            <div className="bg-[#101010] px-3 py-4 text-white">
+              <div className="mx-auto grid w-full max-w-[272px] grid-cols-[18px_repeat(5,minmax(0,1fr))] gap-1.5">
+                <span />
+                {Array.from({ length: CELL_W }, (_, x) => <span key={x} className="text-center font-mono text-[10px] text-white/55">{x + 1}</span>)}
+                {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+                  <div key={dot} className="contents">
+                    {dot % CELL_W === 0 ? <span className="self-center font-mono text-[10px] text-white/55">{Math.floor(dot / CELL_W) + 1}</span> : null}
+                    <button
+                      type="button"
+                      aria-label={`Row ${Math.floor(dot / CELL_W) + 1}, column ${dot % CELL_W + 1}: ${glyph[dot] === "1" ? "on" : "off"}. Toggle light.`}
+                      aria-pressed={glyph[dot] === "1"}
+                      onClick={() => {
+                        setSelected(dot);
+                        setGlyph((current) => current.slice(0, dot) + (current[dot] === "1" ? "0" : "1") + current.slice(dot + 1));
+                      }}
+                      className={`aspect-square border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-(--craft-accent) motion-reduce:transition-none ${glyph[dot] === "1" ? "border-[#f2f2f2] bg-[#f2f2f2]" : "border-[#494949] bg-[#292929] hover:border-[#8a8a8a]"} ${selected === dot ? "ring-2 ring-(--craft-accent) ring-offset-2 ring-offset-[#101010]" : ""}`}
+                    />
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] text-(--demo-muted)">Read the rows from top to bottom to get one 35-digit string:</p>
-              <code className="mt-1 block break-all border border-(--demo-border) bg-(--demo-bar) p-2 font-mono text-xs text-(--demo-ink)">{glyph}</code>
+              <div className="mx-auto mt-5 flex w-full max-w-[272px] items-center justify-between border-t border-white/15 pt-3 font-mono text-[10px] text-white/65">
+                <span className="flex items-center gap-1.5"><span className="size-2.5 bg-[#f2f2f2]" /> 1 = on</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 border border-[#494949] bg-[#292929]" /> 0 = off</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 border-t border-(--demo-border) px-4 py-3">
+              <div className="w-12 shrink-0 bg-black p-1" style={{ containerType: "inline-size" }} aria-hidden="true"><LedGlyph glyph={glyph} /></div>
+              <p className="text-xs leading-5 text-(--demo-muted)">The same 35 switches, now shown as round LEDs.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            <div className="border border-(--demo-border) bg-(--demo-bg)">
+              <div className="flex items-center justify-between gap-3 border-b border-(--demo-border) px-4 py-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">02 / Save the drawing</p>
+                <span className="font-mono text-[10px] text-(--demo-muted)">35 BITS</span>
+              </div>
+              <div className="px-3 py-3 sm:px-4">
+                <div className="flex items-center justify-between px-2 pb-1.5 font-mono text-[9px] uppercase tracking-wider text-(--demo-muted)">
+                  <span>Row</span><span>Pattern</span><span>Index</span>
+                </div>
+                <div className="grid gap-0.5 font-mono text-sm tabular-nums">
+                  {Array.from({ length: CELL_H }, (_, y) => (
+                    <div key={y} className={`flex items-center justify-between gap-2 px-2 py-1 ${row === y ? "bg-(--craft-accent-soft)" : ""}`}>
+                      <span className="w-8 text-[10px] text-(--demo-muted)">{y + 1}</span>
+                      <span className="flex gap-1">
+                        {[...glyph.slice(y * CELL_W, (y + 1) * CELL_W)].map((bit, x) => (
+                          <span key={x} className={selected === y * CELL_W + x ? "font-bold text-(--craft-accent)" : ""}>{bit}</span>
+                        ))}
+                      </span>
+                      <span className="w-11 text-right text-[10px] text-(--demo-muted)">{y * CELL_W}–{y * CELL_W + CELL_W - 1}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[11px] leading-4 text-(--demo-muted)">Read each row left to right, then move down.</p>
+              </div>
+              <div className="border-t border-(--demo-border) bg-(--demo-bar) px-4 py-3">
+                <span className="block font-mono text-[9px] uppercase tracking-wider text-(--demo-muted)">Complete 35-character string</span>
+                <code className="mt-1 block break-all font-mono text-xs leading-5 text-(--demo-ink)">{glyph}</code>
+              </div>
             </div>
 
             <div className="border border-(--demo-border) bg-(--demo-bg) p-4">
-              <div className="text-xs leading-5 text-(--demo-ink)">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">3 / Read one light</p>
-                <p className="mt-1">Row {row + 1}, column {column + 1} is <strong>{glyph[selected] === "1" ? "on" : "off"}</strong>.</p>
-                <p className="text-(--demo-muted)">In code: {row} × 5 + {column} = {selected}, so bit {selected} is {glyph[selected]}.</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">03 / Find one light</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-xs tabular-nums text-(--demo-ink)">
+                <span className="border border-(--demo-border) bg-(--demo-bar) px-2 py-1">string[{selected}] = {glyph[selected]}</span>
+                <span aria-hidden="true" className="text-(--demo-muted)">→</span>
+                <span className="border border-(--demo-border) bg-(--demo-bar) px-2 py-1">row {row + 1}, col {column + 1}</span>
               </div>
+              <p className="mt-2 text-xs leading-5 text-(--demo-muted)">{selected} ÷ 5 = {row} complete rows with {column} left over. This LED is <strong className="text-(--demo-ink)">{glyph[selected] === "1" ? "on" : "off"}</strong>.</p>
             </div>
           </div>
         </div>

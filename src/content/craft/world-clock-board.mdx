@@ -328,9 +328,22 @@ const FONT: Record<string, string> = {
 
 ### 03 — Read the recipe to light a dot
 
-The round LEDs just below your square drawing show the same picture. Look at **Read one light** beside the row bits. To decide whether one round LED is bright, the code reads the matching digit from the string.
+Look at the position numbers beside **Save the drawing**. The string is not cut into pieces. The code reads its characters **one after another**, starting at position `0`, and makes one round LED for each character. The LED grid has five columns. Positions `0` to `4` fill its first row; position `5` starts the next row.
 
-The labels on the drawing start at row 1 and column 1. In code, counting starts at **0**. The selected middle light begins at row 4, column 3 in the drawing, which is `y = 3`, `x = 2` in code. Three complete rows use `3 × 5 = 15` digits. Move two more places across: `15 + 2 = 17`. Digit 17 is `1`, so that LED is bright. Tap that square and digit 17 becomes `0`; the round LED goes dark.
+```text
+             column 1  2  3  4  5
+row 1   string index  0  1  2  3  4
+row 2                 5  6  7  8  9
+row 3                10 11 12 13 14
+row 4                15 16 17 18 19
+row 5                20 21 22 23 24
+row 6                25 26 27 28 29
+row 7                30 31 32 33 34
+```
+
+Find `17` in that grid: it is in **row 4, column 3**. For our `0` drawing, positions `15` to `19` contain `10101`, so position `17` contains `1`. The round LED there lights up. If you tap that square above, its digit becomes `0` and that one LED goes dark.
+
+How can the code find a position from a row and column? It counts the five digits in every complete row before this one, then moves across. The labels on the drawing start at `1`; code coordinates start at `0`. So row 4, column 3 becomes `y = 3`, `x = 2`: `3 × 5 + 2 = 17`.
 
 ```tsx title="03-read-one-light.tsx"
 function lit(glyph: string, x: number, y: number) {
@@ -338,20 +351,22 @@ function lit(glyph: string, x: number, y: number) {
 }
 ```
 
-The component makes 35 round `<span>` elements. `dot % 5` finds a dot's column; `Math.floor(dot / 5)` finds its row. CSS lays them out five per row. The same `lit` check chooses a bright or dark color for each circle.
+The component makes 35 round `<span>` elements in string order. Each `dot` is one position from `0` through `34`. CSS's five-column grid places the first five in row 1, the next five in row 2, and so on. `dot % 5` gives the code column and `Math.floor(dot / 5)` gives the code row. `lit` uses those coordinates to read the matching digit and choose a bright or dark color.
 
 ```tsx title="03-draw-the-leds.tsx"
-{Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-  <span
-    key={dot}
-    className={lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W))
-      ? "bg-[#f2f2f2]"
-      : "bg-[#434343]"}
-  />
-))}
+<div className="grid grid-cols-5">
+  {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+    <span
+      key={dot}
+      className={lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W))
+        ? "bg-[#f2f2f2]"
+        : "bg-[#434343]"}
+    />
+  ))}
+</div>
 ```
 
-**You made:** a renderer for any 5×7 bitmap letter. The square drawing, the zeros and ones, and the round LEDs are three views of the same 35 switches.
+**You made:** a renderer for any 5×7 bitmap letter. Every digit in the string has one fixed place in the grid and controls exactly one round LED.
 
 ### 04 — Use the tile again and again
 
