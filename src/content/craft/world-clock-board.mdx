@@ -1,6 +1,6 @@
 ---
 title: World Clock Board
-description: Light a full LED matrix with city times, then flip each character into place from left to right.
+description: Show five world clocks in fixed LED blocks, then shuffle each city name when its time changes.
 publishedAt: 2026-10-04
 category: Animation
 preview: world-clock-board
@@ -10,11 +10,9 @@ order: 6
 
 <WorldClockBoardDemo />
 
-<WorldClockBoardPlayground />
-
 ## Implementation
 
-Copy this component. The type is a 5×7 bitmap stored in the file, so there is no font to load and no extra stylesheet.
+Copy this component. Each row has five separate blocks for `HH:MM`, a clear gap, and 15 separate blocks for the city. The 5×7 letter patterns live in the file, so there is no font or extra stylesheet to load. City names longer than 15 characters are clipped to fit.
 
 ```tsx title="world-clock-board.tsx"
 "use client";
@@ -65,13 +63,16 @@ const FONT: Record<string, string> = {
 const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CELL_W = 5;
 const CELL_H = 7;
-const HOLD_MS = 480;
+const TIME_SLOTS = 5;
+const CITY_SLOTS = 15;
+const HOLD_MS = 320;
 
 const DEFAULT_CITIES = [
   { name: "NEW YORK CITY", timeZone: "America/New_York" },
   { name: "TOKYO", timeZone: "Asia/Tokyo" },
   { name: "HAWAII", timeZone: "Pacific/Honolulu" },
   { name: "LOS ANGELES", timeZone: "America/Los_Angeles" },
+  { name: "NEW DELHI", timeZone: "Asia/Kolkata" },
 ];
 
 type City = {
@@ -101,11 +102,10 @@ function formatTime(timeZone: string, date: Date) {
 }
 
 function clockLines(cities: City[], date: Date | null) {
-  const labels = cities.map((city) => city.name.trim().toUpperCase() || "CITY");
-  const width = Math.max(...labels.map((label) => `00:00   ${label}`.length)) + 3;
-  return labels.map((label, index) => {
-    const time = date ? formatTime(cities[index].timeZone, date) : "     ";
-    return `${time}   ${label}`.padEnd(width, " ");
+  return cities.map((city) => {
+    const time = date ? formatTime(city.timeZone, date) : " ".repeat(TIME_SLOTS);
+    const name = (city.name.trim().toUpperCase() || "CITY").slice(0, CITY_SLOTS);
+    return `${time}${name.padEnd(CITY_SLOTS, " ")}`;
   });
 }
 
@@ -114,49 +114,32 @@ function lit(character: string, x: number, y: number) {
   return glyph[y * CELL_W + x] === "1";
 }
 
-function matrixCells(lines: string[]) {
-  const width = lines[0]?.length ?? 0;
-  const columns = width * (CELL_W + 1);
-  const on: boolean[] = [];
-
-  lines.forEach((line, rowIndex) => {
-    for (let y = 0; y < CELL_H; y += 1) {
-      for (let column = 0; column < width; column += 1) {
-        for (let x = 0; x < CELL_W; x += 1) on.push(lit(line[column] ?? " ", x, y));
-        on.push(false);
-      }
-    }
-    if (rowIndex < lines.length - 1) {
-      for (let gap = 0; gap < 2; gap += 1) {
-        for (let column = 0; column < columns; column += 1) on.push(false);
-      }
-    }
-  });
-
-  return { on, columns };
-}
-
 function LedMatrix({ lines }: { lines: string[] }) {
-  const { on, columns } = matrixCells(lines);
-  if (columns === 0) return null;
-
   return (
     <div
-      className="grid w-full"
-      style={{
-        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        gap: "clamp(1px, 0.16cqi, 2px)",
-      }}
+      className="grid w-full gap-y-[clamp(14px,2.4cqi,28px)]"
     >
-      {on.map((lamp, index) => (
-        <span
-          key={index}
-          className={
-            lamp
-              ? "aspect-square w-full rounded-full bg-white shadow-[0_0_4px_rgb(255_255_255/0.8)]"
-              : "aspect-square w-full rounded-full bg-white/15"
-          }
-        />
+      {lines.map((line, rowIndex) => (
+        <div
+          key={rowIndex}
+          className="grid items-start gap-x-[clamp(4px,0.7cqi,8px)]"
+          style={{ gridTemplateColumns: `repeat(${TIME_SLOTS}, minmax(0, 1fr)) minmax(0, 1fr) repeat(${CITY_SLOTS}, minmax(0, 1fr))` }}
+        >
+          {[...line].map((character, column) => (
+            <div
+              key={column}
+              className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]"
+              style={column === TIME_SLOTS ? { gridColumn: column + 2 } : undefined}
+            >
+              {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+                <span
+                  key={dot}
+                  className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -178,17 +161,12 @@ function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay:
 
     const dirty = next.map((row, rowIndex) =>
       [...row].map((character, column) => {
-        if (character === " ") return false;
         if (reduce) return false;
         if (force || prior === null) return true;
+        if (column >= TIME_SLOTS && prior[rowIndex]?.slice(0, TIME_SLOTS) !== row.slice(0, TIME_SLOTS)) return true;
         return prior[rowIndex]?.[column] !== character;
       }),
     );
-
-    const rank = dirty.map((row) => {
-      let order = 0;
-      return row.map((cell) => (cell ? order++ : -1));
-    });
 
     if (!dirty.some((row) => row.some(Boolean))) {
       previous.current = next;
@@ -207,9 +185,15 @@ function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay:
         let line = "";
         for (let column = 0; column < row.length; column += 1) {
           const goal = row[column] ?? " ";
-          const place = rank[rowIndex]?.[column] ?? -1;
-          if (place === -1 || now >= started + HOLD_MS + place * stagger) {
+          const city = column >= TIME_SLOTS;
+          const position = city ? column - TIME_SLOTS : column;
+          const last = city ? CITY_SLOTS - 1 : TIME_SLOTS - 1;
+          const delay = stagger * last * (1 - Math.cos(Math.PI * position / last)) / 2;
+          if (!dirty[rowIndex]?.[column] || now >= started + delay + HOLD_MS) {
             line += goal;
+          } else if (now < started + delay) {
+            pending = true;
+            line += prior?.[rowIndex]?.[column] ?? " ";
           } else {
             pending = true;
             line += CHARSET[Math.floor(Math.random() * CHARSET.length)];
@@ -223,10 +207,10 @@ function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay:
         replaySeen.current = replay;
         window.clearInterval(timer);
       }
+      return pending;
     };
 
-    paint();
-    timer = window.setInterval(paint, cycle);
+    if (paint()) timer = window.setInterval(paint, cycle);
     return () => window.clearInterval(timer);
   }, [signature, staggerMs, cycleMs, replay]);
 
@@ -263,7 +247,7 @@ export function WorldClockBoard({
   const shown = useFlapRows(rows, staggerMs, cycleMs, replay);
   const label = date
     ? rows
-        .map((row) => row.trim().replace(/ +/g, " "))
+        .map((row) => `${row.slice(0, TIME_SLOTS)} ${row.slice(TIME_SLOTS).trim()}`)
         .filter(Boolean)
         .join(". ")
     : "";
@@ -284,19 +268,19 @@ export function WorldClockBoard({
 }
 ```
 
-Pass `cities` to change the rows. Each entry needs a label and an IANA time zone, such as `America/New_York`. `staggerMs` is the delay between neighboring cells, and `replay` is a number you increment when the whole board should flip again.
+Pass `cities` to change the rows. Each entry needs a label and an IANA time zone, such as `America/New_York`. `staggerMs` is the delay between shuffling blocks, and `replay` is a number you increment to shuffle the board again.
 
 ## How it works
 
-The [dot matrix ticker](/craft/dot-matrix-ticker) turns a line of type into lamps by covering it with a mask. This board draws every lamp first. A character is just the lamps that are switched on. The motion is the split-flap kind of flip: each cell tumbles through random glyphs, then locks, and the lock travels from left to right.
+This board is made of separate character blocks. Each block is a 5-dot-wide, 7-dot-tall picture of one character, with actual space around the block. A dot is always drawn: bright means on, dark means off. To change the display, a wave moves from left to right; each block briefly shows random characters before settling on its target.
 
-The sample below uses the same four cities as the live board. The times are fixed here so the steps stay still while you read them.
+The sample below uses the same five cities as the live board. The times are fixed here so the steps stay still while you read them.
 
 ### 01 — Start with the times as text
 
 <WorldClockBoardStep step="0" />
 
-The board begins as four lines of text. `Intl.DateTimeFormat` is the browser API that formats a date for a time zone. `formatToParts` splits that formatted value into pieces, so the hour and the minute can be read separately and joined with a colon. `hourCycle: "h23"` asks for a 24-hour clock, which keeps every time five characters wide: two digits, a colon, two digits.
+The visible starting point is five lines of text: a time, a gap, and a city. `Date` represents one moment. `Intl.DateTimeFormat` is the browser API that expresses that moment in a chosen time zone. `formatToParts` gives us separate hour and minute values. `hourCycle: "h23"` gives a 24-hour clock, so every time has five characters: two digits, a colon, two digits.
 
 ```tsx title="01-clock-text.tsx"
 const parts = new Intl.DateTimeFormat("en-GB", {
@@ -308,29 +292,43 @@ const parts = new Intl.DateTimeFormat("en-GB", {
 
 const hour = parts.find((part) => part.type === "hour")?.value ?? "00"
 const minute = parts.find((part) => part.type === "minute")?.value ?? "00"
-const line = `${hour}:${minute}   ${city}`
+const time = `${hour}:${minute}`
 ```
 
-**What you see:** four readable rows. New York, Tokyo, Hawaii, and Los Angeles each have a time in front of the name.
+**What you see:** five readable rows. New York, Tokyo, Hawaii, Los Angeles, and New Delhi each have a time in front of the name.
 
-### 02 — Give every character the same cell
+### 02 — Reserve five time blocks and 15 city blocks
 
 <WorldClockBoardStep step="1" />
 
-A matrix has no room for a narrow I and a wide M. `padEnd` adds spaces until every line is the same length. The extra 3 columns leave a dark margin after the longest name. In the preview, each space is drawn as `·` so the empty cells are visible. The component itself keeps them as spaces.
+Every character gets the same size block, whether it is a narrow `I`, a wide `M`, or a space. The first five blocks hold `HH:MM`; the next 15 hold the city name. A CSS grid track with no LEDs separates those groups. `padEnd(15, " ")` fills unused city blocks with spaces, so `TOKYO` still occupies a 15-block field. `slice(0, 15)` keeps longer names inside it.
 
 ```tsx title="02-pad-rows.tsx"
-const width = Math.max(...labels.map((label) => `00:00   ${label}`.length)) + 3
-const row = `${time}   ${label}`.padEnd(width, " ")
+const name = (city.name.trim().toUpperCase() || "CITY").slice(0, CITY_SLOTS)
+const line = `${time}${name.padEnd(CITY_SLOTS, " ")}`
 ```
 
-**What you see:** the times share a column, the cities share a column, and every row ends at the same place.
+**What you see:** each time takes exactly five blocks. Each city begins after a real empty gap and has exactly 15 blocks, including dark ones after a short name.
 
 ### 03 — Draw every LED, including the dark ones
 
 <WorldClockBoardStep step="2" />
 
-Each character occupies a grid 5 dots wide and 7 dots tall. One string of 35 characters stores that grid, row by row, left to right. `"1"` switches a lamp on. `"0"` leaves it drawn, only dimmer. The dim field is the board. The bright field is the writing.
+The `FONT` object is a tiny bitmap font. **Bitmap** means a picture described one dot at a time. Each character maps to a string of 35 zeros and ones: seven rows × five columns. For `H`, split its string every five digits:
+
+```text
+10001  ●···●
+10001  ●···●
+10001  ●···●
+11111  ●●●●●
+10001  ●···●
+10001  ●···●
+10001  ●···●
+```
+
+Here `1` means a bright dot and `0` means a dark dot. We store the seven rows as one string to make lookup simple. Coordinates start at zero: `x` counts across from 0 to 4, and `y` counts down from 0 to 6. In `y * 5 + x`, multiplying by five skips the rows above; adding `x` picks the dot in the current row. For example, `(x=2, y=3)` reads position 17, the center dot of `H`'s crossbar.
+
+Lit lamps are `#f2f2f2`. Dark lamps are `#434343`. There is no glow, so the dots stay sharp.
 
 `H` is a useful one to read by hand: the left and right columns are on, and the middle row connects them.
 
@@ -343,33 +341,50 @@ function lit(character: string, x: number, y: number) {
 }
 ```
 
-The paint loop visits every text row, then every dot row inside the glyph, then every character, then every dot in that character. After each character it pushes one extra `false`, which is the gap between letters. Two full rows of `false` separate one city from the next.
+The board renders one little grid for each character block. `Array.from` makes 35 dots for that block. `dot % 5` gives the horizontal position, and `Math.floor(dot / 5)` gives the vertical position. The outer grid leaves space *between* blocks, and its empty track separates the time and city. Row gap separates the five clocks. No extra dark LEDs are inserted into those gaps.
 
-```tsx title="03-paint-dots.tsx"
-for (let y = 0; y < 7; y += 1) {
-  for (let column = 0; column < width; column += 1) {
-    for (let x = 0; x < 5; x += 1) on.push(lit(line[column] ?? " ", x, y))
-    on.push(false)
-  }
-}
+```tsx title="03-separate-blocks.tsx"
+<div
+  className="grid items-start gap-x-[clamp(4px,0.7cqi,8px)]"
+  style={{ gridTemplateColumns: `repeat(5, minmax(0, 1fr)) minmax(0, 1fr) repeat(15, minmax(0, 1fr))` }}
+>
+  {/* Five time blocks, an empty track, then 15 city blocks */}
+</div>
 ```
 
-**What you see:** white dots form the times and the city names. Every unused cell is still a faint dot.
+```tsx title="03-paint-dots.tsx"
+{Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+  <span
+    key={dot}
+    className={lit(character, dot % CELL_W, Math.floor(dot / CELL_W))
+      ? "bg-[#f2f2f2]"
+      : "bg-[#434343]"}
+  />
+))}
+```
 
-### 04 — Flip each cell, then lock it
+**What you see:** bright dots draw `19:45` and the city name. Each 5×7 block has its own boundary of black space. Unused city blocks remain dark, but still have the same 35 dots.
+
+### 04 — Shuffle each block, then settle it
 
 <WorldClockBoardStep step="3" />
 
-`performance.now()` is a clock in milliseconds since the page loaded. Each cell that needs to change gets a lock time: a short hold, plus `staggerMs` for every flipping cell to its left. Until that time, the cell shows a random character from `CHARSET`, a string of letters and digits.
+`performance.now()` gives a steadily increasing time in milliseconds. Each block gets a start delay based on its position. `Math.cos` shapes the delay into a smooth wave: slow at the left edge, faster through the middle, and slow again at the right edge. Before its turn, the block keeps its old character. It then shuffles random letters and digits from `CHARSET` for `HOLD_MS` milliseconds and settles on its target. The same 5×7 bitmap lookup turns each temporary character into dots.
 
-`setInterval` calls the paint on a steady beat, `cycleMs` apart. The returned id is how you cancel it. `clearInterval` runs when every cell has locked, and React also runs the cleanup function if this effect restarts or the component unmounts. That second call matters: without it, an old timer would keep writing into a board that has already moved on.
+`setInterval` calls `paint` every `cycleMs` milliseconds while blocks are shuffling. It returns a timer ID. `clearInterval` cancels that timer when all blocks settle. React also calls the effect's cleanup if the time changes again or the component leaves the page, so the previous timer cannot keep repainting it.
 
 `matchMedia("(prefers-reduced-motion: reduce)")` reads the operating system setting for less motion. When that matches, no cell is marked dirty, the interval never starts, and the final text appears at once.
 
 ```tsx title="04-lock.tsx"
-const place = rank[rowIndex]?.[column] ?? -1
-if (place === -1 || now >= started + HOLD_MS + place * stagger) {
+const city = column >= TIME_SLOTS
+const position = city ? column - TIME_SLOTS : column
+const last = city ? CITY_SLOTS - 1 : TIME_SLOTS - 1
+const delay = stagger * last * (1 - Math.cos(Math.PI * position / last)) / 2
+if (!dirty[rowIndex]?.[column] || now >= started + delay + HOLD_MS) {
   line += goal
+} else if (now < started + delay) {
+  pending = true
+  line += prior?.[rowIndex]?.[column] ?? " "
 } else {
   pending = true
   line += CHARSET[Math.floor(Math.random() * CHARSET.length)]
@@ -377,27 +392,26 @@ if (place === -1 || now >= started + HOLD_MS + place * stagger) {
 ```
 
 ```tsx title="04-timer.tsx"
-paint()
-timer = window.setInterval(paint, cycle)
+if (paint()) timer = window.setInterval(paint, cycle)
 return () => window.clearInterval(timer)
 ```
 
-**What you see:** glyphs tumble from left to right. Each cell stops on its real character, and the row settles.
+**What you see:** blocks shuffle from left to right, then settle on the time and city.
 
-### 05 — Flip only the characters that changed
+### 05 — Update the clock and shuffle the city
 
 <WorldClockBoardStep step="4" />
 
-A ref keeps the last finished rows. React does not reset a ref on the next render, so the board can remember what it already showed. Once a second, a timer builds a new `Date` and formats the rows again. If the text is unchanged, the state update is skipped. When a minute rolls over, the new rows differ in only a few columns.
+A React ref remembers the last completed rows without causing a render. Once a second, a timer makes a new `Date` and formats the times again. If the displayed text is unchanged, the state update is skipped. When a displayed minute changes, the changed time digits shuffle and **all 15 city blocks in that row** shuffle, even the blocks that will end as spaces. The gap is empty throughout.
 
-Spaces never flip. A cell that already matches the previous row stays still. A cell that differs joins the tumble, using the same lock delay as before.
+Comparing the first five characters of the old and new row tells us whether that city's time changed. `replay` deliberately marks every time and city block for another shuffle. `matchMedia("(prefers-reduced-motion: reduce)")` reads the operating system's motion preference; when it matches, the final text appears immediately and no timer starts.
 
-The dots are `aria-hidden`, so a screen reader does not try to read a picture of text. The paragraph next to them is the real sentence, visually hidden with `sr-only`. Leave `announce` on and that paragraph uses `aria-live="polite"`. When the label changes, assistive tech can announce the new times without interrupting what the person is doing. The playground on this page turns `announce` off so the same times are not spoken twice.
+The dots are `aria-hidden`, so a screen reader does not try to read a picture of text. The paragraph next to them is the real sentence, visually hidden with `sr-only`. Leave `announce` on and that paragraph uses `aria-live="polite"`. When the label changes, assistive tech can announce the new times without interrupting what the person is doing. The tutorial previews turn `announce` off so the same times are not spoken twice.
 
 ```tsx title="05-changed-cells.tsx"
-if (character === " ") return false
 if (reduce) return false
 if (force || prior === null) return true
+if (column >= TIME_SLOTS && prior[rowIndex]?.slice(0, TIME_SLOTS) !== row.slice(0, TIME_SLOTS)) return true
 return prior[rowIndex]?.[column] !== character
 ```
 
@@ -410,4 +424,4 @@ return prior[rowIndex]?.[column] !== character
 </div>
 ```
 
-**What you see:** the board holds still. When a displayed minute changes, only those digits tumble into the new number. Replay runs the full flip on purpose by passing a new `replay` number, which marks every non-space cell dirty again.
+**What you see:** the board holds still between changes. When a city's minute changes, its changed digits and all 15 city blocks shuffle, then the name reappears with dark blocks after it.

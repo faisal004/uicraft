@@ -6,7 +6,6 @@ import {
 } from "@/components/mdx/dot-matrix-ticker";
 import {
   WorldClockBoardDemo,
-  WorldClockBoardPlayground,
   WorldClockBoardStep,
   WorldClockBoardThumbnail,
 } from "@/components/mdx/world-clock-board";
@@ -47,7 +46,6 @@ export const mdxComponents = {
   TextToParticlesStep,
   ThanosSnapDemo,
   WorldClockBoardDemo,
-  WorldClockBoardPlayground,
   WorldClockBoardStep,
 };
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import { CraftFrame, RangeControl } from "@/components/mdx/craft-controls";
+import { CraftFrame } from "@/components/mdx/craft-controls";
 
 const FONT: Record<string, string> = {
   " ": "0000000000000000000000000000000000000",
@@ -49,13 +48,16 @@ const FONT: Record<string, string> = {
 const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CELL_W = 5;
 const CELL_H = 7;
-const HOLD_MS = 480;
+const TIME_SLOTS = 5;
+const CITY_SLOTS = 15;
+const HOLD_MS = 320;
 
 const DEFAULT_CITIES = [
   { name: "NEW YORK CITY", timeZone: "America/New_York" },
   { name: "TOKYO", timeZone: "Asia/Tokyo" },
   { name: "HAWAII", timeZone: "Pacific/Honolulu" },
   { name: "LOS ANGELES", timeZone: "America/Los_Angeles" },
+  { name: "NEW DELHI", timeZone: "Asia/Kolkata" },
 ];
 
 type City = {
@@ -85,11 +87,10 @@ function formatTime(timeZone: string, date: Date) {
 }
 
 function clockLines(cities: City[], date: Date | null) {
-  const labels = cities.map((city) => city.name.trim().toUpperCase() || "CITY");
-  const width = Math.max(...labels.map((label) => `00:00   ${label}`.length)) + 3;
-  return labels.map((label, index) => {
-    const time = date ? formatTime(cities[index].timeZone, date) : "     ";
-    return `${time}   ${label}`.padEnd(width, " ");
+  return cities.map((city) => {
+    const time = date ? formatTime(city.timeZone, date) : " ".repeat(TIME_SLOTS);
+    const name = (city.name.trim().toUpperCase() || "CITY").slice(0, CITY_SLOTS);
+    return `${time}${name.padEnd(CITY_SLOTS, " ")}`;
   });
 }
 
@@ -98,49 +99,32 @@ function lit(character: string, x: number, y: number) {
   return glyph[y * CELL_W + x] === "1";
 }
 
-function matrixCells(lines: string[]) {
-  const width = lines[0]?.length ?? 0;
-  const columns = width * (CELL_W + 1);
-  const on: boolean[] = [];
-
-  lines.forEach((line, rowIndex) => {
-    for (let y = 0; y < CELL_H; y += 1) {
-      for (let column = 0; column < width; column += 1) {
-        for (let x = 0; x < CELL_W; x += 1) on.push(lit(line[column] ?? " ", x, y));
-        on.push(false);
-      }
-    }
-    if (rowIndex < lines.length - 1) {
-      for (let gap = 0; gap < 2; gap += 1) {
-        for (let column = 0; column < columns; column += 1) on.push(false);
-      }
-    }
-  });
-
-  return { on, columns };
-}
-
 function LedMatrix({ lines }: { lines: string[] }) {
-  const { on, columns } = matrixCells(lines);
-  if (columns === 0) return null;
-
   return (
     <div
-      className="grid w-full"
-      style={{
-        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        gap: "clamp(1px, 0.16cqi, 2px)",
-      }}
+      className="grid w-full gap-y-[clamp(14px,2.4cqi,28px)]"
     >
-      {on.map((lamp, index) => (
-        <span
-          key={index}
-          className={
-            lamp
-              ? "aspect-square w-full rounded-full bg-white shadow-[0_0_4px_rgb(255_255_255/0.8)]"
-              : "aspect-square w-full rounded-full bg-white/15"
-          }
-        />
+      {lines.map((line, rowIndex) => (
+        <div
+          key={rowIndex}
+          className="grid items-start gap-x-[clamp(4px,0.7cqi,8px)]"
+          style={{ gridTemplateColumns: `repeat(${TIME_SLOTS}, minmax(0, 1fr)) minmax(0, 1fr) repeat(${CITY_SLOTS}, minmax(0, 1fr))` }}
+        >
+          {[...line].map((character, column) => (
+            <div
+              key={column}
+              className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]"
+              style={column === TIME_SLOTS ? { gridColumn: column + 2 } : undefined}
+            >
+              {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+                <span
+                  key={dot}
+                  className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -162,17 +146,12 @@ function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay:
 
     const dirty = next.map((row, rowIndex) =>
       [...row].map((character, column) => {
-        if (character === " ") return false;
         if (reduce) return false;
         if (force || prior === null) return true;
+        if (column >= TIME_SLOTS && prior[rowIndex]?.slice(0, TIME_SLOTS) !== row.slice(0, TIME_SLOTS)) return true;
         return prior[rowIndex]?.[column] !== character;
       }),
     );
-
-    const rank = dirty.map((row) => {
-      let order = 0;
-      return row.map((cell) => (cell ? order++ : -1));
-    });
 
     if (!dirty.some((row) => row.some(Boolean))) {
       previous.current = next;
@@ -191,9 +170,15 @@ function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay:
         let line = "";
         for (let column = 0; column < row.length; column += 1) {
           const goal = row[column] ?? " ";
-          const place = rank[rowIndex]?.[column] ?? -1;
-          if (place === -1 || now >= started + HOLD_MS + place * stagger) {
+          const city = column >= TIME_SLOTS;
+          const position = city ? column - TIME_SLOTS : column;
+          const last = city ? CITY_SLOTS - 1 : TIME_SLOTS - 1;
+          const delay = stagger * last * (1 - Math.cos(Math.PI * position / last)) / 2;
+          if (!dirty[rowIndex]?.[column] || now >= started + delay + HOLD_MS) {
             line += goal;
+          } else if (now < started + delay) {
+            pending = true;
+            line += prior?.[rowIndex]?.[column] ?? " ";
           } else {
             pending = true;
             line += CHARSET[Math.floor(Math.random() * CHARSET.length)];
@@ -207,10 +192,10 @@ function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay:
         replaySeen.current = replay;
         window.clearInterval(timer);
       }
+      return pending;
     };
 
-    paint();
-    timer = window.setInterval(paint, cycle);
+    if (paint()) timer = window.setInterval(paint, cycle);
     return () => window.clearInterval(timer);
   }, [signature, staggerMs, cycleMs, replay]);
 
@@ -247,7 +232,7 @@ export function WorldClockBoard({
   const shown = useFlapRows(rows, staggerMs, cycleMs, replay);
   const label = date
     ? rows
-        .map((row) => row.trim().replace(/ +/g, " "))
+        .map((row) => `${row.slice(0, TIME_SLOTS)} ${row.slice(TIME_SLOTS).trim()}`)
         .filter(Boolean)
         .join(". ")
     : "";
@@ -273,6 +258,7 @@ const SAMPLE = clockLines(
     { name: "TOKYO", timeZone: "Asia/Tokyo" },
     { name: "HAWAII", timeZone: "Pacific/Honolulu" },
     { name: "LOS ANGELES", timeZone: "America/Los_Angeles" },
+    { name: "NEW DELHI", timeZone: "Asia/Kolkata" },
   ],
   new Date("2026-10-04T23:45:00Z"),
 );
@@ -326,58 +312,6 @@ export function WorldClockBoardDemo() {
   );
 }
 
-export function WorldClockBoardPlayground() {
-  const [stagger, setStagger] = useState(70);
-  const [replay, setReplay] = useState(0);
-
-  return (
-    <CraftFrame label="Playground" meta="Board controls">
-      <div className="surface-grid border-b border-(--demo-border) p-5 sm:p-8">
-        <WorldClockBoard staggerMs={stagger} cycleMs={Math.round(40 + stagger * 0.55)} replay={replay} announce={false} />
-      </div>
-      <div className="grid gap-5 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-(--demo-ink)">Board controls</p>
-            <p className="mt-0.5 text-xs text-(--demo-muted)">
-              Column delay is how long each cell waits for the cell on its left.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setReplay((value) => value + 1)}
-              className="inline-flex h-8 items-center border border-(--demo-ink) bg-(--demo-ink) px-2.5 text-[11px] font-medium text-(--demo-bg) outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[#1736f5]/25 active:scale-[0.97]"
-            >
-              Replay
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStagger(70);
-                setReplay((value) => value + 1);
-              }}
-              className="inline-flex h-8 items-center gap-1.5 border border-(--demo-border) bg-(--demo-bg) px-2.5 text-[11px] font-medium text-(--demo-muted) outline-none transition-[background-color,color,transform] duration-150 ease-out hover:bg-(--demo-bar) hover:text-(--demo-ink) focus-visible:ring-2 focus-visible:ring-[#1736f5]/25 active:scale-[0.97]"
-            >
-              <RotateCcw className="size-3" aria-hidden="true" />
-              Reset
-            </button>
-          </div>
-        </div>
-        <RangeControl
-          label="Column delay"
-          value={stagger}
-          min={20}
-          max={140}
-          step={2}
-          unit="ms"
-          onChange={setStagger}
-        />
-      </div>
-    </CraftFrame>
-  );
-}
-
 function FlapSample() {
   const [replay, setReplay] = useState(0);
   const shown = useFlapRows(SAMPLE, 70, 80, replay);
@@ -399,14 +333,14 @@ function FlapSample() {
 
 export function WorldClockBoardStep({ step }: { step: number | string }) {
   const current = Number(step);
-  const labels = ["Plain text", "Aligned cells", "LED matrix", "Flip", "Live clock"];
+  const labels = ["Plain text", "Fixed slots", "LED matrix", "Shuffle", "Live clock"];
 
   return (
     <CraftFrame label={`Stage ${String(current + 1).padStart(2, "0")}`} meta={labels[current]}>
       <div className="surface-grid p-5 sm:p-8">
         {current === 0 ? (
           <div className="grid gap-2 font-mono text-sm text-(--demo-ink) sm:text-base">
-            {["19:45   NEW YORK CITY", "08:45   TOKYO", "13:45   HAWAII", "16:45   LOS ANGELES"].map(
+            {["19:45   NEW YORK CITY", "08:45   TOKYO", "13:45   HAWAII", "16:45   LOS ANGELES", "05:15   NEW DELHI"].map(
               (line) => (
                 <p key={line}>{line}</p>
               ),
@@ -414,7 +348,7 @@ export function WorldClockBoardStep({ step }: { step: number | string }) {
           </div>
         ) : current === 1 ? (
           <pre className="overflow-x-auto font-mono text-xs leading-6 text-(--demo-ink) sm:text-sm">
-            {SAMPLE.map((line) => line.replaceAll(" ", "·")).join("\n")}
+            {SAMPLE.map((line) => `${line.slice(0, TIME_SLOTS)}   ${line.slice(TIME_SLOTS).replaceAll(" ", "·")}`).join("\n")}
           </pre>
         ) : current === 2 ? (
           <div
