@@ -55,8 +55,6 @@ const HOLD_MS = 320;
 const DEFAULT_CITIES = [
   { name: "NEW YORK CITY", timeZone: "America/New_York" },
   { name: "TOKYO", timeZone: "Asia/Tokyo" },
-  { name: "HAWAII", timeZone: "Pacific/Honolulu" },
-  { name: "LOS ANGELES", timeZone: "America/Los_Angeles" },
   { name: "NEW DELHI", timeZone: "Asia/Kolkata" },
 ];
 
