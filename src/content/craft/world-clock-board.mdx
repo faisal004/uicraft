@@ -1,0 +1,413 @@
+---
+title: World Clock Board
+description: Light a full LED matrix with city times, then flip each character into place from left to right.
+publishedAt: 2026-10-04
+category: Animation
+preview: world-clock-board
+kind: craft
+order: 6
+---
+
+<WorldClockBoardDemo />
+
+<WorldClockBoardPlayground />
+
+## Implementation
+
+Copy this component. The type is a 5×7 bitmap stored in the file, so there is no font to load and no extra stylesheet.
+
+```tsx title="world-clock-board.tsx"
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+const FONT: Record<string, string> = {
+  " ": "0000000000000000000000000000000000000",
+  "0": "01110100011001110101110011000101110",
+  "1": "00100011000010000100001000010001110",
+  "2": "01110100010000100010001000100011111",
+  "3": "11110000010000101110000010000111110",
+  "4": "00010001100101010010111110001000010",
+  "5": "11111100001000011110000010000111110",
+  "6": "00110010001000011110100011000101110",
+  "7": "11111000010001000100010000100001000",
+  "8": "01110100011000101110100011000101110",
+  "9": "01110100011000101111000010001001100",
+  ":": "00000001000010000000001000010000000",
+  A: "01110100011000111111100011000110001",
+  B: "11110100011000111110100011000111110",
+  C: "01110100011000010000100001000101110",
+  D: "11110100011000110001100011000111110",
+  E: "11111100001000011110100001000011111",
+  F: "11111100001000011110100001000010000",
+  G: "01110100011000010111100011000101111",
+  H: "10001100011000111111100011000110001",
+  I: "01110001000010000100001000010001110",
+  J: "00111000100001000010000101001001100",
+  K: "10001100101010011000101001001010001",
+  L: "10000100001000010000100001000011111",
+  M: "10001110111010110101100011000110001",
+  N: "10001110011010110011100011000110001",
+  O: "01110100011000110001100011000101110",
+  P: "11110100011000111110100001000010000",
+  Q: "01110100011000110001101011001001101",
+  R: "11110100011000111110101001001010001",
+  S: "01111100001000001110000010000111110",
+  T: "11111001000010000100001000010000100",
+  U: "10001100011000110001100011000101110",
+  V: "10001100011000110001010100010000100",
+  W: "10001100011000110101101011010101010",
+  X: "10001100010101000100010101000110001",
+  Y: "10001100010101000100001000010000100",
+  Z: "11111000010001000100010001000011111",
+};
+
+const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const CELL_W = 5;
+const CELL_H = 7;
+const HOLD_MS = 480;
+
+const DEFAULT_CITIES = [
+  { name: "NEW YORK CITY", timeZone: "America/New_York" },
+  { name: "TOKYO", timeZone: "Asia/Tokyo" },
+  { name: "HAWAII", timeZone: "Pacific/Honolulu" },
+  { name: "LOS ANGELES", timeZone: "America/Los_Angeles" },
+];
+
+type City = {
+  name: string;
+  timeZone: string;
+};
+
+type WorldClockBoardProps = {
+  cities?: City[];
+  staggerMs?: number;
+  cycleMs?: number;
+  replay?: number;
+  announce?: boolean;
+  className?: string;
+};
+
+function formatTime(timeZone: string, date: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return `${hour.slice(-2).padStart(2, "0")}:${minute.slice(-2).padStart(2, "0")}`;
+}
+
+function clockLines(cities: City[], date: Date | null) {
+  const labels = cities.map((city) => city.name.trim().toUpperCase() || "CITY");
+  const width = Math.max(...labels.map((label) => `00:00   ${label}`.length)) + 3;
+  return labels.map((label, index) => {
+    const time = date ? formatTime(cities[index].timeZone, date) : "     ";
+    return `${time}   ${label}`.padEnd(width, " ");
+  });
+}
+
+function lit(character: string, x: number, y: number) {
+  const glyph = FONT[character] ?? FONT[" "];
+  return glyph[y * CELL_W + x] === "1";
+}
+
+function matrixCells(lines: string[]) {
+  const width = lines[0]?.length ?? 0;
+  const columns = width * (CELL_W + 1);
+  const on: boolean[] = [];
+
+  lines.forEach((line, rowIndex) => {
+    for (let y = 0; y < CELL_H; y += 1) {
+      for (let column = 0; column < width; column += 1) {
+        for (let x = 0; x < CELL_W; x += 1) on.push(lit(line[column] ?? " ", x, y));
+        on.push(false);
+      }
+    }
+    if (rowIndex < lines.length - 1) {
+      for (let gap = 0; gap < 2; gap += 1) {
+        for (let column = 0; column < columns; column += 1) on.push(false);
+      }
+    }
+  });
+
+  return { on, columns };
+}
+
+function LedMatrix({ lines }: { lines: string[] }) {
+  const { on, columns } = matrixCells(lines);
+  if (columns === 0) return null;
+
+  return (
+    <div
+      className="grid w-full"
+      style={{
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gap: "clamp(1px, 0.16cqi, 2px)",
+      }}
+    >
+      {on.map((lamp, index) => (
+        <span
+          key={index}
+          className={
+            lamp
+              ? "aspect-square w-full rounded-full bg-white shadow-[0_0_4px_rgb(255_255_255/0.8)]"
+              : "aspect-square w-full rounded-full bg-white/15"
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function useFlapRows(rows: string[], staggerMs: number, cycleMs: number, replay: number) {
+  const signature = rows.join("\n");
+  const [shown, setShown] = useState(() => rows.map((row) => " ".repeat(row.length)));
+  const previous = useRef<string[] | null>(null);
+  const replaySeen = useRef(replay);
+
+  useEffect(() => {
+    const next = signature.length === 0 ? [] : signature.split("\n");
+    const stagger = Math.min(160, Math.max(12, staggerMs));
+    const cycle = Math.min(180, Math.max(32, cycleMs));
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const prior = previous.current;
+    const force = replay !== replaySeen.current;
+
+    const dirty = next.map((row, rowIndex) =>
+      [...row].map((character, column) => {
+        if (character === " ") return false;
+        if (reduce) return false;
+        if (force || prior === null) return true;
+        return prior[rowIndex]?.[column] !== character;
+      }),
+    );
+
+    const rank = dirty.map((row) => {
+      let order = 0;
+      return row.map((cell) => (cell ? order++ : -1));
+    });
+
+    if (!dirty.some((row) => row.some(Boolean))) {
+      previous.current = next;
+      replaySeen.current = replay;
+      setShown(next);
+      return;
+    }
+
+    const started = performance.now();
+    let timer = 0;
+
+    const paint = () => {
+      const now = performance.now();
+      let pending = false;
+      const frame = next.map((row, rowIndex) => {
+        let line = "";
+        for (let column = 0; column < row.length; column += 1) {
+          const goal = row[column] ?? " ";
+          const place = rank[rowIndex]?.[column] ?? -1;
+          if (place === -1 || now >= started + HOLD_MS + place * stagger) {
+            line += goal;
+          } else {
+            pending = true;
+            line += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+          }
+        }
+        return line;
+      });
+      setShown(frame);
+      if (!pending) {
+        previous.current = next;
+        replaySeen.current = replay;
+        window.clearInterval(timer);
+      }
+    };
+
+    paint();
+    timer = window.setInterval(paint, cycle);
+    return () => window.clearInterval(timer);
+  }, [signature, staggerMs, cycleMs, replay]);
+
+  return shown;
+}
+
+export function WorldClockBoard({
+  cities = DEFAULT_CITIES,
+  staggerMs = 70,
+  cycleMs = 80,
+  replay = 0,
+  announce = true,
+  className,
+}: WorldClockBoardProps) {
+  const [date, setDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const publish = () => {
+      const next = new Date();
+      setDate((current) => {
+        if (current && clockLines(cities, current).join("\n") === clockLines(cities, next).join("\n")) {
+          return current;
+        }
+        return next;
+      });
+    };
+
+    publish();
+    const timer = window.setInterval(publish, 1000);
+    return () => window.clearInterval(timer);
+  }, [cities]);
+
+  const rows = clockLines(cities, date);
+  const shown = useFlapRows(rows, staggerMs, cycleMs, replay);
+  const label = date
+    ? rows
+        .map((row) => row.trim().replace(/ +/g, " "))
+        .filter(Boolean)
+        .join(". ")
+    : "";
+
+  return (
+    <div
+      className={`w-full overflow-hidden rounded-xl border border-white/10 bg-black px-3 py-6 shadow-[inset_0_0_16px_rgba(0,0,0,0.9)] sm:px-5 sm:py-7${className ? ` ${className}` : ""}`}
+      style={{ containerType: "inline-size" }}
+    >
+      <p className="sr-only" aria-live={announce ? "polite" : undefined}>
+        {label}
+      </p>
+      <div aria-hidden="true">
+        <LedMatrix lines={shown} />
+      </div>
+    </div>
+  );
+}
+```
+
+Pass `cities` to change the rows. Each entry needs a label and an IANA time zone, such as `America/New_York`. `staggerMs` is the delay between neighboring cells, and `replay` is a number you increment when the whole board should flip again.
+
+## How it works
+
+The [dot matrix ticker](/craft/dot-matrix-ticker) turns a line of type into lamps by covering it with a mask. This board draws every lamp first. A character is just the lamps that are switched on. The motion is the split-flap kind of flip: each cell tumbles through random glyphs, then locks, and the lock travels from left to right.
+
+The sample below uses the same four cities as the live board. The times are fixed here so the steps stay still while you read them.
+
+### 01 — Start with the times as text
+
+<WorldClockBoardStep step="0" />
+
+The board begins as four lines of text. `Intl.DateTimeFormat` is the browser API that formats a date for a time zone. `formatToParts` splits that formatted value into pieces, so the hour and the minute can be read separately and joined with a colon. `hourCycle: "h23"` asks for a 24-hour clock, which keeps every time five characters wide: two digits, a colon, two digits.
+
+```tsx title="01-clock-text.tsx"
+const parts = new Intl.DateTimeFormat("en-GB", {
+  timeZone,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+}).formatToParts(date)
+
+const hour = parts.find((part) => part.type === "hour")?.value ?? "00"
+const minute = parts.find((part) => part.type === "minute")?.value ?? "00"
+const line = `${hour}:${minute}   ${city}`
+```
+
+**What you see:** four readable rows. New York, Tokyo, Hawaii, and Los Angeles each have a time in front of the name.
+
+### 02 — Give every character the same cell
+
+<WorldClockBoardStep step="1" />
+
+A matrix has no room for a narrow I and a wide M. `padEnd` adds spaces until every line is the same length. The extra 3 columns leave a dark margin after the longest name. In the preview, each space is drawn as `·` so the empty cells are visible. The component itself keeps them as spaces.
+
+```tsx title="02-pad-rows.tsx"
+const width = Math.max(...labels.map((label) => `00:00   ${label}`.length)) + 3
+const row = `${time}   ${label}`.padEnd(width, " ")
+```
+
+**What you see:** the times share a column, the cities share a column, and every row ends at the same place.
+
+### 03 — Draw every LED, including the dark ones
+
+<WorldClockBoardStep step="2" />
+
+Each character occupies a grid 5 dots wide and 7 dots tall. One string of 35 characters stores that grid, row by row, left to right. `"1"` switches a lamp on. `"0"` leaves it drawn, only dimmer. The dim field is the board. The bright field is the writing.
+
+`H` is a useful one to read by hand: the left and right columns are on, and the middle row connects them.
+
+```tsx title="03-glyph.tsx"
+const H = "10001100011000111111100011000110001"
+
+function lit(character: string, x: number, y: number) {
+  const glyph = FONT[character] ?? FONT[" "]
+  return glyph[y * 5 + x] === "1"
+}
+```
+
+The paint loop visits every text row, then every dot row inside the glyph, then every character, then every dot in that character. After each character it pushes one extra `false`, which is the gap between letters. Two full rows of `false` separate one city from the next.
+
+```tsx title="03-paint-dots.tsx"
+for (let y = 0; y < 7; y += 1) {
+  for (let column = 0; column < width; column += 1) {
+    for (let x = 0; x < 5; x += 1) on.push(lit(line[column] ?? " ", x, y))
+    on.push(false)
+  }
+}
+```
+
+**What you see:** white dots form the times and the city names. Every unused cell is still a faint dot.
+
+### 04 — Flip each cell, then lock it
+
+<WorldClockBoardStep step="3" />
+
+`performance.now()` is a clock in milliseconds since the page loaded. Each cell that needs to change gets a lock time: a short hold, plus `staggerMs` for every flipping cell to its left. Until that time, the cell shows a random character from `CHARSET`, a string of letters and digits.
+
+`setInterval` calls the paint on a steady beat, `cycleMs` apart. The returned id is how you cancel it. `clearInterval` runs when every cell has locked, and React also runs the cleanup function if this effect restarts or the component unmounts. That second call matters: without it, an old timer would keep writing into a board that has already moved on.
+
+`matchMedia("(prefers-reduced-motion: reduce)")` reads the operating system setting for less motion. When that matches, no cell is marked dirty, the interval never starts, and the final text appears at once.
+
+```tsx title="04-lock.tsx"
+const place = rank[rowIndex]?.[column] ?? -1
+if (place === -1 || now >= started + HOLD_MS + place * stagger) {
+  line += goal
+} else {
+  pending = true
+  line += CHARSET[Math.floor(Math.random() * CHARSET.length)]
+}
+```
+
+```tsx title="04-timer.tsx"
+paint()
+timer = window.setInterval(paint, cycle)
+return () => window.clearInterval(timer)
+```
+
+**What you see:** glyphs tumble from left to right. Each cell stops on its real character, and the row settles.
+
+### 05 — Flip only the characters that changed
+
+<WorldClockBoardStep step="4" />
+
+A ref keeps the last finished rows. React does not reset a ref on the next render, so the board can remember what it already showed. Once a second, a timer builds a new `Date` and formats the rows again. If the text is unchanged, the state update is skipped. When a minute rolls over, the new rows differ in only a few columns.
+
+Spaces never flip. A cell that already matches the previous row stays still. A cell that differs joins the tumble, using the same lock delay as before.
+
+The dots are `aria-hidden`, so a screen reader does not try to read a picture of text. The paragraph next to them is the real sentence, visually hidden with `sr-only`. Leave `announce` on and that paragraph uses `aria-live="polite"`. When the label changes, assistive tech can announce the new times without interrupting what the person is doing. The playground on this page turns `announce` off so the same times are not spoken twice.
+
+```tsx title="05-changed-cells.tsx"
+if (character === " ") return false
+if (reduce) return false
+if (force || prior === null) return true
+return prior[rowIndex]?.[column] !== character
+```
+
+```tsx title="05-live-text.tsx"
+<p className="sr-only" aria-live={announce ? "polite" : undefined}>
+  {label}
+</p>
+<div aria-hidden="true">
+  <LedMatrix lines={shown} />
+</div>
+```
+
+**What you see:** the board holds still. When a displayed minute changes, only those digits tumble into the new number. Replay runs the full flip on purpose by passing a new `replay` number, which marks every non-space cell dirty again.

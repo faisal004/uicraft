@@ -5,6 +5,12 @@ import {
   DotMatrixTickerThumbnail,
 } from "@/components/mdx/dot-matrix-ticker";
 import {
+  WorldClockBoardDemo,
+  WorldClockBoardPlayground,
+  WorldClockBoardStep,
+  WorldClockBoardThumbnail,
+} from "@/components/mdx/world-clock-board";
+import {
   TastefulButtonDemo,
   TastefulButtonPlayground,
   TastefulButtonProgression,
@@ -40,6 +46,9 @@ export const mdxComponents = {
   TextToParticlesPlayground,
   TextToParticlesStep,
   ThanosSnapDemo,
+  WorldClockBoardDemo,
+  WorldClockBoardPlayground,
+  WorldClockBoardStep,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
@@ -48,4 +57,5 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "waving-flag": WavingFlagThumbnail,
   "text-to-particles": TextToParticlesThumbnail,
   "thanos-snap": ThanosSnapThumbnail,
+  "world-clock-board": WorldClockBoardThumbnail,
 };
