@@ -5,8 +5,9 @@ import {
   DotMatrixTickerThumbnail,
 } from "@/components/mdx/dot-matrix-ticker";
 import {
+  WorldClockBitmapOutcome,
+  WorldClockBitmapWorkshop,
   WorldClockBoardDemo,
-  WorldClockBoardStep,
   WorldClockBoardThumbnail,
 } from "@/components/mdx/world-clock-board";
 import {
@@ -46,7 +47,8 @@ export const mdxComponents = {
   TextToParticlesStep,
   ThanosSnapDemo,
   WorldClockBoardDemo,
-  WorldClockBoardStep,
+  WorldClockBitmapWorkshop,
+  WorldClockBitmapOutcome,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {

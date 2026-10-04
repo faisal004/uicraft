@@ -107,18 +107,17 @@ function clockLines(cities: City[], date: Date | null) {
   });
 }
 
-function lit(character: string, x: number, y: number) {
-  const glyph = FONT[character] ?? FONT[" "];
+function lit(glyph: string, x: number, y: number) {
   return glyph[y * CELL_W + x] === "1";
 }
 
-function LedGlyph({ character }: { character: string }) {
+function LedGlyph({ glyph }: { glyph: string }) {
   return (
     <div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
       {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
         <span
           key={dot}
-          className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+          className={`aspect-square w-full rounded-full ${lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
         />
       ))}
     </div>
@@ -141,7 +140,7 @@ function LedMatrix({ lines }: { lines: string[] }) {
               key={column}
               style={column === TIME_SLOTS ? { gridColumn: column + 2 } : undefined}
             >
-              <LedGlyph character={character} />
+              <LedGlyph glyph={FONT[character] ?? FONT[" "]} />
             </div>
           ))}
         </div>
@@ -277,39 +276,46 @@ Pass `cities` to change the rows. Each entry needs a label and an IANA time zone
 
 ## How it works
 
-Thanks to [@kayanoesasaki's post](https://x.com/kayanoesasaki/status/2105807084860104738) for the idea behind this board. The interesting part to build is the tiny bitmap font: how a number, letter, colon, or blank space becomes a pattern of LEDs.
+The whole clock grows from one small piece: **a tile of 35 lights**. Make that tile look like `0`, and you know how to make `A`, `:`, and every other character too. Thanks to [@kayanoesasaki's post](https://x.com/kayanoesasaki/status/2105807084860104738) for the idea behind this board.
 
-### 01 — Start with the visible text
+<WorldClockBitmapWorkshop />
 
-<WorldClockBoardStep step="0" />
+### 01 — Draw one tiny picture
 
-The starting point is ordinary text: five characters for a 24-hour time (`HH:MM`) and a city name. We need a way to draw each of those characters with dots instead of a browser font. Each character gets its own block, five dots across and seven dots down.
+Look at **Draw with switches** above. It is graph paper with five squares across and seven down. Each square is a little light switch. Tap a square to turn it on or off. Try turning off the middle square in row 4, then turn it on again. The picture changes immediately.
 
-```tsx title="01-plain-text.tsx"
-<p>19:45 NEW YORK CITY</p>
+Each square is an HTML `button`, so it can be clicked or used with a keyboard. The CSS grid has five switch columns and a narrow space for row numbers. React's `useState` remembers which lights are on after a tap. The `onClick` handler replaces just that square's value.
+
+```tsx title="01-change-one-light.tsx"
+const [glyph, setGlyph] = useState(FONT["0"])
+
+// dot is the square you tapped, numbered 0 through 34.
+setGlyph((current) =>
+  current.slice(0, dot) +
+  (current[dot] === "1" ? "0" : "1") +
+  current.slice(dot + 1)
+)
 ```
 
-**What you see:** readable text. There are no LEDs yet.
+**You made:** one editable 5×7 character tile. The buttons are square so you can see its little drawing grid.
 
-### 02 — Draw a character with zeros and ones
+### 02 — Write down the picture
 
-<WorldClockBoardStep step="1" />
-
-A **bitmap** is a picture stored as a grid of values. For this font, `1` means a bright LED and `0` means a dark LED. Here is the board's actual pattern for the number `0`. Read one line as one row of five dots:
+Look at **Save the drawing**. For every row, write `1` for an on square and `0` for an off square. The number `0` starts like this:
 
 ```text
-01110  ·●●●·
-10001  ●···●
-10011  ●··●●
-10101  ●·●·●
-11001  ●●··●
-10001  ●···●
-01110  ·●●●·
+row 1   01110   ·●●●·
+row 2   10001   ●···●
+row 3   10011   ●··●●
+row 4   10101   ●·●·●
+row 5   11001   ●●··●
+row 6   10001   ●···●
+row 7   01110   ·●●●·
 ```
 
-The seven rows are joined into one 35-character string in `FONT`. `A` has a different pattern, the colon lights only two small groups of dots, and a space has 35 zeros. That is the whole font-making idea: draw a 5×7 picture for every character the board can show.
+There are seven rows of five, so there are **35 digits**. Put the rows together, top to bottom, and you have one long string. The `FONT` object saves a string like this under each character's name. Pick `A`, `:`, or **Blank** above: the same 35 lights stay in place, but their on/off recipe changes. Blank has 35 zeros.
 
-```tsx title="02-bitmap-font.tsx"
+```tsx title="02-save-the-picture.tsx"
 const FONT: Record<string, string> = {
   "0": "01110100011001110101110011000101110",
   A: "01110100011000111111100011000110001",
@@ -318,32 +324,41 @@ const FONT: Record<string, string> = {
 }
 ```
 
-**What you see:** four separate LED blocks show `0`, `A`, `:`, and a dark space. Each block has the same 35 dots; only the on/off pattern changes.
+**You made:** a tiny picture you can save as text. Try drawing your own letter; the 35-digit string changes with every tap.
 
-### 03 — Turn the bitmap into an LED board
+### 03 — Read the recipe to light a dot
 
-<WorldClockBoardStep step="2" />
+The round LEDs just below your square drawing show the same picture. Look at **Read one light** beside the row bits. To decide whether one round LED is bright, the code reads the matching digit from the string.
 
-To draw one block, make 35 circular elements in a five-column CSS grid. The dot number runs from 0 to 34. `dot % 5` gives its column (`x`, from 0 to 4); `Math.floor(dot / 5)` gives its row (`y`, from 0 to 6). The lookup `y * 5 + x` finds that dot in the character's bitmap. If the value is `1`, paint it bright; otherwise paint it dark.
+The labels on the drawing start at row 1 and column 1. In code, counting starts at **0**. The selected middle light begins at row 4, column 3 in the drawing, which is `y = 3`, `x = 2` in code. Three complete rows use `3 × 5 = 15` digits. Move two more places across: `15 + 2 = 17`. Digit 17 is `1`, so that LED is bright. Tap that square and digit 17 becomes `0`; the round LED goes dark.
 
-```tsx title="03-read-one-dot.tsx"
-function lit(character: string, x: number, y: number) {
-  const glyph = FONT[character] ?? FONT[" "]
-  return glyph[y * CELL_W + x] === "1"
+```tsx title="03-read-one-light.tsx"
+function lit(glyph: string, x: number, y: number) {
+  return glyph[y * 5 + x] === "1"
 }
 ```
 
-```tsx title="03-draw-one-block.tsx"
-<div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
-  {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-    <span
-      key={dot}
-      className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
-    />
-  ))}
-</div>
+The component makes 35 round `<span>` elements. `dot % 5` finds a dot's column; `Math.floor(dot / 5)` finds its row. CSS lays them out five per row. The same `lit` check chooses a bright or dark color for each circle.
+
+```tsx title="03-draw-the-leds.tsx"
+{Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+  <span
+    key={dot}
+    className={lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W))
+      ? "bg-[#f2f2f2]"
+      : "bg-[#434343]"}
+  />
+))}
 ```
 
-The board places five blocks for `HH:MM` and 15 for the city on each row. A genuinely empty grid track separates the groups; CSS gaps separate neighboring blocks and rows. A short name is padded with spaces, so its remaining LED blocks stay dark. The live animation briefly changes which character each block receives, then settles on the target. The same bitmap renderer draws every frame. Its timer is cleared when the animation ends or the component leaves the page; reduced-motion settings skip the shuffle. The LED picture is hidden from screen readers, which receive the clock text through the component's accessible label.
+**You made:** a renderer for any 5×7 bitmap letter. The square drawing, the zeros and ones, and the round LEDs are three views of the same 35 switches.
 
-**What you see:** the same bitmaps, repeated and spaced into a complete clock board.
+### 04 — Use the tile again and again
+
+<WorldClockBitmapOutcome />
+
+The board asks `FONT` for each character's 35-digit recipe and draws another tile. Five tiles make `HH:MM`; 15 more make the city field. A space has an all-zero recipe, so unused city tiles stay dark. The gap between time and city is actual empty space between the groups.
+
+The live board briefly swaps characters while a time changes, then settles on the new ones; **the bitmap rule never changes**. Its timer stops when the animation finishes or the component leaves the page, and reduced-motion settings show the final characters right away. Screen readers receive the clock text instead of trying to read the dot picture.
+
+**Check yourself:** If you change one `1` to `0` in a letter's recipe, how many LEDs change? Just one.

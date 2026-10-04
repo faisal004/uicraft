@@ -92,18 +92,17 @@ function clockLines(cities: City[], date: Date | null) {
   });
 }
 
-function lit(character: string, x: number, y: number) {
-  const glyph = FONT[character] ?? FONT[" "];
+function lit(glyph: string, x: number, y: number) {
   return glyph[y * CELL_W + x] === "1";
 }
 
-function LedGlyph({ character }: { character: string }) {
+function LedGlyph({ glyph }: { glyph: string }) {
   return (
     <div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
       {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
         <span
           key={dot}
-          className={`aspect-square w-full rounded-full ${lit(character, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
+          className={`aspect-square w-full rounded-full ${lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
         />
       ))}
     </div>
@@ -126,7 +125,7 @@ function LedMatrix({ lines }: { lines: string[] }) {
               key={column}
               style={column === TIME_SLOTS ? { gridColumn: column + 2 } : undefined}
             >
-              <LedGlyph character={character} />
+              <LedGlyph glyph={FONT[character] ?? FONT[" "]} />
             </div>
           ))}
         </div>
@@ -308,38 +307,100 @@ export function WorldClockBoardDemo() {
   );
 }
 
-export function WorldClockBoardStep({ step }: { step: number | string }) {
-  const current = Number(step);
-  const labels = ["Plain text", "Bitmap glyphs", "LED board"];
+export function WorldClockBitmapWorkshop() {
+  const [glyph, setGlyph] = useState(FONT["0"]);
+  const [selected, setSelected] = useState(17);
+  const row = Math.floor(selected / CELL_W);
+  const column = selected % CELL_W;
 
   return (
-    <CraftFrame label={`Stage ${String(current + 1).padStart(2, "0")}`} meta={labels[current]}>
-      <div className="surface-grid p-5 sm:p-8">
-        {current === 0 ? (
-          <div className="grid gap-2 font-mono text-sm text-(--demo-ink) sm:text-base">
-            {SAMPLE.map((line) => (
-              <p key={line}>{line.slice(0, TIME_SLOTS)} &nbsp; {line.slice(TIME_SLOTS).trim()}</p>
-            ))}
-          </div>
-        ) : current === 1 ? (
-          <div className="flex flex-wrap gap-4">
-            {["0", "A", ":", " "].map((character) => (
-              <div key={character} className="grid gap-2 text-center font-mono text-xs text-(--demo-ink)">
-                <div className="w-16 rounded bg-black p-2" style={{ containerType: "inline-size" }} aria-hidden="true">
-                  <LedGlyph character={character} />
+    <CraftFrame label="Make one bitmap letter" meta="5 × 7 lights">
+      <div className="surface-grid grid gap-5 p-4 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-2 text-xs text-(--demo-muted)">Start with</span>
+          {["0", "A", ":", " "].map((character) => (
+            <button
+              key={character}
+              type="button"
+              onClick={() => { setGlyph(FONT[character]); setSelected(17); }}
+              className="min-w-9 border border-(--demo-border) bg-(--demo-bg) px-2 py-1 font-mono text-xs text-(--demo-ink) outline-none hover:border-(--demo-ink) focus-visible:ring-2 focus-visible:ring-(--craft-accent)"
+            >
+              {character === " " ? "Blank" : character}
+            </button>
+          ))}
+          <span className="text-xs text-(--demo-muted)">Then tap any square to change it.</span>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="border border-(--demo-border) bg-(--demo-bg) p-4">
+            <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">1 / Draw with switches</p>
+            <div className="grid w-full max-w-[252px] grid-cols-[14px_repeat(5,minmax(0,1fr))] gap-1 bg-black p-2">
+              <span />
+              {Array.from({ length: CELL_W }, (_, x) => <span key={x} className="text-center font-mono text-[10px] text-white/60">{x + 1}</span>)}
+              {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
+                <div key={dot} className="contents">
+                  {dot % CELL_W === 0 ? <span className="self-center font-mono text-[10px] text-white/60">{Math.floor(dot / CELL_W) + 1}</span> : null}
+                  <button
+                    type="button"
+                    aria-label={`Row ${Math.floor(dot / CELL_W) + 1}, column ${dot % CELL_W + 1}: ${glyph[dot] === "1" ? "on" : "off"}. Toggle light.`}
+                    aria-pressed={glyph[dot] === "1"}
+                    onClick={() => {
+                      setSelected(dot);
+                      setGlyph((current) => current.slice(0, dot) + (current[dot] === "1" ? "0" : "1") + current.slice(dot + 1));
+                    }}
+                    className={`aspect-square border outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) ${glyph[dot] === "1" ? "border-white bg-white" : "border-[#505050] bg-[#242424]"} ${selected === dot ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-black" : ""}`}
+                  />
                 </div>
-                <span>{character === " " ? "space" : character}</span>
+              ))}
+            </div>
+            <p className="mt-4 text-xs text-(--demo-muted)">White square = on. Dark square = off. Tap one and watch the other panels.</p>
+            <div className="mt-4 flex items-center gap-4 bg-black p-4 text-white">
+              <div className="w-16 shrink-0" style={{ containerType: "inline-size" }} aria-hidden="true"><LedGlyph glyph={glyph} /></div>
+              <p className="text-xs leading-5 text-white/70">The same picture, made from round LEDs.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            <div className="border border-(--demo-border) bg-(--demo-bg) p-4">
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">2 / Save the drawing</p>
+              <div className="grid gap-1 font-mono text-sm tabular-nums">
+                {Array.from({ length: CELL_H }, (_, y) => (
+                  <div key={y} className={`flex items-center gap-3 px-2 py-0.5 ${row === y ? "bg-amber-400/15" : ""}`}>
+                    <span className="w-10 text-[10px] text-(--demo-muted)">row {y + 1}</span>
+                    <span className="flex gap-1">
+                      {[...glyph.slice(y * CELL_W, (y + 1) * CELL_W)].map((bit, x) => (
+                        <span key={x} className={selected === y * CELL_W + x ? "text-amber-600 dark:text-amber-300" : ""}>{bit}</span>
+                      ))}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+              <p className="mt-3 text-[11px] text-(--demo-muted)">Read the rows from top to bottom to get one 35-digit string:</p>
+              <code className="mt-1 block break-all border border-(--demo-border) bg-(--demo-bar) p-2 font-mono text-xs text-(--demo-ink)">{glyph}</code>
+            </div>
+
+            <div className="border border-(--demo-border) bg-(--demo-bg) p-4">
+              <div className="text-xs leading-5 text-(--demo-ink)">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-(--demo-muted)">3 / Read one light</p>
+                <p className="mt-1">Row {row + 1}, column {column + 1} is <strong>{glyph[selected] === "1" ? "on" : "off"}</strong>.</p>
+                <p className="text-(--demo-muted)">In code: {row} × 5 + {column} = {selected}, so bit {selected} is {glyph[selected]}.</p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div
-            className="w-full overflow-hidden rounded-xl border border-white/10 bg-black px-3 py-6 sm:px-5 sm:py-7"
-            style={{ containerType: "inline-size" }}
-          >
-            <div aria-hidden="true"><LedMatrix lines={SAMPLE} /></div>
-          </div>
-        )}
+        </div>
+      </div>
+    </CraftFrame>
+  );
+}
+
+export function WorldClockBitmapOutcome() {
+  return (
+    <CraftFrame label="Repeat the tile" meta="World clock board">
+      <div className="surface-grid p-5 sm:p-8">
+        <div className="rounded-xl border border-white/10 bg-black px-3 py-6 sm:px-5 sm:py-7" style={{ containerType: "inline-size" }}>
+          <div aria-hidden="true"><LedMatrix lines={SAMPLE} /></div>
+          <p className="sr-only">19:45 New York City. 08:45 Tokyo. 05:15 New Delhi.</p>
+        </div>
       </div>
     </CraftFrame>
   );
