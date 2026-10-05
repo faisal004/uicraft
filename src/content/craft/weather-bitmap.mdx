@@ -164,35 +164,28 @@ function Bitmap({ glyph, large = false }: { glyph: string; large?: boolean }) {
   const cols = rows[0].length;
 
   return (
-    <span
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      className={`grid ${
-        large ? "w-[clamp(72px,30cqi,190px)] gap-[0.5px]" : "w-[clamp(18px,7cqi,40px)] gap-[3px]"
-      }`}
+    <svg
+      viewBox={`0 0 ${cols} ${rows.length}`}
+      className={large ? "w-[clamp(72px,30cqi,190px)]" : "w-[clamp(18px,7cqi,40px)]"}
+      focusable="false"
     >
       {rows.join("").split("").map((bit, index) => (
-        <span
+        <circle
           key={index}
-          style={{
-            transitionDelay: `${((index % cols) + Math.floor(index / cols)) * (large ? 6 : 14)}ms`,
-          }}
-          className={`aspect-square rounded-full transition-[background-color,box-shadow] duration-300 motion-reduce:transition-none ${
-            bit === "1"
-              ? `bg-current ${large ? "shadow-[0_0_3px_currentColor]" : "shadow-[0_0_6px_currentColor]"}`
-              : large
-                ? "bg-white/[0.04]"
-                : "bg-white/[0.06]"
-          }`}
+          cx={(index % cols) + 0.5}
+          cy={Math.floor(index / cols) + 0.5}
+          r={large ? 0.34 : 0.38}
+          className={bit === "1" ? "fill-current" : "fill-white/5"}
         />
       ))}
-    </span>
+    </svg>
   );
 }
 
 export function WeatherBitmap() {
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState<string>(CONDITIONS[0].name);
   const [unit, setUnit] = useState<Unit>("C");
-  const weather = CONDITIONS[selected];
+  const weather = CONDITIONS.find((condition) => condition.name === selected) ?? CONDITIONS[0];
   const temp = toUnit(weather.temperature, unit);
   const chars = [...`${temp}°${unit}`];
 
@@ -226,13 +219,13 @@ export function WeatherBitmap() {
       <div className="flex items-end justify-between gap-4 px-3 pb-2 pt-3">
         <div className="grid gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/60">
           <span>Condition</span>
-          <Select value={String(selected)} onValueChange={(value) => value !== null && setSelected(Number(value))}>
+          <Select value={selected} onValueChange={(value) => value !== null && setSelected(value)}>
             <SelectTrigger aria-label="Condition" className="min-w-32 border-white/25 bg-[#0d2031] text-white hover:bg-[#142c40]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border border-white/15 bg-[#152a3c] text-white ring-white/15">
-              {CONDITIONS.map((condition, index) => (
-                <SelectItem key={condition.name} value={String(index)} className="focus:bg-white/15 focus:text-white">
+              {CONDITIONS.map((condition) => (
+                <SelectItem key={condition.name} value={condition.name} className="focus:bg-white/15 focus:text-white">
                   {condition.name}
                 </SelectItem>
               ))}
