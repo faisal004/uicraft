@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 const BLANK = Array.from({ length: 7 }, () => "00000");
 
 const GLYPHS: Record<string, string[]> = {
@@ -142,7 +150,7 @@ function Bitmap({ glyph, large = false }: { glyph: string; large?: boolean }) {
     <span
       style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       className={`grid ${
-        large ? "w-[clamp(120px,32vw,190px)] gap-px" : "w-[clamp(24px,6vw,40px)] gap-[3px]"
+        large ? "w-[clamp(72px,30cqi,190px)] gap-[0.5px]" : "w-[clamp(18px,7cqi,40px)] gap-[3px]"
       }`}
     >
       {rows.join("").split("").map((bit, index) => (
@@ -172,67 +180,62 @@ export function WeatherBitmap() {
   const chars = [...`${temp}°${unit}`];
 
   return (
-    <div className="mx-auto w-full max-w-xl border border-white/15 bg-[#0b1018] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.2)] sm:p-6">
-      <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
-        <span>Pixel weather</span>
-        <span>Sample conditions</span>
-      </div>
-
-      <p className="sr-only" aria-live="polite">
-        {weather.name}, {temp} degrees {unit === "C" ? "Celsius" : "Fahrenheit"}. Sample weather data.
-      </p>
-      <div
-        aria-hidden="true"
-        className="flex items-center justify-center gap-4 py-8 sm:gap-8 sm:py-10"
-      >
-        <div className={`${weather.color} transition-colors duration-300 motion-reduce:transition-none`}>
-          <Bitmap glyph={weather.icon} large />
+    <div style={{ containerType: "inline-size" }} className="mx-auto w-full max-w-xl rounded-[26px] border border-[#587084] bg-gradient-to-b from-[#304c62] via-[#193044] to-[#102236] p-2 text-white shadow-[0_2px_0_#8295a5,0_6px_0_#0b1929,0_26px_55px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.25)]">
+      <div className="rounded-[19px] border border-black/60 bg-[radial-gradient(circle_at_80%_15%,#244360_0%,#12283b_40%,#091522_85%)] px-5 pt-5 shadow-[inset_0_3px_15px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7">
+        <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
+          <span>Pixel weather</span>
+          <span>Sample data</span>
         </div>
-        <div className="flex gap-1.5 text-white sm:gap-2">
-          {chars.map((character, index) => (
-            <Bitmap key={index} glyph={character} />
-          ))}
-        </div>
-      </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/15 pt-4">
-        <div className="flex items-center gap-3">
-          <p className="min-w-[4.5rem] font-mono text-xs uppercase tracking-[0.18em] text-white/70">
-            {weather.name}
-          </p>
-          <div className="flex gap-1" role="group" aria-label="Temperature unit">
-            {(["C", "F"] as const).map((u) => (
-              <button
-                key={u}
-                type="button"
-                aria-pressed={unit === u}
-                onClick={() => setUnit(u)}
-                className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
-                  unit === u
-                    ? "border-white bg-white text-[#0b1018]"
-                    : "border-white/20 text-white/65 hover:border-white/60 hover:text-white"
-                }`}
-              >
-                °{u}
-              </button>
-            ))}
+        <p className="sr-only" aria-live="polite">
+          {weather.name}, {temp} degrees {unit === "C" ? "Celsius" : "Fahrenheit"}. Sample weather data.
+        </p>
+        <div className="flex min-h-56 items-center justify-between gap-3 py-5 sm:min-h-64 sm:gap-6">
+          <div className="min-w-0">
+            <p className="mb-5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/50">Current conditions</p>
+            <div aria-hidden="true" className="flex gap-1 text-white sm:gap-1.5">
+              {chars.map((character, index) => (
+                <Bitmap key={index} glyph={character} />
+              ))}
+            </div>
+            <p className="mt-5 text-xl font-medium tracking-tight sm:text-2xl">{weather.name}</p>
+          </div>
+          <div aria-hidden="true" className={`${weather.color} shrink-0 transition-colors duration-300 motion-reduce:transition-none`}>
+            <Bitmap glyph={weather.icon} large />
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Sample weather condition">
-          {CONDITIONS.map((condition, index) => (
+      <div className="flex items-end justify-between gap-4 px-3 pb-2 pt-3">
+        <div className="grid gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/60">
+          <span>Condition</span>
+          <Select value={String(selected)} onValueChange={(value) => value !== null && setSelected(Number(value))}>
+            <SelectTrigger aria-label="Condition" className="min-w-32 border-white/25 bg-[#0d2031] text-white hover:bg-[#142c40]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="border border-white/15 bg-[#152a3c] text-white ring-white/15">
+              {CONDITIONS.map((condition, index) => (
+                <SelectItem key={condition.name} value={String(index)} className="focus:bg-white/15 focus:text-white">
+                  {condition.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-1" role="group" aria-label="Temperature unit">
+          {(["C", "F"] as const).map((u) => (
             <button
-              key={condition.name}
+              key={u}
               type="button"
-              aria-pressed={selected === index}
-              onClick={() => setSelected(index)}
-              className={`border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
-                selected === index
-                  ? "border-white bg-white text-[#0b1018]"
+              aria-pressed={unit === u}
+              onClick={() => setUnit(u)}
+              className={`rounded-md border px-3 py-2 font-mono text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
+                unit === u
+                  ? "border-white bg-white text-[#0b1624]"
                   : "border-white/20 text-white/65 hover:border-white/60 hover:text-white"
               }`}
             >
-              {condition.name}
+              °{u}
             </button>
           ))}
         </div>
