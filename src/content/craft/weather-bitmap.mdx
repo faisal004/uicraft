@@ -1,0 +1,179 @@
+---
+title: Pixel Weather
+description: Draw sun, cloud, rain, and temperature with tiny 5×7 bitmaps, then switch the sample forecast.
+publishedAt: 2026-10-05
+category: Animation
+preview: weather-bitmap
+kind: craft
+order: 7
+---
+
+<WeatherBitmap />
+
+## Implementation
+
+Paste this client component into a React app with Tailwind CSS. The weather values are samples in the component; no service or image asset is needed. The demo above renders this exact `WeatherBitmap` component.
+
+```tsx title="weather-bitmap.tsx"
+"use client";
+
+import { useState } from "react";
+
+const GLYPHS: Record<string, string[]> = {
+  "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+  "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+  "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+  "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+  "°": ["01100", "10010", "10010", "01100", "00000", "00000", "00000"],
+  C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+  sun: ["00100", "10101", "01110", "11111", "01110", "10101", "00100"],
+  cloud: ["00000", "00110", "01111", "11111", "11111", "01110", "00000"],
+  rain: ["00000", "00110", "01111", "11111", "01110", "01010", "10101"],
+};
+
+const CONDITIONS = [
+  { name: "Sunny", icon: "sun", temperature: 24, color: "text-amber-300" },
+  { name: "Cloudy", icon: "cloud", temperature: 22, color: "text-slate-200" },
+  { name: "Rainy", icon: "rain", temperature: 18, color: "text-sky-300" },
+] as const;
+
+function Bitmap({ glyph, large = false }: { glyph: string; large?: boolean }) {
+  return (
+    <span
+      className={`grid grid-cols-5 gap-[3px] ${large ? "w-[clamp(56px,15vw,96px)]" : "w-[clamp(28px,7vw,44px)]"}`}
+    >
+      {GLYPHS[glyph].join("").split("").map((bit, index) => (
+        <span
+          key={index}
+          className={`aspect-square rounded-full transition-colors duration-300 motion-reduce:transition-none ${bit === "1" ? "bg-current" : "bg-white/10"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+export function WeatherBitmap() {
+  const [selected, setSelected] = useState(0);
+  const weather = CONDITIONS[selected];
+
+  return (
+    <div className="mx-auto w-full max-w-xl border border-white/15 bg-[#0b1018] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.2)] sm:p-6">
+      <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
+        <span>Pixel weather</span>
+        <span>Sample conditions</span>
+      </div>
+
+      <p className="sr-only" aria-live="polite">
+        {weather.name}, {weather.temperature} degrees Celsius. Sample weather data.
+      </p>
+      <div aria-hidden="true" className="flex items-center justify-center gap-5 py-9 sm:gap-8 sm:py-12">
+        <div className={weather.color}>
+          <Bitmap glyph={weather.icon} large />
+        </div>
+        <div className="flex gap-1.5 text-white sm:gap-2">
+          {[...`${weather.temperature}°C`].map((character, index) => (
+            <Bitmap key={index} glyph={character} />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/15 pt-4">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-white/70">{weather.name}</p>
+        <div className="flex gap-1" role="group" aria-label="Sample weather condition">
+          {CONDITIONS.map((condition, index) => (
+            <button
+              key={condition.name}
+              type="button"
+              aria-pressed={selected === index}
+              onClick={() => setSelected(index)}
+              className={`border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${selected === index ? "border-white bg-white text-[#0b1018]" : "border-white/20 text-white/65 hover:border-white/60 hover:text-white"}`}
+            >
+              {condition.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## How it works
+
+The display is ordinary HTML before it is a bitmap: a heading, an area for the picture and temperature, and three buttons. Start with the visible structure and one weather condition.
+
+### 01 — Start with readable HTML
+
+```tsx title="01-readable-weather.tsx"
+<div>
+  <p>Pixel weather</p>
+  <p>Sunny, 24 degrees Celsius</p>
+  <div>
+    <button type="button">Sunny</button>
+    <button type="button">Cloudy</button>
+    <button type="button">Rainy</button>
+  </div>
+</div>
+```
+
+This already tells someone what the card says. The final component keeps the condition as text, even after drawing it with dots. Try changing the words to “Rainy, 18 degrees Celsius” and imagine what the lights should show.
+
+### 02 — Store pictures as rows of switches
+
+A bitmap here is seven rows of five digits. `1` means a lit dot; `0` means a dim dot. Each icon uses the same 5×7 grid as the world clock letters. The sun and the digit `2` are just different sets of rows.
+
+```tsx title="02-bitmap-recipes.tsx"
+const GLYPHS = {
+  sun: ["00100", "10101", "01110", "11111", "01110", "10101", "00100"],
+  "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+};
+```
+
+Read the sun from top to bottom. Its first row has one lit dot in the middle; the fourth row has all five lit. Change one `1` to `0`: exactly one light disappears.
+
+### 03 — Turn each digit into a dot
+
+`join("")` places the seven rows end to end. `split("")` makes one item per digit. React's `map` renders 35 `<span>` elements. CSS grid places five in each row, so the next five automatically start underneath. `index` gives each dot a stable position when React updates the picture.
+
+```tsx title="03-render-one-glyph.tsx"
+function Bitmap({ glyph }: { glyph: string }) {
+  return (
+    <span className="grid w-16 grid-cols-5 gap-[3px]">
+      {GLYPHS[glyph].join("").split("").map((bit, index) => (
+        <span
+          key={index}
+          className={`aspect-square rounded-full ${bit === "1" ? "bg-current" : "bg-white/10"}`}
+        />
+      ))}
+    </span>
+  );
+}
+```
+
+The final `Bitmap` adds a `large` option so the icon is bigger than the temperature characters. Its lit dots inherit the parent's text color through CSS `currentColor`; that is why rain can be blue without changing the bitmap data.
+
+### 04 — Put icons and numbers together
+
+The final component keeps three sample conditions in `CONDITIONS`. Each has a name, icon key, temperature, and color. `weather.temperature` becomes a string such as `24°C`. Spreading it into characters gives `2`, `4`, `°`, and `C`, and each character gets the same `Bitmap` renderer. The dot picture and the temperature now change from the same selected condition.
+
+```tsx title="04-select-a-condition.tsx"
+const [selected, setSelected] = useState(0);
+const weather = CONDITIONS[selected];
+
+<div className="flex gap-2" aria-hidden="true">
+  <Bitmap glyph={weather.icon} large />
+  {[...`${weather.temperature}°C`].map((character, index) => (
+    <Bitmap key={index} glyph={character} />
+  ))}
+</div>
+```
+
+Tap the three buttons in the demo. `onClick` changes `selected`, React renders again, and only the dots whose on/off state changed receive a new color. Try swapping the sunny and rainy temperatures in `CONDITIONS`; the bitmap digits will follow the data.
+
+### 05 — Soften the change and keep the meaning
+
+The finished dots use a CSS color transition. `motion-reduce:transition-none` removes that transition when the visitor requests reduced motion. There is no JavaScript timer or subscription, so there is nothing to clean up when the component leaves the page.
+
+Each button uses `aria-pressed` to report which sample is selected. The dots are marked `aria-hidden` because reading 35 separate circles per glyph would be noise. An `aria-live="polite"` sentence announces the condition and temperature when they change. “Sample conditions” in the header makes clear that this is a demonstration, not a live forecast.
+
+**Check yourself:** For `24°C`, how many bitmap tiles are drawn beside the icon? Four.
