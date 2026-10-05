@@ -30,7 +30,7 @@ import {
   TextToParticlesThumbnail,
 } from "@/components/mdx/text-to-particles";
 import { ThanosSnapDemo, ThanosSnapThumbnail } from "@/components/mdx/thanos-snap";
-import { WeatherBitmap } from "@/components/mdx/weather-bitmap";
+import { WeatherBitmap, WeatherBitmapThumbnail } from "@/components/mdx/weather-bitmap";
 
 export const mdxComponents = {
   TastefulButtonDemo,
@@ -60,5 +60,5 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "text-to-particles": TextToParticlesThumbnail,
   "thanos-snap": ThanosSnapThumbnail,
   "world-clock-board": WorldClockBoardThumbnail,
-  "weather-bitmap": WeatherBitmap,
+  "weather-bitmap": WeatherBitmapThumbnail,
 };

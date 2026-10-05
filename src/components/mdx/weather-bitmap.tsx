@@ -142,14 +142,14 @@ type Unit = "C" | "F";
 const toUnit = (celsius: number, unit: Unit) =>
   unit === "C" ? celsius : Math.round((celsius * 9) / 5 + 32);
 
-function Bitmap({ glyph, large = false }: { glyph: string; large?: boolean }) {
+function Bitmap({ glyph, large = false, className }: { glyph: string; large?: boolean; className?: string }) {
   const rows = ALL[glyph] ?? BLANK;
   const cols = rows[0].length;
 
   return (
     <svg
       viewBox={`0 0 ${cols} ${rows.length}`}
-      className={large ? "w-[clamp(72px,30cqi,190px)]" : "w-[clamp(18px,7cqi,40px)]"}
+      className={className ?? (large ? "w-[clamp(72px,30cqi,190px)]" : "w-[clamp(18px,7cqi,40px)]")}
       focusable="false"
     >
       {rows.join("").split("").map((bit, index) => (
@@ -232,6 +232,40 @@ export function WeatherBitmap() {
               °{u}
             </button>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function WeatherBitmapThumbnail() {
+  const chars = [..."24°C"];
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{ containerType: "size" }}
+      className="flex h-full w-full text-white"
+    >
+      <div className="flex h-full w-full flex-col justify-center rounded-[1.35rem] border border-[#587084] bg-gradient-to-b from-[#304c62] via-[#193044] to-[#102236] p-[1.4cqh] shadow-[0_2px_0_#8295a5,0_6px_0_#0b1929,0_18px_36px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.25)]">
+        <div className="flex h-full flex-col justify-center rounded-[1rem] border border-black/60 bg-[radial-gradient(circle_at_78%_18%,#244360_0%,#12283b_42%,#091522_85%)] px-[5cqw] py-[5cqh] shadow-[inset_0_3px_15px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]">
+       
+          <div className="mt-[4cqh] flex items-center justify-between gap-[5cqw]">
+            <div className="min-w-0">
+              <p className="mb-[2.6cqh] font-mono text-[clamp(8px,2.3cqh,10px)] uppercase tracking-[0.16em] text-white/50">
+                Current conditions
+              </p>
+              <div className="flex gap-[0.8cqw]">
+                {chars.map((character, index) => (
+                  <Bitmap key={index} glyph={character} className="w-[clamp(18px,11cqh,46px)]" />
+                ))}
+              </div>
+              <p className="mt-[3cqh] text-[clamp(20px,8cqh,36px)] font-medium leading-none tracking-tight">Sunny</p>
+            </div>
+            <div className="shrink-0 text-amber-300">
+              <Bitmap glyph="sun" className="w-[clamp(72px,46cqh,168px)]" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
