@@ -16,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import type { ContentEntry } from "@/lib/content";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -23,6 +24,10 @@ import { cn } from "@/lib/utils";
 
 export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
   const footerAction =
     "flex min-h-16 flex-col items-center justify-center gap-2 border border-foreground/10 bg-(--craft-surface) px-1 text-center text-[11px] font-medium text-foreground/65 transition-colors hover:border-(--craft-accent) hover:text-(--craft-accent) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--craft-accent)";
 
@@ -31,6 +36,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
       <SidebarHeader className="h-12 justify-center border-b border-foreground/10 px-3">
         <Link
           href="/"
+          onClick={closeMobileSidebar}
           className="group flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--craft-accent)"
         >
           <span className="size-3 rounded-full bg-(--craft-accent)" />
@@ -48,6 +54,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={<Link href="/craft" />}
+                  onClick={closeMobileSidebar}
                   isActive={pathname === "/craft"}
                   className="h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)"
                 >
@@ -72,6 +79,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
                   <SidebarMenuItem key={craft.slug}>
                     <SidebarMenuButton
                       render={<Link href={href} />}
+                      onClick={closeMobileSidebar}
                       isActive={isActive}
                       className={cn(
                         "h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)",
@@ -102,7 +110,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
           <ExternalLink className="size-4" aria-hidden="true" />
           <span>GitHub</span>
         </a>
-        <Link href="/" className={footerAction}>
+        <Link href="/" onClick={closeMobileSidebar} className={footerAction}>
           <House className="size-4" aria-hidden="true" />
           <span>Home</span>
         </Link>
