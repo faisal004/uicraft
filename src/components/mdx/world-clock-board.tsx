@@ -98,14 +98,21 @@ function lit(glyph: string, x: number, y: number) {
 
 function LedGlyph({ glyph }: { glyph: string }) {
   return (
-    <div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
-      {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-        <span
-          key={dot}
-          className={`aspect-square w-full rounded-full ${lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
-        />
-      ))}
-    </div>
+    <svg viewBox={`0 0 ${CELL_W} ${CELL_H}`} className="block w-full" focusable="false">
+      {Array.from({ length: CELL_W * CELL_H }, (_, dot) => {
+        const x = dot % CELL_W;
+        const y = Math.floor(dot / CELL_W);
+        return (
+          <circle
+            key={dot}
+            cx={x + 0.5}
+            cy={y + 0.5}
+            r={0.38}
+            className={lit(glyph, x, y) ? "fill-[#f2f2f2]" : "fill-[#434343]"}
+          />
+        );
+      })}
+    </svg>
   );
 }
 

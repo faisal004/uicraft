@@ -113,14 +113,21 @@ function lit(glyph: string, x: number, y: number) {
 
 function LedGlyph({ glyph }: { glyph: string }) {
   return (
-    <div className="grid grid-cols-5 gap-[clamp(1px,0.16cqi,2px)]">
-      {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-        <span
-          key={dot}
-          className={`aspect-square w-full rounded-full ${lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W)) ? "bg-[#f2f2f2]" : "bg-[#434343]"}`}
-        />
-      ))}
-    </div>
+    <svg viewBox={`0 0 ${CELL_W} ${CELL_H}`} className="block w-full" focusable="false">
+      {Array.from({ length: CELL_W * CELL_H }, (_, dot) => {
+        const x = dot % CELL_W;
+        const y = Math.floor(dot / CELL_W);
+        return (
+          <circle
+            key={dot}
+            cx={x + 0.5}
+            cy={y + 0.5}
+            r={0.38}
+            className={lit(glyph, x, y) ? "fill-[#f2f2f2]" : "fill-[#434343]"}
+          />
+        );
+      })}
+    </svg>
   );
 }
 
@@ -351,19 +358,24 @@ function lit(glyph: string, x: number, y: number) {
 }
 ```
 
-The component makes 35 round `<span>` elements in string order. Each `dot` is one position from `0` through `34`. CSS's five-column grid places the first five in row 1, the next five in row 2, and so on. `dot % 5` gives the code column and `Math.floor(dot / 5)` gives the code row. `lit` uses those coordinates to read the matching digit and choose a bright or dark color.
+The component draws one SVG for the tile. `viewBox` makes the picture 5 units wide and 7 units tall, one unit per light. Each digit becomes a `<circle>` in string order. `dot % 5` is the column and `Math.floor(dot / 5)` is the row. Adding `0.5` puts that circle in the middle of its unit square. `lit` reads the matching digit and chooses a bright or dark fill.
 
 ```tsx title="03-draw-the-leds.tsx"
-<div className="grid grid-cols-5">
-  {Array.from({ length: CELL_W * CELL_H }, (_, dot) => (
-    <span
-      key={dot}
-      className={lit(glyph, dot % CELL_W, Math.floor(dot / CELL_W))
-        ? "bg-[#f2f2f2]"
-        : "bg-[#434343]"}
-    />
-  ))}
-</div>
+<svg viewBox={`0 0 ${CELL_W} ${CELL_H}`} className="block w-full">
+  {Array.from({ length: CELL_W * CELL_H }, (_, dot) => {
+    const x = dot % CELL_W
+    const y = Math.floor(dot / CELL_W)
+    return (
+      <circle
+        key={dot}
+        cx={x + 0.5}
+        cy={y + 0.5}
+        r={0.38}
+        className={lit(glyph, x, y) ? "fill-[#f2f2f2]" : "fill-[#434343]"}
+      />
+    )
+  })}
+</svg>
 ```
 
 **You made:** a renderer for any 5×7 bitmap letter. Every digit in the string has one fixed place in the grid and controls exactly one round LED.
