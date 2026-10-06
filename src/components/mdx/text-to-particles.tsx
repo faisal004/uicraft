@@ -285,7 +285,3 @@ export function TextToParticlesStep({ step }: { step: number | string }) {
     </CraftFrame>
   );
 }
-
-export function TextToParticlesThumbnail() {
-  return <TextToParticles stage="targets" compact />;
-}

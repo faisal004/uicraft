@@ -428,7 +428,3 @@ export function WorldClockBitmapOutcome() {
     </CraftFrame>
   );
 }
-
-export function WorldClockBoardThumbnail() {
-  return <WorldClockBoard announce={false} className="pointer-events-none rounded-none border-0 shadow-none" />;
-}

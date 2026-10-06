@@ -129,7 +129,7 @@ const ICONS: Record<string, string[]> = {
 
 const ALL: Record<string, string[]> = { ...GLYPHS, ...ICONS };
 
-const CONDITIONS = [
+export const CONDITIONS = [
   { name: "Sunny", icon: "sun", temperature: 24, color: "text-amber-300" },
   { name: "Cloudy", icon: "cloud", temperature: 22, color: "text-slate-200" },
   { name: "Rainy", icon: "rain", temperature: 18, color: "text-sky-300" },
@@ -159,7 +159,7 @@ const shellStyle = {
   ].join(", "),
 };
 
-function Shell({ children, className }: { children: React.ReactNode; className?: string }) {
+export function Shell({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div style={shellStyle} className={`relative isolate overflow-hidden text-white ${className ?? ""}`}>
       <div
@@ -172,7 +172,7 @@ function Shell({ children, className }: { children: React.ReactNode; className?:
   );
 }
 
-const wellStyle = {
+export const wellStyle = {
   background: "linear-gradient(180deg, #060d14 0%, #1b3144 100%)",
   boxShadow:
     "inset 0 8px 14px rgba(0,0,0,0.75), inset 0 -1px 0 rgba(255,255,255,0.2), 0 1px 0 rgba(255,255,255,0.08)",
@@ -181,7 +181,7 @@ const wellStyle = {
 const keyClass =
   "border border-black/40 bg-[linear-gradient(180deg,#45627a_0%,#2a455c_42%,#1a3348_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-2px_4px_rgba(0,0,0,0.45),0_1px_2px_rgba(0,0,0,0.4)] transition-[transform,box-shadow,filter] duration-150 ease-out hover:brightness-110 active:translate-y-px active:scale-[0.99] active:shadow-[inset_0_2px_5px_rgba(0,0,0,0.55)] motion-reduce:transition-none";
 
-function Bitmap({ glyph, large = false, className }: { glyph: string; large?: boolean; className?: string }) {
+export function Bitmap({ glyph, large = false, className }: { glyph: string; large?: boolean; className?: string }) {
   const rows = ALL[glyph] ?? BLANK;
   const cols = rows[0].length;
 
@@ -280,42 +280,6 @@ export function WeatherBitmap() {
           ))}
         </div>
       </div>
-      </Shell>
-    </div>
-  );
-}
-
-export function WeatherBitmapThumbnail() {
-  const chars = [..."24°C"];
-
-  return (
-    <div
-      aria-hidden="true"
-      style={{ containerType: "size" }}
-      className="flex h-full w-full text-white"
-    >
-      <Shell className="flex h-full w-full flex-col justify-center rounded-[1.35rem] p-[2.4cqh]">
-        <div style={wellStyle} className="rounded-[1rem] p-[0.7cqh]">
-        <div className="flex h-full flex-col justify-center rounded-[0.85rem] border border-black/70 bg-[radial-gradient(circle_at_78%_18%,#244360_0%,#12283b_42%,#091522_85%)] px-[5cqw] py-[4cqh] shadow-[inset_0_0_18px_rgba(0,0,0,0.5)]">
-       
-          <div className="mt-[4cqh] flex items-center justify-between gap-[5cqw]">
-            <div className="min-w-0">
-              <p className="mb-[2.6cqh] font-mono text-[clamp(8px,2.3cqh,10px)] uppercase tracking-[0.16em] text-white/50">
-                Current conditions
-              </p>
-              <div className="flex gap-[0.8cqw]">
-                {chars.map((character, index) => (
-                  <Bitmap key={index} glyph={character} className="w-[clamp(18px,11cqh,46px)]" />
-                ))}
-              </div>
-              <p className="mt-[3cqh] text-[clamp(20px,8cqh,36px)] font-medium leading-none tracking-tight">Sunny</p>
-            </div>
-            <div className="shrink-0 text-amber-300">
-              <Bitmap glyph="sun" className="w-[clamp(72px,46cqh,168px)]" />
-            </div>
-          </div>
-        </div>
-        </div>
       </Shell>
     </div>
   );
