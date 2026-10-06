@@ -170,6 +170,7 @@ const FINISHES: Finish[] = [
 ];
 
 const BLUE = FINISHES[2];
+const ORANGE = FINISHES[1];
 
 const SHELL_SHADOW = [
   "inset 0 1px 0 rgba(255,255,255,0.55)",
@@ -254,14 +255,14 @@ export function Bitmap({ glyph, large = false, className }: { glyph: string; lar
 export function WeatherBitmap() {
   const [selected, setSelected] = useState<string>(CONDITIONS[0].name);
   const [unit, setUnit] = useState<Unit>("C");
-  const [finishName, setFinishName] = useState(BLUE.name);
+  const [finishName, setFinishName] = useState(ORANGE.name);
   const weather = CONDITIONS.find((condition) => condition.name === selected) ?? CONDITIONS[0];
-  const finish = FINISHES.find((item) => item.name === finishName) ?? BLUE;
+  const finish = FINISHES.find((item) => item.name === finishName) ?? ORANGE;
   const temp = toUnit(weather.temperature, unit);
   const chars = [...`${temp}°${unit}`];
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl items-center justify-center gap-4 sm:gap-5">
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
     <div style={{ containerType: "inline-size" }} className="relative min-w-0 w-full max-w-xl">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-12 -bottom-3 h-8 rounded-full bg-black/45 blur-xl" />
       <Shell finish={finish} className="rounded-[28px] p-3 sm:p-3.5">
@@ -333,7 +334,7 @@ export function WeatherBitmap() {
       </div>
       </Shell>
     </div>
-    <div role="radiogroup" aria-label="Device color" className="flex shrink-0 flex-col gap-3">
+    <div role="radiogroup" aria-label="Device color" className="flex shrink-0 flex-row gap-3 sm:flex-col">
       {FINISHES.map((item) => {
         const active = item.name === finish.name;
         return (
