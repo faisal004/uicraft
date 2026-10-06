@@ -7,7 +7,7 @@ import { CraftFrame, RangeControl } from "@/components/mdx/craft-controls";
 
 const FLAG_SRC = "/india-flag.svg";
 
-function Flag({
+export function Flag({
   columns = 24,
   billow = 0.8,
   stagger = 50,
@@ -129,8 +129,4 @@ export function WavingFlagStep({ step }: { step: number | string }) {
       </div>
     </CraftFrame>
   );
-}
-
-export function WavingFlagThumbnail() {
-  return <Flag width={144} height={96} billow={0.55} stagger={45} />;
 }

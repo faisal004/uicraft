@@ -1,0 +1,380 @@
+---
+title: Pixel Weather
+description: A compact weather box built from bitmap temperatures and weather icons.
+publishedAt: 2026-10-05
+category: Animation
+preview: weather-bitmap
+kind: craft
+order: 7
+---
+
+<WeatherBitmap />
+
+## Implementation
+
+Add the shadcn Select (`npx shadcn add select`), then paste this component into a React app with Tailwind CSS. It uses sample conditions and no image assets. The code below is the exact component shown above.
+
+```tsx title="weather-bitmap.tsx"
+"use client";
+
+import { useState } from "react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const BLANK = Array.from({ length: 7 }, () => "00000");
+
+const GLYPHS: Record<string, string[]> = {
+  "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+  "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+  "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+  "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+  "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+  "5": ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+  "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+  "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+  "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+  "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+  "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+  "°": ["01100", "10010", "10010", "01100", "00000", "00000", "00000"],
+  C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+  F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+};
+
+const N = 50;
+type Pt = [number, number];
+
+const build = (fn: (x: number, y: number) => boolean) =>
+  Array.from({ length: N }, (_, y) =>
+    Array.from({ length: N }, (_, x) => (fn(x + 0.5, y + 0.5) ? "1" : "0")).join("")
+  );
+
+const inCircle = (x: number, y: number, cx: number, cy: number, r: number) =>
+  (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+
+const segDist = (x: number, y: number, ax: number, ay: number, bx: number, by: number) => {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+};
+
+const inPoly = (x: number, y: number, pts: Pt[]) => {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i];
+    const [xj, yj] = pts[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+};
+
+const cloud = (x: number, y: number, dy: number) =>
+  inCircle(x, y, 16, 30 + dy, 8) ||
+  inCircle(x, y, 26, 24 + dy, 11) ||
+  inCircle(x, y, 36, 31 + dy, 7) ||
+  (x >= 16 && x <= 36 && y >= 31 + dy && y <= 38 + dy);
+
+const rad = (deg: number) => (deg * Math.PI) / 180;
+
+const SUN_RAYS = Array.from({ length: 8 }, (_, i) => {
+  const a = rad(i * 45);
+  return [25 + 14 * Math.cos(a), 25 + 14 * Math.sin(a), 25 + 22 * Math.cos(a), 25 + 22 * Math.sin(a)];
+});
+
+const DROPS = [
+  [14, 36],
+  [22, 39],
+  [30, 36],
+  [38, 39],
+];
+
+const BOLT: Pt[] = [
+  [27, 34],
+  [35, 34],
+  [30, 40],
+  [36, 40],
+  [23, 49],
+  [26, 42],
+  [20, 42],
+];
+
+const FLAKE_SEGS: number[][] = (() => {
+  const segs: number[][] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = rad(i * 60);
+    const ex = 25 + 21 * Math.cos(a);
+    const ey = 25 + 21 * Math.sin(a);
+    segs.push([25, 25, ex, ey]);
+    for (const [d, len] of [
+      [11, 6],
+      [16, 4],
+    ]) {
+      const bx = 25 + d * Math.cos(a);
+      const by = 25 + d * Math.sin(a);
+      for (const off of [-60, 60]) {
+        const b = rad(i * 60 + off);
+        segs.push([bx, by, bx + len * Math.cos(b), by + len * Math.sin(b)]);
+      }
+    }
+  }
+  return segs;
+})();
+
+const ICONS: Record<string, string[]> = {
+  sun: build(
+    (x, y) =>
+      inCircle(x, y, 25, 25, 10) || SUN_RAYS.some(([ax, ay, bx, by]) => segDist(x, y, ax, ay, bx, by) < 1.4)
+  ),
+  cloud: build((x, y) => cloud(x, y, 0)),
+  rain: build(
+    (x, y) =>
+      cloud(x, y, -5) || DROPS.some(([cx, y0]) => segDist(x, y, cx, y0, cx - 3, y0 + 8) < 1.2)
+  ),
+  storm: build((x, y) => cloud(x, y, -5) || inPoly(x, y, BOLT)),
+  snow: build(
+    (x, y) =>
+      inCircle(x, y, 25, 25, 2.2) ||
+      FLAKE_SEGS.some(([ax, ay, bx, by]) => segDist(x, y, ax, ay, bx, by) < 1.2)
+  ),
+};
+
+const ALL: Record<string, string[]> = { ...GLYPHS, ...ICONS };
+
+export const CONDITIONS = [
+  { name: "Sunny", icon: "sun", temperature: 24, color: "text-amber-300" },
+  { name: "Cloudy", icon: "cloud", temperature: 22, color: "text-slate-200" },
+  { name: "Rainy", icon: "rain", temperature: 18, color: "text-sky-300" },
+  { name: "Stormy", icon: "storm", temperature: 16, color: "text-violet-300" },
+  { name: "Snowy", icon: "snow", temperature: -2, color: "text-cyan-200" },
+] as const;
+
+type Unit = "C" | "F";
+
+const toUnit = (celsius: number, unit: Unit) =>
+  unit === "C" ? celsius : Math.round((celsius * 9) / 5 + 32);
+
+const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`,
+)}")`;
+
+type Finish = {
+  name: string;
+  swatch: string;
+  lit: string;
+  mid: string;
+  body: string;
+  deep: string;
+  base: string;
+  wellTop: string;
+  wellBottom: string;
+  screen: [string, string, string];
+  key: [string, string, string];
+  menu: string;
+};
+
+const FINISHES: Finish[] = [
+  { name: "Black", swatch: "#2a2a2a", lit: "#6e6e6e", mid: "#3c3c3c", body: "#2a2a2a", deep: "#1c1c1c", base: "#121212", wellTop: "#050505", wellBottom: "#242424", screen: ["#2c2c2c", "#161616", "#0a0a0a"], key: ["#4a4a4a", "#2e2e2e", "#1a1a1a"], menu: "#1a1a1a" },
+  { name: "Orange", swatch: "#ff4c1a", lit: "#ff8a52", mid: "#ff4e1c", body: "#e83a12", deep: "#c42c0c", base: "#8e220c", wellTop: "#120806", wellBottom: "#4a1c12", screen: ["#3a1c16", "#180e0c", "#0e0908"], key: ["#ff5a2a", "#d63612", "#9a240c"], menu: "#3a140e" },
+  { name: "Blue", swatch: "#4e6c84", lit: "#7b94a6", mid: "#4e6c84", body: "#34556c", deep: "#243e54", base: "#183044", wellTop: "#060d14", wellBottom: "#1b3144", screen: ["#244360", "#12283b", "#091522"], key: ["#45627a", "#2a455c", "#1a3348"], menu: "#152a3c" },
+  { name: "Green", swatch: "#3f7a56", lit: "#8aab96", mid: "#4f7a5e", body: "#365844", deep: "#243c2e", base: "#18281e", wellTop: "#07110c", wellBottom: "#1c3326", screen: ["#24382c", "#122018", "#0a120e"], key: ["#4d735c", "#2c4a38", "#1a3024"], menu: "#1a2e24" },
+  { name: "Red", swatch: "#a33b3b", lit: "#c48a8a", mid: "#8a4545", body: "#6a3030", deep: "#4a2020", base: "#341616", wellTop: "#120808", wellBottom: "#3a1c1c", screen: ["#3a2424", "#1c1212", "#100a0a"], key: ["#8a4545", "#5c2c2c", "#3a1a1a"], menu: "#2e1818" },
+];
+
+const BLUE = FINISHES[2];
+const ORANGE = FINISHES[1];
+
+const SHELL_SHADOW = [
+  "inset 0 1px 0 rgba(255,255,255,0.55)",
+  "inset 0 -3px 6px rgba(0,0,0,0.42)",
+  "0 1px 0 rgba(0,0,0,0.45)",
+  "0 22px 40px rgba(0,0,0,0.42)",
+  "0 4px 10px rgba(0,0,0,0.28)",
+].join(", ");
+
+function shellPaint(finish: Finish) {
+  return {
+    backgroundColor: finish.base,
+    backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.16), transparent 14%), linear-gradient(165deg, ${finish.lit} 0%, ${finish.mid} 7%, ${finish.body} 20%, ${finish.deep} 52%, ${finish.base} 100%)`,
+    boxShadow: SHELL_SHADOW,
+  };
+}
+
+function wellPaint(finish: Finish) {
+  return {
+    background: `linear-gradient(180deg, ${finish.wellTop} 0%, ${finish.wellBottom} 100%)`,
+    boxShadow:
+      "inset 0 8px 14px rgba(0,0,0,0.75), inset 0 -1px 0 rgba(255,255,255,0.2), 0 1px 0 rgba(255,255,255,0.08)",
+  };
+}
+
+export function Shell({
+  children,
+  className,
+  finish = BLUE,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  finish?: Finish;
+}) {
+  return (
+    <div style={shellPaint(finish)} className={`relative isolate overflow-hidden text-white ${className ?? ""}`}>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-80 mix-blend-overlay"
+        style={{ backgroundImage: GRAIN, backgroundSize: "180px 180px" }}
+      />
+      <div className="relative h-full">{children}</div>
+    </div>
+  );
+}
+
+export const wellStyle = wellPaint(BLUE);
+
+function keyPaint(finish: Finish) {
+  return {
+    backgroundImage: `linear-gradient(180deg, ${finish.key[0]} 0%, ${finish.key[1]} 42%, ${finish.key[2]} 100%)`,
+  };
+}
+
+const keyClass =
+  "border border-black/40 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-2px_4px_rgba(0,0,0,0.45),0_1px_2px_rgba(0,0,0,0.4)] transition-[transform,box-shadow,filter] duration-150 ease-out hover:brightness-110 active:translate-y-px active:scale-[0.99] active:shadow-[inset_0_2px_5px_rgba(0,0,0,0.55)] motion-reduce:transition-none";
+
+export function Bitmap({ glyph, large = false, className }: { glyph: string; large?: boolean; className?: string }) {
+  const rows = ALL[glyph] ?? BLANK;
+  const cols = rows[0].length;
+
+  return (
+    <svg
+      viewBox={`0 0 ${cols} ${rows.length}`}
+      className={className ?? (large ? "w-[clamp(72px,30cqi,190px)]" : "w-[clamp(18px,7cqi,40px)]")}
+      focusable="false"
+    >
+      {rows.join("").split("").map((bit, index) => (
+        <circle
+          key={index}
+          cx={(index % cols) + 0.5}
+          cy={Math.floor(index / cols) + 0.5}
+          r={large ? 0.34 : 0.38}
+          style={{ transitionDelay: `${((index % cols) + Math.floor(index / cols)) * (large ? 6 : 14)}ms` }}
+          className={`transition-[fill] duration-300 motion-reduce:transition-none ${bit === "1" ? "fill-current" : "fill-white/5"}`}
+        />
+      ))}
+    </svg>
+  );
+}
+
+export function WeatherBitmap() {
+  const [selected, setSelected] = useState<string>(CONDITIONS[0].name);
+  const [unit, setUnit] = useState<Unit>("C");
+  const [finishName, setFinishName] = useState(ORANGE.name);
+  const weather = CONDITIONS.find((condition) => condition.name === selected) ?? CONDITIONS[0];
+  const finish = FINISHES.find((item) => item.name === finishName) ?? ORANGE;
+  const temp = toUnit(weather.temperature, unit);
+  const chars = [...`${temp}°${unit}`];
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+    <div style={{ containerType: "inline-size" }} className="relative min-w-0 w-full max-w-xl">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-12 -bottom-3 h-8 rounded-full bg-black/45 blur-xl" />
+      <Shell finish={finish} className="rounded-[28px] p-3 sm:p-3.5">
+      <div style={wellPaint(finish)} className="rounded-[18px] p-[5px]">
+      <div style={{ background: `radial-gradient(circle at 80% 15%, ${finish.screen[0]} 0%, ${finish.screen[1]} 40%, ${finish.screen[2]} 85%)` }} className="rounded-[14px] border border-black/70 px-5 pt-5 shadow-[inset_0_0_28px_rgba(0,0,0,0.55)] sm:px-7">
+        <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
+          <span>Pixel weather</span>
+          <span>Sample data</span>
+        </div>
+
+        <p className="sr-only" aria-live="polite">
+          {weather.name}, {temp} degrees {unit === "C" ? "Celsius" : "Fahrenheit"}. {finish.name} device. Sample weather data.
+        </p>
+        <div className="flex min-h-56 items-center justify-between gap-3 py-5 sm:min-h-64 sm:gap-6">
+          <div className="min-w-0">
+            <p className="mb-5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/50">Current conditions</p>
+            <div aria-hidden="true" className="flex gap-1 text-white sm:gap-1.5">
+              {chars.map((character, index) => (
+                <Bitmap key={index} glyph={character} />
+              ))}
+            </div>
+            <p className="mt-5 text-xl font-medium tracking-tight sm:text-2xl">{weather.name}</p>
+          </div>
+          <div aria-hidden="true" className={`${weather.color} shrink-0 transition-colors duration-300 motion-reduce:transition-none`}>
+            <Bitmap glyph={weather.icon} large />
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div className="flex items-end justify-between gap-4 px-2 pb-1 pt-3.5">
+        <div className="grid gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/70">
+          <span>Condition</span>
+          <Select value={selected} onValueChange={(value) => value !== null && setSelected(value)}>
+            <SelectTrigger
+              aria-label="Condition"
+              style={keyPaint(finish)}
+              className={`h-10 min-w-32 rounded-lg px-3 font-mono text-xs [&_svg]:text-white/70 ${keyClass}`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent style={{ backgroundColor: finish.menu }} className="border border-white/15 text-white ring-white/15">
+              {CONDITIONS.map((condition) => (
+                <SelectItem key={condition.name} value={condition.name} className="focus:bg-white/15 focus:text-white! data-highlighted:bg-white/15 data-highlighted:text-white! focus:**:text-white!">
+                  {condition.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-1.5" role="group" aria-label="Temperature unit">
+          {(["C", "F"] as const).map((u) => (
+            <button
+              key={u}
+              type="button"
+              aria-pressed={unit === u}
+              onClick={() => setUnit(u)}
+              className={`rounded-lg px-3.5 py-2.5 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                unit === u
+                  ? "border border-black/25 bg-[linear-gradient(180deg,#ffffff_0%,#e4edf3_100%)] text-[#122033] shadow-[inset_0_1px_0_rgba(255,255,255,1),inset_0_-1px_2px_rgba(0,0,0,0.16),0_1px_2px_rgba(0,0,0,0.4)] transition-[transform,box-shadow] duration-150 ease-out active:translate-y-px active:scale-[0.99] motion-reduce:transition-none"
+                  : keyClass
+              }`}
+              style={unit === u ? undefined : keyPaint(finish)}
+            >
+              °{u}
+            </button>
+          ))}
+        </div>
+      </div>
+      </Shell>
+    </div>
+    <div role="radiogroup" aria-label="Device color" className="flex shrink-0 flex-row gap-3 sm:flex-col">
+      {FINISHES.map((item) => {
+        const active = item.name === finish.name;
+        return (
+          <button
+            key={item.name}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={item.name}
+            onClick={() => setFinishName(item.name)}
+            style={{ backgroundColor: item.swatch }}
+            className={`size-4 rounded-full border border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),inset_0_-1px_2px_rgba(0,0,0,0.4)] outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
+              active ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-(--craft-page)" : ""
+            }`}
+          />
+        );
+      })}
+    </div>
+    </div>
+  );
+}
+```
+
+## How it works
+
+The world clock used bitmaps for letters. This weather box shows what else the same idea can draw: temperature digits and weather icons, one lit dot per `1` in each bitmap.

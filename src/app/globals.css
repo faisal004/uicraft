@@ -286,3 +286,21 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
 
   .noise { opacity: 0.24; }
 }
+
+::view-transition-old(root) {
+  animation: 200ms ease-out both theme-fade-out;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation: 200ms ease-out both theme-fade-in;
+  mix-blend-mode: normal;
+}
+
+@keyframes theme-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes theme-fade-in {
+  from { opacity: 0; }
+}

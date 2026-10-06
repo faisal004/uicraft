@@ -3,6 +3,17 @@
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function applyTheme(dark: boolean) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", dark);
+  root.style.colorScheme = dark ? "dark" : "light";
+  try {
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  } catch {
+    // Theme still changes when storage is unavailable.
+  }
+}
+
 export function ThemeToggle({
   className = "size-9 border border-current/20 text-current hover:bg-current/10",
   label,
@@ -11,13 +22,17 @@ export function ThemeToggle({
   label?: string;
 }) {
   function toggleTheme() {
-    const dark = document.documentElement.classList.toggle("dark");
-    document.documentElement.style.colorScheme = dark ? "dark" : "light";
-    try {
-      localStorage.setItem("theme", dark ? "dark" : "light");
-    } catch {
-      // Theme still changes when storage is unavailable.
+    const nextDark = !document.documentElement.classList.contains("dark");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || typeof document.startViewTransition !== "function") {
+      applyTheme(nextDark);
+      return;
     }
+
+    document.startViewTransition(() => {
+      applyTheme(nextDark);
+    });
   }
 
   return (
