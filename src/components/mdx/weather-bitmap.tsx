@@ -142,6 +142,45 @@ type Unit = "C" | "F";
 const toUnit = (celsius: number, unit: Unit) =>
   unit === "C" ? celsius : Math.round((celsius * 9) / 5 + 32);
 
+const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`,
+)}")`;
+
+const shellStyle = {
+  backgroundColor: "#15283a",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(255,255,255,0.16), transparent 14%), linear-gradient(165deg, #7b94a6 0%, #4e6c84 7%, #34556c 20%, #243e54 52%, #183044 100%)",
+  boxShadow: [
+    "inset 0 1px 0 rgba(255,255,255,0.55)",
+    "inset 0 -3px 6px rgba(0,0,0,0.42)",
+    "0 1px 0 rgba(0,0,0,0.45)",
+    "0 22px 40px rgba(0,0,0,0.42)",
+    "0 4px 10px rgba(0,0,0,0.28)",
+  ].join(", "),
+};
+
+function Shell({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div style={shellStyle} className={`relative isolate overflow-hidden text-white ${className ?? ""}`}>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-80 mix-blend-overlay"
+        style={{ backgroundImage: GRAIN, backgroundSize: "180px 180px" }}
+      />
+      <div className="relative h-full">{children}</div>
+    </div>
+  );
+}
+
+const wellStyle = {
+  background: "linear-gradient(180deg, #060d14 0%, #1b3144 100%)",
+  boxShadow:
+    "inset 0 8px 14px rgba(0,0,0,0.75), inset 0 -1px 0 rgba(255,255,255,0.2), 0 1px 0 rgba(255,255,255,0.08)",
+};
+
+const keyClass =
+  "border border-black/40 bg-[linear-gradient(180deg,#45627a_0%,#2a455c_42%,#1a3348_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-2px_4px_rgba(0,0,0,0.45),0_1px_2px_rgba(0,0,0,0.4)] transition-[transform,box-shadow,filter] duration-150 ease-out hover:brightness-110 active:translate-y-px active:scale-[0.99] active:shadow-[inset_0_2px_5px_rgba(0,0,0,0.55)] motion-reduce:transition-none";
+
 function Bitmap({ glyph, large = false, className }: { glyph: string; large?: boolean; className?: string }) {
   const rows = ALL[glyph] ?? BLANK;
   const cols = rows[0].length;
@@ -174,8 +213,11 @@ export function WeatherBitmap() {
   const chars = [...`${temp}°${unit}`];
 
   return (
-    <div style={{ containerType: "inline-size" }} className="mx-auto w-full max-w-xl rounded-[26px] border border-[#587084] bg-gradient-to-b from-[#304c62] via-[#193044] to-[#102236] p-2 text-white shadow-[0_2px_0_#8295a5,0_6px_0_#0b1929,0_26px_55px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.25)]">
-      <div className="rounded-[19px] border border-black/60 bg-[radial-gradient(circle_at_80%_15%,#244360_0%,#12283b_40%,#091522_85%)] px-5 pt-5 shadow-[inset_0_3px_15px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7">
+    <div style={{ containerType: "inline-size" }} className="relative mx-auto w-full max-w-xl">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-12 -bottom-3 h-8 rounded-full bg-black/45 blur-xl" />
+      <Shell className="rounded-[28px] p-3 sm:p-3.5">
+      <div style={wellStyle} className="rounded-[18px] p-[5px]">
+      <div className="rounded-[14px] border border-black/70 bg-[radial-gradient(circle_at_80%_15%,#244360_0%,#12283b_40%,#091522_85%)] px-5 pt-5 shadow-[inset_0_0_28px_rgba(0,0,0,0.55)] sm:px-7">
         <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
           <span>Pixel weather</span>
           <span>Sample data</span>
@@ -199,12 +241,16 @@ export function WeatherBitmap() {
           </div>
         </div>
       </div>
+      </div>
 
-      <div className="flex items-end justify-between gap-4 px-3 pb-2 pt-3">
-        <div className="grid gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/60">
+      <div className="flex items-end justify-between gap-4 px-2 pb-1 pt-3.5">
+        <div className="grid gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/70">
           <span>Condition</span>
           <Select value={selected} onValueChange={(value) => value !== null && setSelected(value)}>
-            <SelectTrigger aria-label="Condition" className="min-w-32 border-white/25 bg-[#0d2031] text-white hover:bg-[#142c40]">
+            <SelectTrigger
+              aria-label="Condition"
+              className={`h-10 min-w-32 rounded-lg px-3 font-mono text-xs [&_svg]:text-white/70 ${keyClass}`}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border border-white/15 bg-[#152a3c] text-white ring-white/15">
@@ -216,17 +262,17 @@ export function WeatherBitmap() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-1" role="group" aria-label="Temperature unit">
+        <div className="flex gap-1.5" role="group" aria-label="Temperature unit">
           {(["C", "F"] as const).map((u) => (
             <button
               key={u}
               type="button"
               aria-pressed={unit === u}
               onClick={() => setUnit(u)}
-              className={`rounded-md border px-3 py-2 font-mono text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
+              className={`rounded-lg px-3.5 py-2.5 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-white ${
                 unit === u
-                  ? "border-white bg-white text-[#0b1624]"
-                  : "border-white/20 text-white/65 hover:border-white/60 hover:text-white"
+                  ? "border border-black/25 bg-[linear-gradient(180deg,#ffffff_0%,#e4edf3_100%)] text-[#122033] shadow-[inset_0_1px_0_rgba(255,255,255,1),inset_0_-1px_2px_rgba(0,0,0,0.16),0_1px_2px_rgba(0,0,0,0.4)] transition-[transform,box-shadow] duration-150 ease-out active:translate-y-px active:scale-[0.99] motion-reduce:transition-none"
+                  : keyClass
               }`}
             >
               °{u}
@@ -234,6 +280,7 @@ export function WeatherBitmap() {
           ))}
         </div>
       </div>
+      </Shell>
     </div>
   );
 }
@@ -247,8 +294,9 @@ export function WeatherBitmapThumbnail() {
       style={{ containerType: "size" }}
       className="flex h-full w-full text-white"
     >
-      <div className="flex h-full w-full flex-col justify-center rounded-[1.35rem] border border-[#587084] bg-gradient-to-b from-[#304c62] via-[#193044] to-[#102236] p-[1.4cqh] shadow-[0_2px_0_#8295a5,0_6px_0_#0b1929,0_18px_36px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.25)]">
-        <div className="flex h-full flex-col justify-center rounded-[1rem] border border-black/60 bg-[radial-gradient(circle_at_78%_18%,#244360_0%,#12283b_42%,#091522_85%)] px-[5cqw] py-[5cqh] shadow-[inset_0_3px_15px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]">
+      <Shell className="flex h-full w-full flex-col justify-center rounded-[1.35rem] p-[2.4cqh]">
+        <div style={wellStyle} className="rounded-[1rem] p-[0.7cqh]">
+        <div className="flex h-full flex-col justify-center rounded-[0.85rem] border border-black/70 bg-[radial-gradient(circle_at_78%_18%,#244360_0%,#12283b_42%,#091522_85%)] px-[5cqw] py-[4cqh] shadow-[inset_0_0_18px_rgba(0,0,0,0.5)]">
        
           <div className="mt-[4cqh] flex items-center justify-between gap-[5cqw]">
             <div className="min-w-0">
@@ -267,7 +315,8 @@ export function WeatherBitmapThumbnail() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </Shell>
     </div>
   );
 }
