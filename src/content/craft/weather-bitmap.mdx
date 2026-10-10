@@ -12,7 +12,7 @@ order: 7
 
 ## Implementation
 
-Add the shadcn Select (`npx shadcn add select`), then paste this component into a React app with Tailwind CSS. It uses sample conditions and no image assets. The code below is the exact component shown above.
+Add the shadcn Select (`npx shadcn add select`), then paste this component into a React app with Tailwind CSS. It uses sample conditions and no image assets. The color buttons call `playClick` from `src/lib/click.ts`, included after the component. The component code is the exact source shown above.
 
 ```tsx title="weather-bitmap.tsx"
 "use client";
@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { playClick } from "@/lib/click";
 
 const BLANK = Array.from({ length: 7 }, () => "00000");
 
@@ -361,7 +362,10 @@ export function WeatherBitmap() {
             role="radio"
             aria-checked={active}
             aria-label={item.name}
-            onClick={() => setFinishName(item.name)}
+            onClick={() => {
+              playClick();
+              setFinishName(item.name);
+            }}
             style={{ backgroundColor: item.swatch }}
             className={`size-4 rounded-full border border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),inset_0_-1px_2px_rgba(0,0,0,0.4)] outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
               active ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-(--craft-page)" : ""
@@ -372,6 +376,37 @@ export function WeatherBitmap() {
     </div>
     </div>
   );
+}
+```
+
+```ts title="click.ts"
+let clickAudio: AudioContext | undefined;
+
+export function playClick() {
+  const context = clickAudio ?? new AudioContext();
+  clickAudio = context;
+  if (context.state === "suspended") void context.resume();
+
+  const now = context.currentTime;
+  const length = Math.floor(context.sampleRate * 0.008);
+  const buffer = context.createBuffer(1, length, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  noise.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(5200, now);
+  filter.Q.setValueAtTime(0.6, now);
+  gain.gain.setValueAtTime(0.32, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.008);
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(context.destination);
+  noise.start(now);
+  noise.stop(now + 0.01);
 }
 ```
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { playClick } from "@/lib/click";
 import { cn } from "@/lib/utils";
 
 function applyTheme(dark: boolean) {
@@ -22,6 +23,7 @@ export function ThemeToggle({
   label?: string;
 }) {
   function toggleTheme() {
+    playClick();
     const nextDark = !document.documentElement.classList.contains("dark");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 

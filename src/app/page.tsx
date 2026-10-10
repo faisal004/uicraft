@@ -54,7 +54,7 @@ export default function Home() {
         </div>
       </div>
 
-      <footer className="flex items-center justify-between py-6 text-xs text-current opacity-70 sm:py-8">
+      <footer className="flex flex-col items-start gap-2 py-6 text-xs text-current opacity-70 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-8">
         <SiteFooter />
         <span>Est. whenever curiosity struck</span>
       </footer>
