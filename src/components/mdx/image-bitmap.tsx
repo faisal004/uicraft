@@ -23,7 +23,7 @@ export function ImageBitmap({
   src,
   cols: initialCols = 64,
   mode: initialMode = "halftone",
-  color = "#fcd34d",
+  color = "#f4f4f4",
   className = "",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,7 +63,8 @@ export function ImageBitmap({
 
   const loadFile = useCallback(
     (file?: File | null) => {
-      if (!file || !file.type.startsWith("image/")) {
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
         setError("Please choose an image file.");
         return;
       }
@@ -201,82 +202,82 @@ export function ImageBitmap({
   };
 
   const btn = (active: boolean) =>
-    `border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
+    `border px-3 py-2 text-xs font-medium outline-none transition-colors active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-blue-600 motion-reduce:transition-none dark:focus-visible:ring-blue-300 ${
       active
-        ? "border-white bg-white text-[#0b1018]"
-        : "border-white/20 text-white/65 hover:border-white/60 hover:text-white"
+        ? "border-(--demo-ink) bg-(--demo-ink) text-(--demo-bg)"
+        : "border-(--demo-border) bg-(--demo-bg) text-(--demo-muted) hover:border-(--demo-ink) hover:text-(--demo-ink)"
     }`;
+
+  const slider =
+    "h-1.5 w-full cursor-pointer appearance-none outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:focus-visible:ring-blue-300 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-(--demo-bg) [&::-moz-range-thumb]:bg-(--demo-ink) [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-(--demo-bg) [&::-webkit-slider-thumb]:bg-(--demo-ink)";
 
   return (
     <div
-      className={`mx-auto w-full max-w-3xl border border-white/15 bg-[#0b1018] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.2)] sm:p-6 ${className}`}
+      className={`w-full overflow-hidden border border-(--demo-border) bg-(--demo-bg) text-(--demo-ink) [--demo-bg:#fff] [--demo-bar:#eeeeeb] [--demo-border:#d8d8d4] [--demo-ink:#181916] [--demo-muted:#595b55] [--demo-subtle:#696b64] [--demo-track:#d8d8d4] dark:[--demo-bg:#2b2b2b] dark:[--demo-bar:#242424] dark:[--demo-border:#4b4b4b] dark:[--demo-ink:#f4f4f4] dark:[--demo-muted:#bdbdbd] dark:[--demo-subtle:#a3a3a3] dark:[--demo-track:#4b4b4b] ${className}`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
-        <span>Image to bitmap</span>
-        <span>
-          {cols} cols · {mode}
+      <div className="flex items-center justify-between gap-3 border-b border-(--demo-border) bg-(--demo-bar) px-4 py-3 sm:px-5">
+        <span className="text-xs font-medium">Image / bitmap</span>
+        <span className="font-mono text-[11px] tabular-nums text-(--demo-subtle)">
+          {img ? `${cols} × ${Math.max(1, Math.round((cols * img.naturalHeight) / img.naturalWidth))} samples` : "Choose an image"}
         </span>
       </div>
-
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          loadFile(e.dataTransfer.files?.[0]);
-        }}
-        className={`my-4 flex min-h-[240px] items-center justify-center border border-dashed transition-colors motion-reduce:transition-none ${
-          dragging ? "border-white bg-white/5" : "border-white/15"
-        }`}
-      >
-        {img ? (
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label="Bitmap rendering of the uploaded image"
-            className="block h-auto w-full"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="p-10 font-mono text-xs uppercase tracking-[0.18em] text-white/60 outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-          >
-            Drop an image or click to upload
-          </button>
-        )}
-      </div>
-
-      {error && (
-        <p role="alert" className="mb-3 font-mono text-[10px] uppercase tracking-wider text-red-300">
-          {error}
-        </p>
-      )}
-
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
         className="sr-only"
-        onChange={(e) => loadFile(e.target.files?.[0])}
+        onChange={(e) => {
+          loadFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
       />
-
-      <div className="grid gap-4 border-t border-white/15 pt-4">
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Render mode">
-          {MODES.map((m) => (
-            <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className={btn(mode === m)}>
-              {m}
+      <div className="grid md:grid-cols-[minmax(0,1fr)_280px]">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            loadFile(e.dataTransfer.files?.[0]);
+          }}
+          className={`flex h-80 min-w-0 items-center justify-center overflow-hidden bg-[#111214] p-5 sm:h-[430px] sm:p-8 ${dragging ? "outline-2 outline-offset-[-8px] outline-white/70" : ""}`}
+        >
+          {img ? (
+            <canvas
+              ref={canvasRef}
+              role="img"
+              aria-label="Bitmap rendering of the uploaded image"
+              className="block h-auto max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="border border-dashed border-white/30 px-8 py-12 text-sm text-white/70 outline-none hover:border-white/70 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+            >
+              Drop an image or choose a file
             </button>
-          ))}
+          )}
         </div>
-
-        <div className="grid gap-3 font-mono text-[10px] uppercase tracking-wider text-white/65 sm:grid-cols-2">
-          <label className="flex items-center gap-3">
-            <span className="w-20 shrink-0">Cols {cols}</span>
+        <div className="grid content-start gap-6 border-t border-(--demo-border) p-5 md:border-t-0 md:border-l">
+          <div className="grid gap-3">
+            <span className="text-xs font-medium">Render mode</span>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Render mode">
+              {MODES.map((m) => (
+                <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className={btn(mode === m)}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="grid gap-3 text-xs">
+            <span className="flex items-center justify-between">
+              <span className="font-medium">Columns</span>
+              <output className="font-mono tabular-nums text-(--demo-subtle)">{cols}</output>
+            </span>
             <input
               type="range"
               min={16}
@@ -284,40 +285,53 @@ export function ImageBitmap({
               step={2}
               value={cols}
               onChange={(e) => setCols(Number(e.target.value))}
-              className="w-full accent-white"
+              className={slider}
+              style={{ background: `linear-gradient(to right, var(--demo-ink) ${((cols - 16) / 144) * 100}%, var(--demo-track) 0)` }}
             />
+            <span className="flex justify-between font-mono text-[10px] tabular-nums text-(--demo-subtle)">
+              <span>16</span><span>160</span>
+            </span>
           </label>
-          <label className="flex items-center gap-3">
-            <span className="w-20 shrink-0">Level {threshold}</span>
+          <label className="grid gap-3 text-xs">
+            <span className="flex items-center justify-between">
+              <span className="font-medium">Threshold</span>
+              <output className="font-mono tabular-nums text-(--demo-subtle)">{threshold}</output>
+            </span>
             <input
               type="range"
               min={20}
               max={236}
               value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
-              className="w-full accent-white"
+              className={slider}
+              style={{ background: `linear-gradient(to right, var(--demo-ink) ${((threshold - 20) / 216) * 100}%, var(--demo-track) 0)` }}
             />
+            <span className="flex justify-between font-mono text-[10px] tabular-nums text-(--demo-subtle)">
+              <span>20</span><span>236</span>
+            </span>
           </label>
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          <button type="button" aria-pressed={invert} onClick={() => setInvert((v) => !v)} className={btn(invert)}>
-            Invert
-          </button>
-          <button
-            type="button"
-            aria-pressed={colorMode === "original"}
-            onClick={() => setColorMode((c) => (c === "mono" ? "original" : "mono"))}
-            className={btn(colorMode === "original")}
-          >
-            Original color
-          </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className={btn(false)}>
-            Replace
-          </button>
-          <button type="button" disabled={!img} onClick={download} className={`${btn(false)} disabled:opacity-40`}>
-            Download PNG
-          </button>
+          <div className="grid grid-cols-2 gap-2 border-t border-(--demo-border) pt-5">
+            <button type="button" aria-pressed={invert} onClick={() => setInvert((v) => !v)} className={btn(invert)}>
+              Invert
+            </button>
+            <button
+              type="button"
+              aria-pressed={colorMode === "original"}
+              onClick={() => setColorMode((c) => (c === "mono" ? "original" : "mono"))}
+              className={btn(colorMode === "original")}
+            >
+              Original color
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => fileRef.current?.click()} className={btn(false)}>
+              Replace
+            </button>
+            <button type="button" disabled={!img} onClick={download} className={`${btn(false)} disabled:opacity-40`}>
+              Save PNG
+            </button>
+          </div>
+          {error && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{error}</p>}
         </div>
       </div>
     </div>

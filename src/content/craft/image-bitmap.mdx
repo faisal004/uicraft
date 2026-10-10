@@ -40,7 +40,7 @@ export function ImageBitmap({
   src,
   cols: initialCols = 64,
   mode: initialMode = "halftone",
-  color = "#fcd34d",
+  color = "#f4f4f4",
   className = "",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -80,7 +80,8 @@ export function ImageBitmap({
 
   const loadFile = useCallback(
     (file?: File | null) => {
-      if (!file || !file.type.startsWith("image/")) {
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
         setError("Please choose an image file.");
         return;
       }
@@ -218,82 +219,82 @@ export function ImageBitmap({
   };
 
   const btn = (active: boolean) =>
-    `border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
+    `border px-3 py-2 text-xs font-medium outline-none transition-colors active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-blue-600 motion-reduce:transition-none dark:focus-visible:ring-blue-300 ${
       active
-        ? "border-white bg-white text-[#0b1018]"
-        : "border-white/20 text-white/65 hover:border-white/60 hover:text-white"
+        ? "border-(--demo-ink) bg-(--demo-ink) text-(--demo-bg)"
+        : "border-(--demo-border) bg-(--demo-bg) text-(--demo-muted) hover:border-(--demo-ink) hover:text-(--demo-ink)"
     }`;
+
+  const slider =
+    "h-1.5 w-full cursor-pointer appearance-none outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:focus-visible:ring-blue-300 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-(--demo-bg) [&::-moz-range-thumb]:bg-(--demo-ink) [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-(--demo-bg) [&::-webkit-slider-thumb]:bg-(--demo-ink)";
 
   return (
     <div
-      className={`mx-auto w-full max-w-3xl border border-white/15 bg-[#0b1018] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.2)] sm:p-6 ${className}`}
+      className={`w-full overflow-hidden border border-(--demo-border) bg-(--demo-bg) text-(--demo-ink) [--demo-bg:#fff] [--demo-bar:#eeeeeb] [--demo-border:#d8d8d4] [--demo-ink:#181916] [--demo-muted:#595b55] [--demo-subtle:#696b64] [--demo-track:#d8d8d4] dark:[--demo-bg:#2b2b2b] dark:[--demo-bar:#242424] dark:[--demo-border:#4b4b4b] dark:[--demo-ink:#f4f4f4] dark:[--demo-muted:#bdbdbd] dark:[--demo-subtle:#a3a3a3] dark:[--demo-track:#4b4b4b] ${className}`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
-        <span>Image to bitmap</span>
-        <span>
-          {cols} cols · {mode}
+      <div className="flex items-center justify-between gap-3 border-b border-(--demo-border) bg-(--demo-bar) px-4 py-3 sm:px-5">
+        <span className="text-xs font-medium">Image / bitmap</span>
+        <span className="font-mono text-[11px] tabular-nums text-(--demo-subtle)">
+          {img ? `${cols} × ${Math.max(1, Math.round((cols * img.naturalHeight) / img.naturalWidth))} samples` : "Choose an image"}
         </span>
       </div>
-
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          loadFile(e.dataTransfer.files?.[0]);
-        }}
-        className={`my-4 flex min-h-[240px] items-center justify-center border border-dashed transition-colors motion-reduce:transition-none ${
-          dragging ? "border-white bg-white/5" : "border-white/15"
-        }`}
-      >
-        {img ? (
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label="Bitmap rendering of the uploaded image"
-            className="block h-auto w-full"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="p-10 font-mono text-xs uppercase tracking-[0.18em] text-white/60 outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-          >
-            Drop an image or click to upload
-          </button>
-        )}
-      </div>
-
-      {error && (
-        <p role="alert" className="mb-3 font-mono text-[10px] uppercase tracking-wider text-red-300">
-          {error}
-        </p>
-      )}
-
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
         className="sr-only"
-        onChange={(e) => loadFile(e.target.files?.[0])}
+        onChange={(e) => {
+          loadFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
       />
-
-      <div className="grid gap-4 border-t border-white/15 pt-4">
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Render mode">
-          {MODES.map((m) => (
-            <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className={btn(mode === m)}>
-              {m}
+      <div className="grid md:grid-cols-[minmax(0,1fr)_280px]">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            loadFile(e.dataTransfer.files?.[0]);
+          }}
+          className={`flex h-80 min-w-0 items-center justify-center overflow-hidden bg-[#111214] p-5 sm:h-[430px] sm:p-8 ${dragging ? "outline-2 outline-offset-[-8px] outline-white/70" : ""}`}
+        >
+          {img ? (
+            <canvas
+              ref={canvasRef}
+              role="img"
+              aria-label="Bitmap rendering of the uploaded image"
+              className="block h-auto max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="border border-dashed border-white/30 px-8 py-12 text-sm text-white/70 outline-none hover:border-white/70 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+            >
+              Drop an image or choose a file
             </button>
-          ))}
+          )}
         </div>
-
-        <div className="grid gap-3 font-mono text-[10px] uppercase tracking-wider text-white/65 sm:grid-cols-2">
-          <label className="flex items-center gap-3">
-            <span className="w-20 shrink-0">Cols {cols}</span>
+        <div className="grid content-start gap-6 border-t border-(--demo-border) p-5 md:border-t-0 md:border-l">
+          <div className="grid gap-3">
+            <span className="text-xs font-medium">Render mode</span>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Render mode">
+              {MODES.map((m) => (
+                <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className={btn(mode === m)}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="grid gap-3 text-xs">
+            <span className="flex items-center justify-between">
+              <span className="font-medium">Columns</span>
+              <output className="font-mono tabular-nums text-(--demo-subtle)">{cols}</output>
+            </span>
             <input
               type="range"
               min={16}
@@ -301,40 +302,53 @@ export function ImageBitmap({
               step={2}
               value={cols}
               onChange={(e) => setCols(Number(e.target.value))}
-              className="w-full accent-white"
+              className={slider}
+              style={{ background: `linear-gradient(to right, var(--demo-ink) ${((cols - 16) / 144) * 100}%, var(--demo-track) 0)` }}
             />
+            <span className="flex justify-between font-mono text-[10px] tabular-nums text-(--demo-subtle)">
+              <span>16</span><span>160</span>
+            </span>
           </label>
-          <label className="flex items-center gap-3">
-            <span className="w-20 shrink-0">Level {threshold}</span>
+          <label className="grid gap-3 text-xs">
+            <span className="flex items-center justify-between">
+              <span className="font-medium">Threshold</span>
+              <output className="font-mono tabular-nums text-(--demo-subtle)">{threshold}</output>
+            </span>
             <input
               type="range"
               min={20}
               max={236}
               value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
-              className="w-full accent-white"
+              className={slider}
+              style={{ background: `linear-gradient(to right, var(--demo-ink) ${((threshold - 20) / 216) * 100}%, var(--demo-track) 0)` }}
             />
+            <span className="flex justify-between font-mono text-[10px] tabular-nums text-(--demo-subtle)">
+              <span>20</span><span>236</span>
+            </span>
           </label>
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          <button type="button" aria-pressed={invert} onClick={() => setInvert((v) => !v)} className={btn(invert)}>
-            Invert
-          </button>
-          <button
-            type="button"
-            aria-pressed={colorMode === "original"}
-            onClick={() => setColorMode((c) => (c === "mono" ? "original" : "mono"))}
-            className={btn(colorMode === "original")}
-          >
-            Original color
-          </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className={btn(false)}>
-            Replace
-          </button>
-          <button type="button" disabled={!img} onClick={download} className={`${btn(false)} disabled:opacity-40`}>
-            Download PNG
-          </button>
+          <div className="grid grid-cols-2 gap-2 border-t border-(--demo-border) pt-5">
+            <button type="button" aria-pressed={invert} onClick={() => setInvert((v) => !v)} className={btn(invert)}>
+              Invert
+            </button>
+            <button
+              type="button"
+              aria-pressed={colorMode === "original"}
+              onClick={() => setColorMode((c) => (c === "mono" ? "original" : "mono"))}
+              className={btn(colorMode === "original")}
+            >
+              Original color
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => fileRef.current?.click()} className={btn(false)}>
+              Replace
+            </button>
+            <button type="button" disabled={!img} onClick={download} className={`${btn(false)} disabled:opacity-40`}>
+              Save PNG
+            </button>
+          </div>
+          {error && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{error}</p>}
         </div>
       </div>
     </div>
@@ -346,35 +360,66 @@ export function ImageBitmap({
 
 ### 01 — Start with an image and a canvas
 
-An `<img>` shows the source image. A `<canvas>` is a drawing surface whose pixels JavaScript can set. Start with both visible so you can compare the original with the result:
+An image supplies the colors. A `<canvas>` is a rectangle of pixels that JavaScript can draw into. Start with the source and an empty result side by side:
 
 ```tsx
 <img src="/image-bitmap-sample.svg" alt="Mountain illustration" />
-<canvas aria-label="Bitmap version of the mountain illustration" role="img" />
+<canvas role="img" aria-label="Bitmap version of the mountain illustration" />
 ```
 
-The finished component lets you upload or drop an image instead. `URL.createObjectURL(file)` gives the browser a temporary URL for an uploaded file. `new Image()` loads that URL, and `onload` tells us when its width and height are available. The `src` prop can load an image URL too; remote URLs need CORS permission before canvas can read their pixels.
+The finished component draws the result on the canvas. Its `src` prop loads the sample above, and a file input or drop lets you replace it. You never read pixels directly from an `<img>` element: first you draw the decoded image onto a canvas.
 
-### 02 — Shrink the image into cells
+### 02 — Load the file before reading it
 
-A **column** is one dot across the image; a **row** is one dot down. The component keeps the image's aspect ratio by computing rows from its natural width and height. An offscreen canvas samples one source color per cell:
+An uploaded `File` contains encoded image bytes, such as PNG or JPEG bytes. `URL.createObjectURL` gives that file a temporary local URL. `new Image()` asks the browser to decode it; `onload` runs once the browser knows its natural dimensions and can draw it.
+
+```tsx
+const url = URL.createObjectURL(file);
+const image = new Image();
+image.onload = () => setImg(image);
+image.onerror = () => setError("Could not load image.");
+image.src = url;
+```
+
+The component accepts image files, revokes the temporary URL when it replaces the image or unmounts, and ignores older loads if a newer file wins the race. For a URL supplied through `src`, it requests CORS access. A remote server must allow that access before `getImageData` can read its pixels.
+
+### 03 — Draw a small copy and get its pixels
+
+A **column** is one dot across; a **row** is one dot down. The original image may be thousands of pixels wide, but we only need one sampled color for each dot. `naturalWidth` and `naturalHeight` are the decoded image dimensions in pixels. This formula keeps their ratio when choosing the number of rows:
 
 ```tsx
 const rows = Math.max(1, Math.round((cols * img.naturalHeight) / img.naturalWidth));
 const off = document.createElement("canvas");
 off.width = cols;
 off.height = rows;
-const ctx = off.getContext("2d", { willReadFrequently: true });
-if (!ctx) return;
-ctx.drawImage(img, 0, 0, cols, rows);
-const data = ctx.getImageData(0, 0, cols, rows).data;
+const octx = off.getContext("2d", { willReadFrequently: true });
+if (!octx) return;
+
+octx.fillStyle = "#000";
+octx.fillRect(0, 0, cols, rows);
+octx.drawImage(img, 0, 0, cols, rows);
+const data = octx.getImageData(0, 0, cols, rows).data;
 ```
 
-`getImageData` returns red, green, blue, and alpha values in a flat array. Each channel is a number from 0 to 255. The visible image now has only `cols × rows` samples, so details smaller than a cell disappear.
+`drawImage` scales the whole source into the small offscreen canvas. The browser combines source pixels as it scales, leaving `cols × rows` samples. The black fill gives transparent parts a predictable dark background. `getImageData(left, top, width, height)` then copies that canvas rectangle into memory. The component catches an error here because a cross-origin image without CORS permission makes the canvas unreadable.
 
-### 03 — Turn color into brightness
+### 04 — Find one cell in the image data
 
-**Luminance** is an estimate of how bright a color looks. Green contributes more than blue to this estimate. The Level slider shifts the result, and Invert flips light and dark:
+`data` is a flat `Uint8ClampedArray`: four numbers per pixel in **red, green, blue, alpha** order. Each channel ranges from 0 to 255; alpha is opacity. Pixels run left to right, then top to bottom. For cell `(x, y)`, skip `y` complete rows, move `x` pixels across, then multiply by four channels:
+
+```tsx
+const i = (y * cols + x) * 4;
+const red = data[i];
+const green = data[i + 1];
+const blue = data[i + 2];
+const alpha = data[i + 3];
+```
+
+For example, in a 64-column grid, cell `(2, 1)` starts at `(1 × 64 + 2) × 4 = 264`. Its red value is `data[264]`, green is `data[265]`, blue is `data[266]`, and alpha is `data[267]`. The renderer uses the RGB values for **Original color**; it does not need alpha because the black background was painted first.
+
+### 05 — Turn each sample into brightness
+
+**Luminance** estimates how bright a color looks. Green contributes more than blue to this estimate. The Threshold slider shifts brightness before the modes use it; Invert flips light and dark:
 
 ```tsx
 const i = (y * cols + x) * 4;
@@ -383,26 +428,35 @@ if (invert) brightness = 255 - brightness;
 brightness = Math.max(0, Math.min(255, brightness + 128 - threshold));
 ```
 
-Try moving **Level** while using **Binary**. Each dot switches on when its brightness crosses 128. The finished component stores brightness for all cells in a `Float32Array`, a compact list of numbers.
+Try moving **Threshold** in **Binary** mode. A dot switches on when its adjusted brightness exceeds 128. The component stores all cell brightness values in a `Float32Array` so the other modes can use them too.
 
-### 04 — Decide which dots light up
+### 06 — Choose the dots and draw them
 
-Halftone makes brighter cells into larger circles. Binary uses a single cutoff. Bayer compares each cell with a repeating 4 × 4 threshold pattern, so middle tones form an ordered pattern. Dither passes the difference between the chosen black or white value and the original brightness to neighboring cells; this is called **error diffusion**.
+Halftone makes brighter cells into larger circles. Binary uses one cutoff. Bayer compares each cell with a repeating 4 × 4 threshold pattern. Dither sends the difference between the chosen black or white value and the cell brightness to neighboring cells; this is **error diffusion**.
 
 ```tsx
-// Halftone: area grows with brightness, so radius uses a square root.
+// Halftone: circle area grows with brightness.
 const radius = Math.sqrt(brightness / 255) * CELL * 0.5;
 
 // Binary: a cell is either lit or dark.
 const lit = brightness > 128;
 ```
 
-Try the four modes on the sample sky. Watch how the sunset's gradual colors become dots of different sizes or patterns. **Original color** uses each sampled RGB color for lit dots; otherwise the component uses one accent color.
+Try the four modes on the sample sky. The visible canvas is `cols * CELL` pixels wide; `ctx.arc` draws each dot and `ctx.fill` paints it. A React effect redraws when the image or a control changes. The canvas stays inside a fixed-height preview, so changing the column count resizes the image without moving the controls. `toBlob` creates the downloadable PNG.
 
-### 05 — Draw, clean up, and label the result
+### 07 — Clean up and make the controls accessible
 
-The visible canvas is `cols * CELL` pixels wide. For each cell, `ctx.arc` draws a circle at its center, and `ctx.fill` paints it. A React effect redraws when the image or a control changes. `toBlob` turns the finished canvas into a downloadable PNG.
+An object URL keeps the uploaded file available to the browser. Revoke the old URL after a replacement loads, and revoke the current one when the component unmounts:
 
-The temporary upload URL is revoked when another image replaces it or the component unmounts, so the browser can release its memory. The mode buttons expose their selection with `aria-pressed`; the canvas has an image label; and the upload error is announced through `role="alert"`. Keyboard users can activate the upload and controls without dragging a file.
+```tsx
+if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+urlRef.current = isObjectUrl ? url : null;
 
-**Check:** If you double the number of columns, what happens to the number of sampled cells and the size of each dot on screen?
+useEffect(() => () => {
+  if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+}, []);
+```
+
+The finished component also ignores stale image loads. Mode buttons expose their selection with `aria-pressed`, the canvas has an image label, and errors use `role="alert"`. The upload and controls work from the keyboard as well as with drag and drop.
+
+**Check:** In a 64-column grid, what array index holds the blue channel for cell `(2, 1)`? What happens to the number of sampled cells if you double the columns while keeping the same image ratio?
