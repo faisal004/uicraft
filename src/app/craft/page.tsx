@@ -15,11 +15,13 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: "Craft | UIcraft",
     description: "A growing collection of rebuilt interface interactions and animations.",
+    images: ["/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Craft | UIcraft",
     description: "A growing collection of rebuilt interface interactions and animations.",
+    images: ["/twitter-image"],
   },
 };
 
