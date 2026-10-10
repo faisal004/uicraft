@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { playClick } from "@/lib/click";
 
 const BLANK = Array.from({ length: 7 }, () => "00000");
 
@@ -344,7 +345,10 @@ export function WeatherBitmap() {
             role="radio"
             aria-checked={active}
             aria-label={item.name}
-            onClick={() => setFinishName(item.name)}
+            onClick={() => {
+              playClick();
+              setFinishName(item.name);
+            }}
             style={{ backgroundColor: item.swatch }}
             className={`size-4 rounded-full border border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),inset_0_-1px_2px_rgba(0,0,0,0.4)] outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
               active ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-(--craft-page)" : ""
