@@ -12,7 +12,7 @@ export const siteUrl = new URL(normalizedUrl);
 
 export const siteConfig = {
   name: "UIcraft",
-  title: "UIcraft — Interface interaction studies",
+  title: "UIcraft | Interface interaction studies",
   description:
     "A personal playground for rebuilding memorable interface animations and interactions to understand what makes them feel right.",
   shortDescription:

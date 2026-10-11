@@ -1,0 +1,260 @@
+---
+title: View transitions
+description: Make a cover grow into its story, then use the same browser API to change a whole page theme.
+publishedAt: 2026-10-11
+category: Animation
+preview: view-transition
+kind: craft
+order: 9
+---
+
+The cover and the larger artwork below are the same visual object. Open the story, then go back: the browser carries that object between layouts while the surrounding text changes. That continuity gives the motion a job.
+
+<ViewTransitionDemo />
+
+## Implementation
+
+Copy this one component into a React app. It includes its own artwork and styles, so there are no image assets or animation packages to install. The button icons use `lucide-react`. The live demo above renders this exact source.
+
+```tsx title="view-transition-demo.tsx"
+"use client";
+
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useState } from "react";
+import { flushSync } from "react-dom";
+
+export function ViewTransitionDemo() {
+  const [open, setOpen] = useState(false);
+  const artwork = (
+    <div className="vt-art" role="img" aria-label="Illustrated desert mountains at sunset">
+      <span className="vt-sun" aria-hidden="true" />
+      <span className="vt-art-label">FIELD NOTES<br />THE WEST</span>
+      <span className="vt-art-number">01</span>
+    </div>
+  );
+
+  function toggle() {
+    if (
+      !document.startViewTransition ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setOpen((current) => !current);
+      return;
+    }
+
+    document.startViewTransition(() => {
+      flushSync(() => setOpen((current) => !current));
+    });
+  }
+
+  return (
+    <div className="vt-demo">
+      <div className="vt-header">
+        <span className="vt-wordmark">FIELD NOTES <span>/ VOL. 01</span></span>
+        <button type="button" onClick={toggle} aria-expanded={open} aria-controls="vt-story">
+          {open ? <ArrowLeft size={16} aria-hidden="true" /> : null}
+          {open ? "Back to cover" : "Read the story"}
+          {open ? null : <ArrowUpRight size={16} aria-hidden="true" />}
+        </button>
+      </div>
+      <div id="vt-story" className={open ? "vt-detail" : "vt-cover"}>
+        {artwork}
+        <div className="vt-copy">
+          <div className="vt-meta"><span>TRAVEL JOURNAL</span><span>04 MIN READ</span></div>
+          <h3>Where the light stays longer</h3>
+          <p>{open
+            ? "The last hour of daylight changes the shape of everything. Open the story, then return to the cover to follow the same image in reverse."
+            : "A short story about the stillness of the desert at dusk."}</p>
+          <div className="vt-copy-footer"><span>01 / THE WEST</span><span>FIELD NOTES</span></div>
+        </div>
+      </div>
+
+      <style>{`
+        .vt-demo {
+          padding: clamp(1.25rem, 4vw, 2.5rem);
+          border: 1px solid #ded8cf;
+          border-radius: .75rem;
+          background: #f5f2ec;
+          color: #292823;
+          font-family: system-ui, sans-serif;
+        }
+        .vt-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1.25rem; border-bottom: 1px solid #d8d0c6; }
+        .vt-wordmark { font-size: .8rem; font-weight: 750; }
+        .vt-wordmark span { margin-left: .35rem; color: #857f75; font-weight: 500; }
+        .vt-header button {
+          display: inline-flex;
+          align-items: center;
+          gap: .75rem;
+          padding: .65rem .9rem;
+          border: 1px solid #292823;
+          border-radius: .4rem;
+          background: #292823;
+          color: #fffaf2;
+          font-size: .8rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .vt-header button:hover { background: #45433d; }
+        .vt-header button:focus-visible { outline: 2px solid #a6563e; outline-offset: 3px; }
+        .vt-header button svg { flex: none; }
+        .vt-cover, .vt-detail { display: grid; align-items: center; gap: clamp(1.5rem, 5vw, 3rem); margin: 2.5rem auto 0; }
+        .vt-cover { max-width: 43rem; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); }
+        .vt-detail { max-width: 42rem; gap: 2rem; }
+        .vt-art {
+          view-transition-name: uicraft-cover;
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+          aspect-ratio: 4 / 5;
+          border-radius: .25rem;
+          background: #cc846b;
+          box-shadow: 0 16px 30px #34251d26;
+        }
+        .vt-sun { position: absolute; top: 24%; left: 55%; width: 32%; aspect-ratio: 1; border-radius: 50%; background: #f2d1a5; }
+        .vt-art::before, .vt-art::after { content: ""; position: absolute; left: -15%; width: 130%; height: 52%; border-radius: 50% 50% 0 0; }
+        .vt-art::before { bottom: -18%; background: #a95f50; transform: rotate(-9deg); }
+        .vt-art::after { bottom: -33%; background: #63483f; transform: rotate(12deg); }
+        .vt-art-label, .vt-art-number { position: absolute; z-index: 1; color: #fff8ee; font-family: ui-monospace, monospace; font-weight: 600; }
+        .vt-art-label { top: 7%; left: 8%; font-size: clamp(.6rem, 1.6vw, .85rem); line-height: 1.5; }
+        .vt-art-number { right: 8%; bottom: 7%; font-size: clamp(1.5rem, 4vw, 2.5rem); line-height: 1; }
+        .vt-copy { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+        .vt-meta, .vt-copy-footer { display: flex; justify-content: space-between; gap: 1rem; font: 600 .65rem/1.4 ui-monospace, monospace; color: #a6563e; }
+        .vt-copy h3 { margin: 1.25rem 0 0; max-width: 18ch; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.08; font-weight: 550; text-wrap: balance; }
+        .vt-copy > p { max-width: 46ch; margin: 1rem 0 0; color: #6d695f; font-size: .9rem; line-height: 1.7; text-wrap: pretty; }
+        .vt-copy-footer { margin-top: 2rem; padding-top: .9rem; border-top: 1px solid #d8d0c6; color: #857f75; }
+        .vt-detail .vt-art { width: 100%; aspect-ratio: 16 / 9; }
+        .vt-detail .vt-copy { width: 100%; }
+        ::view-transition-group(uicraft-cover) { animation-duration: 450ms; animation-timing-function: ease-in-out; }
+        @media (max-width: 600px) { .vt-cover { max-width: 26rem; grid-template-columns: 1fr; } .vt-cover .vt-art { width: min(100%, 14rem); } }
+      `}</style>
+    </div>
+  );
+}
+```
+
+Use this pattern for a thumbnail becoming a detail view, a card becoming a panel, or an item changing position in a collection. It is a **same-document** transition: the URL stays put and React changes the DOM. A browser without `startViewTransition` still gets the complete interaction, just without the animation.
+
+## How it works
+
+### 01 — Begin with two ordinary layouts
+
+The visible structure is a cover, a title, a short description, and a button. React state chooses whether they appear as a compact cover or a larger story. Before adding animation, clicking the button should already show the right content.
+
+```tsx title="01-layout.tsx"
+const [open, setOpen] = useState(false);
+const artwork = <div className="vt-art">FIELD NOTES</div>;
+
+return (
+  <>
+    <button type="button" onClick={() => setOpen((value) => !value)}>
+      {open ? "Back to cover" : "Open story"}
+    </button>
+    <div className={open ? "vt-detail" : "vt-cover"}>
+      {artwork}
+      <h3>Where the light stays longer</h3>
+    </div>
+  </>
+);
+```
+
+The browser now has two useful views to compare. Without a transition, the artwork jumps from the small slot to the large one.
+
+### 02 — Name the element that persists
+
+`view-transition-name` gives the artwork an identity in both views. The browser takes a snapshot of the named element before and after the DOM update and matches those snapshots. Its position and size can then animate as one object. The name must be unique among elements visible in either view; giving two visible cards the same name makes the transition skip.
+
+```css title="02-identity.css"
+.vt-art {
+  view-transition-name: uicraft-cover;
+}
+```
+
+Try removing that declaration from the finished component. The content still changes, but the artwork loses its clear path between layouts.
+
+### 03 — Put the DOM change inside a transition
+
+`document.startViewTransition(update)` asks the browser to capture the old view, run `update`, capture the new view, and animate between them. `update` must actually change the DOM. The API returns a `ViewTransition` object with promises for advanced coordination; this small interaction does not need to wait on them.
+
+```tsx title="03-browser-api.tsx"
+document.startViewTransition(() => {
+  // Change the DOM here.
+});
+```
+
+React usually batches `setOpen`, so calling it alone inside `update` may let the callback finish before the new DOM is present. `flushSync` commits this one change before the browser takes its second snapshot.
+
+```tsx title="03-react-update.tsx"
+import { flushSync } from "react-dom";
+
+document.startViewTransition(() => {
+  flushSync(() => setOpen((current) => !current));
+});
+```
+
+### 04 — Tune the motion and keep the action usable
+
+The browser supplies a default transition. Target the named group's pseudo-element to set the artwork's travel time. The rest of the page can crossfade while the artwork keeps its identity.
+
+```css title="04-duration.css"
+::view-transition-group(uicraft-cover) {
+  animation-duration: 450ms;
+  animation-timing-function: ease-in-out;
+}
+```
+
+Try `150ms`, then `900ms`. The first is hard to follow; the second makes the interface feel slow. Timing is useful when it helps someone understand where an object went.
+
+The feature check and motion preference check both take the plain state-update path. The button remains a button, exposes its expanded state with `aria-expanded`, and has a visible keyboard focus outline. The browser cleans up its temporary snapshot elements when the transition ends; there are no listeners or timers to remove.
+
+```tsx title="04-fallback.tsx"
+if (
+  !document.startViewTransition ||
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches
+) {
+  setOpen((current) => !current);
+  return;
+}
+```
+
+### 05 — A second use: switch the page theme
+
+A theme switch does not have one object moving between slots. Instead, the entire page changes colors. This site's theme button uses the same API to crossfade from the old page snapshot to the new one. Try it here; the rest of the site changes while the fixed-color cover demo stays readable.
+
+<ThemeToggle className="mt-4 inline-flex items-center gap-2 rounded-lg border border-foreground/25 px-4 py-2 text-sm text-foreground hover:bg-foreground/10" label="Switch site theme" />
+
+The theme update changes the root `dark` class and `color-scheme` synchronously, so it needs no React `flushSync`. It also saves the choice to `localStorage`. The important transition path in this site's `ThemeToggle` component is:
+
+```tsx title="theme-switch-core.tsx"
+const nextDark = !document.documentElement.classList.contains("dark");
+
+if (
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+  !document.startViewTransition
+) {
+  applyTheme(nextDark);
+  return;
+}
+
+document.startViewTransition(() => applyTheme(nextDark));
+```
+
+Here `root` means the full document snapshot, and CSS controls its fade. The cover example instead gives one element a distinct name so the browser can track its size and position. The site's global CSS uses a short 200ms fade for the theme:
+
+```css title="theme-fade.css"
+::view-transition-old(root) { animation: 200ms ease-out both theme-fade-out; }
+::view-transition-new(root) { animation: 200ms ease-out both theme-fade-in; }
+
+@keyframes theme-fade-out { to { opacity: 0; } }
+@keyframes theme-fade-in { from { opacity: 0; } }
+```
+
+### 06 — Choose the right transition
+
+- **One object changes size or position:** give it a unique `view-transition-name`, as with the cover.
+- **The whole page changes appearance:** transition the root view, as with the theme switcher.
+- **The URL changes in Next.js:** use React's `<ViewTransition>` with `Link` navigation; the [Next.js guide](https://nextjs.org/docs/app/guides/view-transitions) covers shared elements across routes.
+
+The [MDN View Transitions guide](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API/Using) explains the snapshots and pseudo-elements in more depth.
+
+**Check:** Why does the cover need a unique name, while the theme switcher can animate the `root` snapshot?
