@@ -1,18 +1,27 @@
 "use client";
 
 import { Check, Link2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function ShareButton({ path }: { path: string }) {
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+  }, []);
 
   async function copyLink() {
+    if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+
     try {
       await navigator.clipboard.writeText(new URL(path, window.location.origin).href);
       setStatus("copied");
     } catch {
       setStatus("error");
     }
+
+    resetTimeoutRef.current = setTimeout(() => setStatus("idle"), 2000);
   }
 
   return (

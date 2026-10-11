@@ -157,17 +157,16 @@ type Finish = {
   base: string;
   wellTop: string;
   wellBottom: string;
-  screen: [string, string, string];
   key: [string, string, string];
   menu: string;
 };
 
 const FINISHES: Finish[] = [
-  { name: "Black", swatch: "#2a2a2a", lit: "#6e6e6e", mid: "#3c3c3c", body: "#2a2a2a", deep: "#1c1c1c", base: "#121212", wellTop: "#050505", wellBottom: "#242424", screen: ["#2c2c2c", "#161616", "#0a0a0a"], key: ["#4a4a4a", "#2e2e2e", "#1a1a1a"], menu: "#1a1a1a" },
-  { name: "Orange", swatch: "#ff4c1a", lit: "#ff8a52", mid: "#ff4e1c", body: "#e83a12", deep: "#c42c0c", base: "#8e220c", wellTop: "#120806", wellBottom: "#4a1c12", screen: ["#3a1c16", "#180e0c", "#0e0908"], key: ["#ff5a2a", "#d63612", "#9a240c"], menu: "#3a140e" },
-  { name: "Blue", swatch: "#4e6c84", lit: "#7b94a6", mid: "#4e6c84", body: "#34556c", deep: "#243e54", base: "#183044", wellTop: "#060d14", wellBottom: "#1b3144", screen: ["#244360", "#12283b", "#091522"], key: ["#45627a", "#2a455c", "#1a3348"], menu: "#152a3c" },
-  { name: "Green", swatch: "#3f7a56", lit: "#8aab96", mid: "#4f7a5e", body: "#365844", deep: "#243c2e", base: "#18281e", wellTop: "#07110c", wellBottom: "#1c3326", screen: ["#24382c", "#122018", "#0a120e"], key: ["#4d735c", "#2c4a38", "#1a3024"], menu: "#1a2e24" },
-  { name: "Red", swatch: "#a33b3b", lit: "#c48a8a", mid: "#8a4545", body: "#6a3030", deep: "#4a2020", base: "#341616", wellTop: "#120808", wellBottom: "#3a1c1c", screen: ["#3a2424", "#1c1212", "#100a0a"], key: ["#8a4545", "#5c2c2c", "#3a1a1a"], menu: "#2e1818" },
+  { name: "Black", swatch: "#2a2a2a", lit: "#6e6e6e", mid: "#3c3c3c", body: "#2a2a2a", deep: "#1c1c1c", base: "#121212", wellTop: "#050505", wellBottom: "#242424", key: ["#4a4a4a", "#2e2e2e", "#1a1a1a"], menu: "#1a1a1a" },
+  { name: "Orange", swatch: "#ff4c1a", lit: "#ff8a52", mid: "#ff4e1c", body: "#e83a12", deep: "#c42c0c", base: "#8e220c", wellTop: "#120806", wellBottom: "#4a1c12", key: ["#ff5a2a", "#d63612", "#9a240c"], menu: "#3a140e" },
+  { name: "Blue", swatch: "#4e6c84", lit: "#7b94a6", mid: "#4e6c84", body: "#34556c", deep: "#243e54", base: "#183044", wellTop: "#060d14", wellBottom: "#1b3144", key: ["#45627a", "#2a455c", "#1a3348"], menu: "#152a3c" },
+  { name: "Green", swatch: "#3f7a56", lit: "#8aab96", mid: "#4f7a5e", body: "#365844", deep: "#243c2e", base: "#18281e", wellTop: "#07110c", wellBottom: "#1c3326", key: ["#4d735c", "#2c4a38", "#1a3024"], menu: "#1a2e24" },
+  { name: "Red", swatch: "#a33b3b", lit: "#c48a8a", mid: "#8a4545", body: "#6a3030", deep: "#4a2020", base: "#341616", wellTop: "#120808", wellBottom: "#3a1c1c", key: ["#8a4545", "#5c2c2c", "#3a1a1a"], menu: "#2e1818" },
 ];
 
 const BLUE = FINISHES[2];
@@ -268,7 +267,7 @@ export function WeatherBitmap() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-12 -bottom-3 h-8 rounded-full bg-black/45 blur-xl" />
       <Shell finish={finish} className="rounded-[28px] p-3 sm:p-3.5">
       <div style={wellPaint(finish)} className="rounded-[18px] p-[5px]">
-      <div style={{ background: `radial-gradient(circle at 80% 15%, ${finish.screen[0]} 0%, ${finish.screen[1]} 40%, ${finish.screen[2]} 85%)` }} className="rounded-[14px] border border-black/70 px-5 pt-5 shadow-[inset_0_0_28px_rgba(0,0,0,0.55)] sm:px-7">
+      <div className="rounded-[14px] border border-black/70 bg-black px-5 pt-5 sm:px-7">
         <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55">
           <span>Pixel weather</span>
           <span>Sample data</span>

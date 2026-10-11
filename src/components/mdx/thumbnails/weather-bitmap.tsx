@@ -26,7 +26,7 @@ export function WeatherBitmapThumbnail() {
     <div aria-hidden="true" style={{ containerType: "size" }} className="flex h-full w-full text-white">
       <Shell className="h-full w-full rounded-[1.35rem] p-[2.4cqh]">
         <div style={wellStyle} className="h-full rounded-[1rem] p-[0.7cqh]">
-          <div className="flex h-full items-center rounded-[0.85rem] border border-black/70 bg-[radial-gradient(circle_at_78%_18%,#244360_0%,#12283b_42%,#091522_85%)] px-[5cqw] shadow-[inset_0_0_18px_rgba(0,0,0,0.5)]">
+          <div className="flex h-full items-center rounded-[0.85rem] border border-black/70 bg-black px-[5cqw]">
             <div className="flex w-full items-center justify-between gap-[5cqw]">
               <div className="min-w-0">
                 <p className="mb-[2.6cqh] font-mono text-[clamp(8px,2.3cqh,10px)] uppercase tracking-[0.16em] text-white/50">
