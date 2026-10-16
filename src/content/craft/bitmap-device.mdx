@@ -21,6 +21,14 @@ Picking up the bitmap concept. Place these files together; each animation lives 
 
 import { useEffect, useRef, useState } from "react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { animations } from "./bitmap-animations";
 import type { DrawAnimation } from "./bitmap-animations/types";
 
@@ -152,37 +160,74 @@ export function BitmapDevice({ preview = false }: { preview?: boolean }) {
             </span>
           </div>
           <div className="grid sm:grid-cols-3">
-            <label className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
+            <div className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
               <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Animation</span>
-              <select
+              <Select
                 value={scene}
-                onChange={(event) => { setScene(event.target.value); setError(null); }}
-                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+                onValueChange={(value) => {
+                  if (value === null) return;
+                  setScene(value);
+                  setError(null);
+                }}
               >
-                {animations.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
+                <SelectTrigger
+                  aria-label="Animation"
+                  className="h-10 w-full rounded-md border-[#c6d0d3] bg-white px-3 text-[#1d292e] focus-visible:border-[#3155d9] focus-visible:ring-[#3155d9]/40"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {animations.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
               <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Resolution</span>
-              <select
-                value={resolution}
-                onChange={(event) => setResolution(Number(event.target.value) as Resolution)}
-                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              <Select
+                value={String(resolution)}
+                onValueChange={(value) => {
+                  if (value !== null) setResolution(Number(value) as Resolution);
+                }}
               >
-                {RESOLUTIONS.map((value) => <option key={value} value={value}>{value} × {value}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-2 p-4">
+                <SelectTrigger
+                  aria-label="Resolution"
+                  className="h-10 w-full rounded-md border-[#c6d0d3] bg-white px-3 text-[#1d292e] focus-visible:border-[#3155d9] focus-visible:ring-[#3155d9]/40"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESOLUTIONS.map((value) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {value} × {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2 p-4">
               <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Pixel shape</span>
-              <select
+              <Select
                 value={shape}
-                onChange={(event) => setShape(event.target.value as "round" | "square")}
-                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+                onValueChange={(value) => {
+                  if (value === "round" || value === "square") setShape(value);
+                }}
               >
-                <option value="round">Round</option>
-                <option value="square">Square</option>
-              </select>
-            </label>
+                <SelectTrigger
+                  aria-label="Pixel shape"
+                  className="h-10 w-full rounded-md border-[#c6d0d3] bg-white px-3 text-[#1d292e] focus-visible:border-[#3155d9] focus-visible:ring-[#3155d9]/40"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="round">Round</SelectItem>
+                  <SelectItem value="square">Square</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {error && <p role="alert" className="border-t border-[#d9e0e2] px-4 py-3 text-sm text-red-700">{error}</p>}
         </div>
