@@ -15,4 +15,19 @@ export const animations: {
     label: "Matrix rain",
     load: async () => (await import("./matrix")).drawMatrix,
   },
+  {
+    id: "starfield",
+    label: "Starfield",
+    load: async () => (await import("./starfield")).drawStarfield,
+  },
+  {
+    id: "equalizer",
+    label: "Equalizer",
+    load: async () => (await import("./equalizer")).drawEqualizer,
+  },
+  {
+    id: "fire",
+    label: "Fire",
+    load: async () => (await import("./fire")).drawFire,
+  },
 ];
