@@ -1,6 +1,6 @@
 ---
 title: Bitmap display
-description: A 64 × 64 LED display device, picking up the concept of bitmap.
+description: A square LED display with a rocket launch and Matrix rain at 32, 64, or 128 pixels.
 publishedAt: 2026-10-15
 category: Canvas
 preview: bitmap-device
@@ -14,106 +14,111 @@ order: 10
 
 ## Implementation
 
+Picking up the bitmap concept. Place these files together; each animation lives in its own module.
+
 ```tsx title="bitmap-device.tsx"
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 
-const SIZE = 64;
-const PITCH = 9;
+import { animations } from "./bitmap-animations";
+import type { DrawAnimation } from "./bitmap-animations/types";
+
+const DISPLAY_SIZE = 768;
+const RESOLUTIONS = [32, 64, 128] as const;
+type Resolution = (typeof RESOLUTIONS)[number];
+
 const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`,
 )}")`;
 
-function buildBitmap() {
-  const pixels = Array<string>(SIZE * SIZE).fill("#0879e8");
-  const rect = (color: string, x: number, y: number, width: number, height: number) => {
-    for (let row = Math.max(0, y); row < Math.min(SIZE, y + height); row++) {
-      for (let col = Math.max(0, x); col < Math.min(SIZE, x + width); col++) {
-        pixels[row * SIZE + col] = color;
-      }
-    }
-  };
-
-  rect("#0879e8", 0, 0, 64, 28);
-  rect("#08a8ef", 0, 28, 64, 25);
-  rect("#ffffff", 5, 12, 15, 5);
-  rect("#ffffff", 8, 9, 8, 11);
-  rect("#e9fbff", 3, 16, 19, 3);
-  rect("#ffffff", 46, 15, 13, 6);
-  rect("#ffffff", 49, 12, 7, 12);
-  rect("#e9fbff", 43, 20, 19, 3);
-
-  rect("#135f3c", 0, 49, 64, 6);
-  rect("#31c556", 0, 50, 64, 3);
-  rect("#119a48", 3, 43, 9, 9);
-  rect("#4cef68", 5, 40, 5, 11);
-  rect("#119a48", 51, 44, 8, 8);
-  rect("#4cef68", 53, 41, 4, 10);
-  rect("#5f3026", 0, 54, 64, 10);
-  for (let y = 54; y < 64; y += 5) {
-    for (let x = y === 54 ? 0 : -4; x < 64; x += 10) {
-      rect("#ae633a", x, y, 9, 4);
-      rect("#d18449", x, y, 9, 1);
-    }
-  }
-
-  rect("#18233c", 30, 9, 5, 7);
-  rect("#ffd464", 31, 7, 3, 4);
-  rect("#172138", 19, 16, 28, 21);
-  rect("#f2fbff", 21, 18, 24, 17);
-  rect("#c8edff", 23, 18, 20, 3);
-  rect("#173251", 24, 22, 18, 10);
-  rect("#17cbe4", 26, 24, 14, 6);
-  rect("#e8ffff", 27, 24, 5, 2);
-  rect("#143149", 29, 27, 2, 3);
-  rect("#143149", 36, 27, 2, 3);
-  rect("#172138", 24, 36, 19, 16);
-  rect("#f16f43", 26, 37, 15, 13);
-  rect("#ffae57", 28, 38, 11, 3);
-  rect("#24365c", 30, 42, 7, 5);
-  rect("#5de5e8", 31, 43, 5, 3);
-  rect("#172138", 17, 38, 8, 12);
-  rect("#f16f43", 19, 39, 6, 8);
-  rect("#f2fbff", 17, 46, 8, 5);
-  rect("#172138", 42, 38, 8, 12);
-  rect("#f16f43", 42, 39, 6, 8);
-  rect("#f2fbff", 42, 46, 8, 5);
-  rect("#172138", 27, 50, 7, 7);
-  rect("#172138", 37, 50, 7, 7);
-  rect("#4771b8", 28, 50, 5, 5);
-  rect("#4771b8", 38, 50, 5, 5);
-
-  return pixels;
-}
-
-const BITMAP = buildBitmap();
-
-export function BitmapDevice() {
+export function BitmapDevice({ preview = false }: { preview?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [scene, setScene] = useState(animations[0].id);
+  const [resolution, setResolution] = useState<Resolution>(64);
   const [shape, setShape] = useState<"round" | "square">("round");
+  const [error, setError] = useState<string | null>(null);
+  const selected = animations.find((item) => item.id === scene) ?? animations[0];
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext("2d");
+    const context = canvas?.getContext("2d");
     if (!context) return;
 
-    context.fillStyle = "#050b12";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    BITMAP.forEach((color, index) => {
-      const x = (index % SIZE) * PITCH;
-      const y = Math.floor(index / SIZE) * PITCH;
-      context.fillStyle = color;
-      if (shape === "round") {
-        context.beginPath();
-        context.arc(x + PITCH / 2, y + PITCH / 2, 3.8, 0, Math.PI * 2);
-        context.fill();
-      } else {
-        context.fillRect(x + 0.6, y + 0.6, PITCH - 1.2, PITCH - 1.2);
+    const bitmap = document.createElement("canvas");
+    bitmap.width = bitmap.height = resolution;
+    const bitmapContext = bitmap.getContext("2d");
+    if (!bitmapContext) return;
+
+    const cell = DISPLAY_SIZE / resolution;
+    const mask = document.createElement("canvas");
+    mask.width = mask.height = cell;
+    const maskContext = mask.getContext("2d");
+    if (!maskContext) return;
+    maskContext.fillStyle = "#fff";
+    if (shape === "round") {
+      maskContext.beginPath();
+      maskContext.arc(cell / 2, cell / 2, cell * 0.42, 0, Math.PI * 2);
+      maskContext.fill();
+    } else {
+      maskContext.fillRect(cell * 0.07, cell * 0.07, cell * 0.86, cell * 0.86);
+    }
+    const pattern = context.createPattern(mask, "repeat");
+
+    let active = true;
+    let request = 0;
+    let started = 0;
+    let previous = -1;
+    let render: DrawAnimation | null = null;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const paint = (frame: number) => {
+      if (!render) return;
+      bitmapContext.clearRect(0, 0, resolution, resolution);
+      render(bitmapContext, resolution, frame);
+      context.clearRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+      context.imageSmoothingEnabled = false;
+      context.drawImage(bitmap, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+      if (pattern) {
+        context.globalCompositeOperation = "destination-in";
+        context.fillStyle = pattern;
+        context.fillRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+        context.globalCompositeOperation = "source-over";
       }
+    };
+    const tick = (now: number) => {
+      if (!started) started = now;
+      const frame = Math.floor((now - started) / 85);
+      if (frame !== previous) {
+        paint(frame);
+        previous = frame;
+      }
+      request = requestAnimationFrame(tick);
+    };
+    const syncMotion = () => {
+      cancelAnimationFrame(request);
+      started = 0;
+      previous = -1;
+      if (!render) return;
+      if (preview || motion.matches) paint(0);
+      else request = requestAnimationFrame(tick);
+    };
+
+    motion.addEventListener("change", syncMotion);
+    selected.load().then((draw) => {
+      if (!active) return;
+      render = draw;
+      syncMotion();
+    }).catch(() => {
+      if (active) setError("This animation could not load.");
     });
-  }, [shape]);
+
+    return () => {
+      active = false;
+      cancelAnimationFrame(request);
+      motion.removeEventListener("change", syncMotion);
+    };
+  }, [selected, resolution, shape, preview]);
 
   return (
     <div className="mx-auto w-full max-w-[600px]">
@@ -129,36 +134,236 @@ export function BitmapDevice() {
         <div className="relative rounded-[3px] border-[3px] border-[#090909] bg-[#050b12] shadow-[inset_0_8px_14px_#000b,0_1px_0_#ffffff1f]">
           <canvas
             ref={canvasRef}
-            width={SIZE * PITCH}
-            height={SIZE * PITCH}
+            width={DISPLAY_SIZE}
+            height={DISPLAY_SIZE}
             role="img"
-            aria-label={`A 64 by 64 LED bitmap with ${shape} pixels, showing a little explorer in a colorful landscape`}
+            aria-label={`${selected.label} animation on a ${resolution} by ${resolution} LED display with ${shape} pixels`}
             className="block aspect-square w-full"
           />
         </div>
       </div>
-      <div className="mt-6 flex justify-center" role="group" aria-label="Pixel shape">
-        {(["round", "square"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={shape === option}
-            onClick={() => setShape(option)}
-            className={`border px-5 py-2 font-mono text-xs capitalize outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-600 ${
-              shape === option
-                ? "border-[#202326] bg-[#202326] text-white"
-                : "border-[#9ba6ad] bg-white/70 text-[#202326] hover:bg-white"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
+
+      {!preview && (
+        <div className="mt-5 overflow-hidden rounded-lg border border-[#aeb9bf] bg-[#f8faf9] shadow-[0_2px_8px_#1d2a3512]">
+          <div className="flex items-center justify-between border-b border-[#d9e0e2] px-4 py-3">
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#4a565b]">Display control</span>
+            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#50605a]">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-[#2aa670] shadow-[0_0_7px_#2aa670]" /> Live
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-3">
+            <label className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Animation</span>
+              <select
+                value={scene}
+                onChange={(event) => { setScene(event.target.value); setError(null); }}
+                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              >
+                {animations.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Resolution</span>
+              <select
+                value={resolution}
+                onChange={(event) => setResolution(Number(event.target.value) as Resolution)}
+                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              >
+                {RESOLUTIONS.map((value) => <option key={value} value={value}>{value} × {value}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-2 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Pixel shape</span>
+              <select
+                value={shape}
+                onChange={(event) => setShape(event.target.value as "round" | "square")}
+                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              >
+                <option value="round">Round</option>
+                <option value="square">Square</option>
+              </select>
+            </label>
+          </div>
+          {error && <p role="alert" className="border-t border-[#d9e0e2] px-4 py-3 text-sm text-red-700">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }
 ```
 
+```tsx title="bitmap-animations/types.ts"
+export type DrawAnimation = (
+  context: CanvasRenderingContext2D,
+  size: number,
+  frame: number,
+) => void;
+```
+
+```tsx title="bitmap-animations/index.ts"
+import type { DrawAnimation } from "./types";
+
+export const animations: {
+  id: string;
+  label: string;
+  load: () => Promise<DrawAnimation>;
+}[] = [
+  {
+    id: "rocket",
+    label: "Rocket launch",
+    load: async () => (await import("./rocket")).drawRocket,
+  },
+  {
+    id: "matrix",
+    label: "Matrix rain",
+    load: async () => (await import("./matrix")).drawMatrix,
+  },
+];
+```
+
+```tsx title="bitmap-animations/rocket.ts"
+import type { DrawAnimation } from "./types";
+
+export const drawRocket: DrawAnimation = (context, size, frame) => {
+  const tick = frame % 96;
+  const lift = tick < 10 ? 0 : Math.round((Math.min(tick - 10, 65) / 65) ** 1.35 * 96);
+  const launched = tick >= 10;
+
+  context.save();
+  context.scale(size / 64, size / 64);
+
+  const sky = context.createLinearGradient(0, 0, 0, 64);
+  sky.addColorStop(0, "#071226");
+  sky.addColorStop(1, "#174568");
+  context.fillStyle = sky;
+  context.fillRect(0, 0, 64, 64);
+
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 23 + 7) % 64;
+    const y = (i * 17 + 5) % 43;
+    context.fillStyle = (i + Math.floor(frame / 6)) % 5 === 0 ? "#ffffff" : "#7599b6";
+    context.fillRect(x, y, 1, 1);
+  }
+
+  context.fillStyle = "#14273d";
+  context.fillRect(0, 54, 64, 10);
+  context.fillStyle = "#354a5b";
+  context.fillRect(0, 54, 64, 2);
+  context.fillStyle = "#607b8a";
+  context.fillRect(23, 52, 18, 3);
+  context.fillStyle = "#253c51";
+  context.fillRect(8, 29, 2, 25);
+  for (let y = 31; y < 52; y += 5) context.fillRect(8, y, 9, 1);
+
+  if (launched && tick < 85) {
+    const spread = Math.min(18, Math.floor((tick - 10) / 3));
+    for (let i = 0; i < 7; i++) {
+      const x = 32 + (i - 3) * spread * 0.65;
+      const y = 55 + ((i * 3 + frame) % 5);
+      context.fillStyle = i % 2 ? "#b9c9c9" : "#e0e6db";
+      context.beginPath();
+      context.arc(x, y, 3 + (i % 3), 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  if (tick <= 75) {
+    context.save();
+    context.translate(32, 43 - lift);
+
+    if (launched) {
+      const flame = 10 + (frame % 3) * 2;
+      context.fillStyle = "#f05a31";
+      context.beginPath();
+      context.moveTo(-4, 8);
+      context.lineTo(0, 8 + flame);
+      context.lineTo(4, 8);
+      context.fill();
+      context.fillStyle = "#ffe371";
+      context.beginPath();
+      context.moveTo(-2, 8);
+      context.lineTo(0, 5 + flame);
+      context.lineTo(2, 8);
+      context.fill();
+    }
+
+    context.fillStyle = "#071b2d";
+    context.fillRect(-6, -17, 12, 25);
+    context.fillStyle = "#e8eee8";
+    context.fillRect(-5, -17, 10, 23);
+    context.fillStyle = "#b9d0d5";
+    context.fillRect(2, -16, 3, 20);
+    context.fillStyle = "#f35b48";
+    context.beginPath();
+    context.moveTo(-5, -17);
+    context.lineTo(0, -27);
+    context.lineTo(5, -17);
+    context.fill();
+    context.fillStyle = "#f35b48";
+    context.beginPath();
+    context.moveTo(-5, -2);
+    context.lineTo(-10, 8);
+    context.lineTo(-5, 6);
+    context.moveTo(5, -2);
+    context.lineTo(10, 8);
+    context.lineTo(5, 6);
+    context.fill();
+    context.fillStyle = "#173b58";
+    context.beginPath();
+    context.arc(0, -10, 4, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#64d5e6";
+    context.beginPath();
+    context.arc(-1, -11, 2, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#f35b48";
+    context.fillRect(-5, 2, 10, 2);
+    context.restore();
+  }
+
+  context.restore();
+};
+```
+
+```tsx title="bitmap-animations/matrix.ts"
+import type { DrawAnimation } from "./types";
+
+const GLYPHS = [
+  ["111", "101", "101", "101", "111"],
+  ["010", "110", "010", "010", "111"],
+  ["110", "001", "010", "100", "111"],
+  ["111", "001", "011", "001", "111"],
+  ["010", "101", "111", "101", "101"],
+  ["110", "101", "110", "101", "110"],
+  ["101", "101", "010", "101", "101"],
+  ["010", "010", "111", "010", "010"],
+];
+
+export const drawMatrix: DrawAnimation = (context, size, frame) => {
+  context.fillStyle = "#020907";
+  context.fillRect(0, 0, size, size);
+
+  const columns = Math.ceil(size / 5);
+  for (let col = 0; col < columns; col++) {
+    const speed = 1 + (col % 3);
+    const head = (frame * speed + col * 19) % (size + 90) - 45;
+    const length = 6 + (col % 6);
+
+    for (let tail = 0; tail < length; tail++) {
+      const y = head - tail * 7;
+      if (y < -5 || y >= size) continue;
+      const glyph = GLYPHS[(col * 11 + tail * 7 + Math.floor(frame / 5)) % GLYPHS.length];
+      context.fillStyle = tail === 0 ? "#d9ffe5" : tail < 3 ? "#56f995" : tail < 6 ? "#18944e" : "#0c472b";
+      for (let row = 0; row < 5; row++) {
+        for (let bit = 0; bit < 3; bit++) {
+          if (glyph[row][bit] === "1") context.fillRect(col * 5 + bit, y + row, 1, 1);
+        }
+      }
+    }
+  }
+};
+```
+
 ## How it works
 
-Picking up the concept of bitmap: one color for each point in a 64 × 64 display.
+Each animation draws a bitmap frame at the selected resolution. The device displays those pixels in the same square frame.

@@ -2,101 +2,104 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const SIZE = 64;
-const PITCH = 9;
+import { animations } from "./bitmap-animations";
+import type { DrawAnimation } from "./bitmap-animations/types";
+
+const DISPLAY_SIZE = 768;
+const RESOLUTIONS = [32, 64, 128] as const;
+type Resolution = (typeof RESOLUTIONS)[number];
+
 const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`,
 )}")`;
 
-function buildBitmap() {
-  const pixels = Array<string>(SIZE * SIZE).fill("#0879e8");
-  const rect = (color: string, x: number, y: number, width: number, height: number) => {
-    for (let row = Math.max(0, y); row < Math.min(SIZE, y + height); row++) {
-      for (let col = Math.max(0, x); col < Math.min(SIZE, x + width); col++) {
-        pixels[row * SIZE + col] = color;
-      }
-    }
-  };
-
-  rect("#0879e8", 0, 0, 64, 28);
-  rect("#08a8ef", 0, 28, 64, 25);
-  rect("#ffffff", 5, 12, 15, 5);
-  rect("#ffffff", 8, 9, 8, 11);
-  rect("#e9fbff", 3, 16, 19, 3);
-  rect("#ffffff", 46, 15, 13, 6);
-  rect("#ffffff", 49, 12, 7, 12);
-  rect("#e9fbff", 43, 20, 19, 3);
-
-  rect("#135f3c", 0, 49, 64, 6);
-  rect("#31c556", 0, 50, 64, 3);
-  rect("#119a48", 3, 43, 9, 9);
-  rect("#4cef68", 5, 40, 5, 11);
-  rect("#119a48", 51, 44, 8, 8);
-  rect("#4cef68", 53, 41, 4, 10);
-  rect("#5f3026", 0, 54, 64, 10);
-  for (let y = 54; y < 64; y += 5) {
-    for (let x = y === 54 ? 0 : -4; x < 64; x += 10) {
-      rect("#ae633a", x, y, 9, 4);
-      rect("#d18449", x, y, 9, 1);
-    }
-  }
-
-  rect("#18233c", 30, 9, 5, 7);
-  rect("#ffd464", 31, 7, 3, 4);
-  rect("#172138", 19, 16, 28, 21);
-  rect("#f2fbff", 21, 18, 24, 17);
-  rect("#c8edff", 23, 18, 20, 3);
-  rect("#173251", 24, 22, 18, 10);
-  rect("#17cbe4", 26, 24, 14, 6);
-  rect("#e8ffff", 27, 24, 5, 2);
-  rect("#143149", 29, 27, 2, 3);
-  rect("#143149", 36, 27, 2, 3);
-  rect("#172138", 24, 36, 19, 16);
-  rect("#f16f43", 26, 37, 15, 13);
-  rect("#ffae57", 28, 38, 11, 3);
-  rect("#24365c", 30, 42, 7, 5);
-  rect("#5de5e8", 31, 43, 5, 3);
-  rect("#172138", 17, 38, 8, 12);
-  rect("#f16f43", 19, 39, 6, 8);
-  rect("#f2fbff", 17, 46, 8, 5);
-  rect("#172138", 42, 38, 8, 12);
-  rect("#f16f43", 42, 39, 6, 8);
-  rect("#f2fbff", 42, 46, 8, 5);
-  rect("#172138", 27, 50, 7, 7);
-  rect("#172138", 37, 50, 7, 7);
-  rect("#4771b8", 28, 50, 5, 5);
-  rect("#4771b8", 38, 50, 5, 5);
-
-  return pixels;
-}
-
-const BITMAP = buildBitmap();
-
-export function BitmapDevice() {
+export function BitmapDevice({ preview = false }: { preview?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [scene, setScene] = useState(animations[0].id);
+  const [resolution, setResolution] = useState<Resolution>(64);
   const [shape, setShape] = useState<"round" | "square">("round");
+  const [error, setError] = useState<string | null>(null);
+  const selected = animations.find((item) => item.id === scene) ?? animations[0];
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext("2d");
+    const context = canvas?.getContext("2d");
     if (!context) return;
 
-    context.fillStyle = "#050b12";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    BITMAP.forEach((color, index) => {
-      const x = (index % SIZE) * PITCH;
-      const y = Math.floor(index / SIZE) * PITCH;
-      context.fillStyle = color;
-      if (shape === "round") {
-        context.beginPath();
-        context.arc(x + PITCH / 2, y + PITCH / 2, 3.8, 0, Math.PI * 2);
-        context.fill();
-      } else {
-        context.fillRect(x + 0.6, y + 0.6, PITCH - 1.2, PITCH - 1.2);
+    const bitmap = document.createElement("canvas");
+    bitmap.width = bitmap.height = resolution;
+    const bitmapContext = bitmap.getContext("2d");
+    if (!bitmapContext) return;
+
+    const cell = DISPLAY_SIZE / resolution;
+    const mask = document.createElement("canvas");
+    mask.width = mask.height = cell;
+    const maskContext = mask.getContext("2d");
+    if (!maskContext) return;
+    maskContext.fillStyle = "#fff";
+    if (shape === "round") {
+      maskContext.beginPath();
+      maskContext.arc(cell / 2, cell / 2, cell * 0.42, 0, Math.PI * 2);
+      maskContext.fill();
+    } else {
+      maskContext.fillRect(cell * 0.07, cell * 0.07, cell * 0.86, cell * 0.86);
+    }
+    const pattern = context.createPattern(mask, "repeat");
+
+    let active = true;
+    let request = 0;
+    let started = 0;
+    let previous = -1;
+    let render: DrawAnimation | null = null;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const paint = (frame: number) => {
+      if (!render) return;
+      bitmapContext.clearRect(0, 0, resolution, resolution);
+      render(bitmapContext, resolution, frame);
+      context.clearRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+      context.imageSmoothingEnabled = false;
+      context.drawImage(bitmap, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+      if (pattern) {
+        context.globalCompositeOperation = "destination-in";
+        context.fillStyle = pattern;
+        context.fillRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+        context.globalCompositeOperation = "source-over";
       }
+    };
+    const tick = (now: number) => {
+      if (!started) started = now;
+      const frame = Math.floor((now - started) / 85);
+      if (frame !== previous) {
+        paint(frame);
+        previous = frame;
+      }
+      request = requestAnimationFrame(tick);
+    };
+    const syncMotion = () => {
+      cancelAnimationFrame(request);
+      started = 0;
+      previous = -1;
+      if (!render) return;
+      if (preview || motion.matches) paint(0);
+      else request = requestAnimationFrame(tick);
+    };
+
+    motion.addEventListener("change", syncMotion);
+    selected.load().then((draw) => {
+      if (!active) return;
+      render = draw;
+      syncMotion();
+    }).catch(() => {
+      if (active) setError("This animation could not load.");
     });
-  }, [shape]);
+
+    return () => {
+      active = false;
+      cancelAnimationFrame(request);
+      motion.removeEventListener("change", syncMotion);
+    };
+  }, [selected, resolution, shape, preview]);
 
   return (
     <div className="mx-auto w-full max-w-[600px]">
@@ -112,31 +115,59 @@ export function BitmapDevice() {
         <div className="relative rounded-[3px] border-[3px] border-[#090909] bg-[#050b12] shadow-[inset_0_8px_14px_#000b,0_1px_0_#ffffff1f]">
           <canvas
             ref={canvasRef}
-            width={SIZE * PITCH}
-            height={SIZE * PITCH}
+            width={DISPLAY_SIZE}
+            height={DISPLAY_SIZE}
             role="img"
-            aria-label={`A 64 by 64 LED bitmap with ${shape} pixels, showing a little explorer in a colorful landscape`}
+            aria-label={`${selected.label} animation on a ${resolution} by ${resolution} LED display with ${shape} pixels`}
             className="block aspect-square w-full"
           />
         </div>
       </div>
-      <div className="mt-6 flex justify-center" role="group" aria-label="Pixel shape">
-        {(["round", "square"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={shape === option}
-            onClick={() => setShape(option)}
-            className={`border px-5 py-2 font-mono text-xs capitalize outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-600 ${
-              shape === option
-                ? "border-[#202326] bg-[#202326] text-white"
-                : "border-[#9ba6ad] bg-white/70 text-[#202326] hover:bg-white"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
+
+      {!preview && (
+        <div className="mt-5 overflow-hidden rounded-lg border border-[#aeb9bf] bg-[#f8faf9] shadow-[0_2px_8px_#1d2a3512]">
+          <div className="flex items-center justify-between border-b border-[#d9e0e2] px-4 py-3">
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#4a565b]">Display control</span>
+            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#50605a]">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-[#2aa670] shadow-[0_0_7px_#2aa670]" /> Live
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-3">
+            <label className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Animation</span>
+              <select
+                value={scene}
+                onChange={(event) => { setScene(event.target.value); setError(null); }}
+                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              >
+                {animations.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-2 border-b border-[#d9e0e2] p-4 sm:border-r sm:border-b-0">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Resolution</span>
+              <select
+                value={resolution}
+                onChange={(event) => setResolution(Number(event.target.value) as Resolution)}
+                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              >
+                {RESOLUTIONS.map((value) => <option key={value} value={value}>{value} × {value}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-2 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#657279]">Pixel shape</span>
+              <select
+                value={shape}
+                onChange={(event) => setShape(event.target.value as "round" | "square")}
+                className="w-full rounded-md border border-[#c6d0d3] bg-white px-3 py-2 text-sm text-[#1d292e] outline-none focus-visible:ring-2 focus-visible:ring-[#3155d9]"
+              >
+                <option value="round">Round</option>
+                <option value="square">Square</option>
+              </select>
+            </label>
+          </div>
+          {error && <p role="alert" className="border-t border-[#d9e0e2] px-4 py-3 text-sm text-red-700">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }
