@@ -1,0 +1,643 @@
+---
+title: Bitmap display
+description: A square LED display with rocket, Matrix rain, starfield, equalizer, and fire at 32, 64, or 128 pixels.
+publishedAt: 2026-10-15
+category: Canvas
+preview: bitmap-device
+kind: craft
+order: 10
+---
+
+<div className="overflow-hidden bg-[#dbe5ed] px-4 py-10 sm:px-10 sm:py-16">
+  <BitmapDevice />
+</div>
+
+## Implementation
+
+Picking up the bitmap concept. Add the shadcn Select (`npx shadcn add select`), then place these files together; each animation lives in its own module. Color swatches call `playClick` from `src/lib/click.ts`.
+
+```tsx title="bitmap-device.tsx"
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { playClick } from "@/lib/click";
+
+import { animations } from "./bitmap-animations";
+import type { DrawAnimation } from "./bitmap-animations/types";
+
+const DISPLAY_SIZE = 768;
+const RESOLUTIONS = [32, 64, 128] as const;
+type Resolution = (typeof RESOLUTIONS)[number];
+
+const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`,
+)}")`;
+
+type Finish = {
+  name: string;
+  swatch: string;
+  lit: string;
+  mid: string;
+  body: string;
+  deep: string;
+  base: string;
+  wellTop: string;
+  wellBottom: string;
+  key: [string, string, string];
+  menu: string;
+};
+
+const FINISHES: Finish[] = [
+  { name: "Black", swatch: "#2a2a2a", lit: "#6e6e6e", mid: "#3c3c3c", body: "#2a2a2a", deep: "#1c1c1c", base: "#121212", wellTop: "#050505", wellBottom: "#242424", key: ["#4a4a4a", "#2e2e2e", "#1a1a1a"], menu: "#1a1a1a" },
+  { name: "Orange", swatch: "#ff4c1a", lit: "#ff8a52", mid: "#ff4e1c", body: "#e83a12", deep: "#c42c0c", base: "#8e220c", wellTop: "#120806", wellBottom: "#4a1c12", key: ["#ff5a2a", "#d63612", "#9a240c"], menu: "#3a140e" },
+  { name: "Blue", swatch: "#4e6c84", lit: "#7b94a6", mid: "#4e6c84", body: "#34556c", deep: "#243e54", base: "#183044", wellTop: "#060d14", wellBottom: "#1b3144", key: ["#45627a", "#2a455c", "#1a3348"], menu: "#152a3c" },
+  { name: "Green", swatch: "#3f7a56", lit: "#8aab96", mid: "#4f7a5e", body: "#365844", deep: "#243c2e", base: "#18281e", wellTop: "#07110c", wellBottom: "#1c3326", key: ["#4d735c", "#2c4a38", "#1a3024"], menu: "#1a2e24" },
+  { name: "Red", swatch: "#a33b3b", lit: "#c48a8a", mid: "#8a4545", body: "#6a3030", deep: "#4a2020", base: "#341616", wellTop: "#120808", wellBottom: "#3a1c1c", key: ["#8a4545", "#5c2c2c", "#3a1a1a"], menu: "#2e1818" },
+];
+
+const DEFAULT_FINISH = FINISHES[0];
+
+const SHELL_SHADOW = [
+  "inset 0 1px 0 rgba(255,255,255,0.55)",
+  "inset 0 -3px 6px rgba(0,0,0,0.42)",
+  "0 1px 0 rgba(0,0,0,0.45)",
+  "0 22px 40px rgba(0,0,0,0.42)",
+  "0 4px 10px rgba(0,0,0,0.28)",
+].join(", ");
+
+function shellPaint(finish: Finish) {
+  return {
+    backgroundColor: finish.base,
+    backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.16), transparent 14%), linear-gradient(165deg, ${finish.lit} 0%, ${finish.mid} 7%, ${finish.body} 20%, ${finish.deep} 52%, ${finish.base} 100%)`,
+    boxShadow: SHELL_SHADOW,
+  };
+}
+
+function wellPaint(finish: Finish) {
+  return {
+    background: `linear-gradient(180deg, ${finish.wellTop} 0%, ${finish.wellBottom} 100%)`,
+    boxShadow:
+      "inset 0 8px 14px rgba(0,0,0,0.75), inset 0 -1px 0 rgba(255,255,255,0.2), 0 1px 0 rgba(255,255,255,0.08)",
+  };
+}
+
+function keyPaint(finish: Finish) {
+  return {
+    backgroundImage: `linear-gradient(180deg, ${finish.key[0]} 0%, ${finish.key[1]} 42%, ${finish.key[2]} 100%)`,
+  };
+}
+
+const keyClass =
+  "h-9 w-full rounded-md border border-black/40 px-2.5 font-mono text-[11px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-2px_4px_rgba(0,0,0,0.45),0_1px_2px_rgba(0,0,0,0.4)] transition-[transform,box-shadow,filter] duration-150 ease-out hover:brightness-110 [&_svg]:text-white/70 focus-visible:border-white/40 focus-visible:ring-white/30 active:translate-y-px active:scale-[0.99] motion-reduce:transition-none";
+
+const menuItemClass =
+  "focus:bg-white/12 focus:text-white! data-highlighted:bg-white/12 data-highlighted:text-white! focus:**:text-white!";
+
+export function BitmapDevice({ preview = false }: { preview?: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [scene, setScene] = useState(animations[0].id);
+  const [resolution, setResolution] = useState<Resolution>(64);
+  const [shape, setShape] = useState<"round" | "square">("round");
+  const [finishName, setFinishName] = useState(DEFAULT_FINISH.name);
+  const [error, setError] = useState<string | null>(null);
+  const selected = animations.find((item) => item.id === scene) ?? animations[0];
+  const finish = FINISHES.find((item) => item.name === finishName) ?? DEFAULT_FINISH;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!context) return;
+
+    const bitmap = document.createElement("canvas");
+    bitmap.width = bitmap.height = resolution;
+    const bitmapContext = bitmap.getContext("2d");
+    if (!bitmapContext) return;
+
+    const cell = DISPLAY_SIZE / resolution;
+    const mask = document.createElement("canvas");
+    mask.width = mask.height = cell;
+    const maskContext = mask.getContext("2d");
+    if (!maskContext) return;
+    maskContext.fillStyle = "#fff";
+    if (shape === "round") {
+      maskContext.beginPath();
+      maskContext.arc(cell / 2, cell / 2, cell * 0.42, 0, Math.PI * 2);
+      maskContext.fill();
+    } else {
+      maskContext.fillRect(cell * 0.07, cell * 0.07, cell * 0.86, cell * 0.86);
+    }
+    const pattern = context.createPattern(mask, "repeat");
+
+    let active = true;
+    let request = 0;
+    let started = 0;
+    let previous = -1;
+    let render: DrawAnimation | null = null;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const paint = (frame: number) => {
+      if (!render) return;
+      bitmapContext.clearRect(0, 0, resolution, resolution);
+      render(bitmapContext, resolution, frame);
+      context.clearRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+      context.imageSmoothingEnabled = false;
+      context.drawImage(bitmap, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+      if (pattern) {
+        context.globalCompositeOperation = "destination-in";
+        context.fillStyle = pattern;
+        context.fillRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+        context.globalCompositeOperation = "source-over";
+      }
+    };
+    const tick = (now: number) => {
+      if (!started) started = now;
+      const frame = Math.floor((now - started) / 85);
+      if (frame !== previous) {
+        paint(frame);
+        previous = frame;
+      }
+      request = requestAnimationFrame(tick);
+    };
+    const syncMotion = () => {
+      cancelAnimationFrame(request);
+      started = 0;
+      previous = -1;
+      if (!render) return;
+      if (preview || motion.matches) paint(0);
+      else request = requestAnimationFrame(tick);
+    };
+
+    motion.addEventListener("change", syncMotion);
+    selected.load().then((draw) => {
+      if (!active) return;
+      render = draw;
+      syncMotion();
+    }).catch(() => {
+      if (active) setError("This animation could not load.");
+    });
+
+    return () => {
+      active = false;
+      cancelAnimationFrame(request);
+      motion.removeEventListener("change", syncMotion);
+    };
+  }, [selected, resolution, shape, preview]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+      <div className="relative min-w-0 w-full max-w-[600px]">
+        <div
+          className="relative isolate overflow-hidden rounded-[12px] border border-black/70 p-[11px] text-white sm:p-[15px]"
+          style={shellPaint(finish)}
+        >
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-80 mix-blend-overlay"
+            style={{ backgroundImage: GRAIN, backgroundSize: "180px 180px" }}
+          />
+
+          <div className="relative">
+            <div style={wellPaint(finish)} className="rounded-[3px] p-[3px]">
+              <div className="overflow-hidden rounded-[2px] border border-black/70 bg-black">
+                <canvas
+                  ref={canvasRef}
+                  width={DISPLAY_SIZE}
+                  height={DISPLAY_SIZE}
+                  role="img"
+                  aria-label={`${selected.label} animation on a ${resolution} by ${resolution} LED display with ${shape} pixels`}
+                  className="block aspect-square w-full"
+                />
+              </div>
+            </div>
+
+            {!preview && (
+              <div className="relative mt-3 grid gap-2 px-0.5 pb-0.5">
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid min-w-0 gap-1.5">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">Animation</span>
+                    <Select
+                      value={scene}
+                      onValueChange={(value) => {
+                        if (value === null) return;
+                        setScene(value);
+                        setError(null);
+                      }}
+                    >
+                      <SelectTrigger aria-label="Animation" style={keyPaint(finish)} className={keyClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent style={{ backgroundColor: finish.menu }} className="border border-white/15 text-white ring-white/15">
+                        {animations.map((item) => (
+                          <SelectItem key={item.id} value={item.id} className={menuItemClass}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid min-w-0 gap-1.5">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">Resolution</span>
+                    <Select
+                      value={String(resolution)}
+                      onValueChange={(value) => {
+                        if (value !== null) setResolution(Number(value) as Resolution);
+                      }}
+                    >
+                      <SelectTrigger aria-label="Resolution" style={keyPaint(finish)} className={keyClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent style={{ backgroundColor: finish.menu }} className="border border-white/15 text-white ring-white/15">
+                        {RESOLUTIONS.map((value) => (
+                          <SelectItem key={value} value={String(value)} className={menuItemClass}>
+                            {value} × {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid min-w-0 gap-1.5">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">Pixel shape</span>
+                    <Select
+                      value={shape}
+                      onValueChange={(value) => {
+                        if (value === "round" || value === "square") setShape(value);
+                      }}
+                    >
+                      <SelectTrigger aria-label="Pixel shape" style={keyPaint(finish)} className={keyClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent style={{ backgroundColor: finish.menu }} className="border border-white/15 text-white ring-white/15">
+                        <SelectItem value="round" className={menuItemClass}>Round</SelectItem>
+                        <SelectItem value="square" className={menuItemClass}>Square</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {error && (
+                  <p role="alert" className="font-mono text-xs text-red-300">
+                    {error}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div role="radiogroup" aria-label="Device color" className="flex shrink-0 flex-row gap-3 sm:flex-col">
+          {FINISHES.map((item) => {
+            const active = item.name === finish.name;
+            return (
+              <button
+                key={item.name}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                aria-label={item.name}
+                onClick={() => {
+                  playClick();
+                  setFinishName(item.name);
+                }}
+                style={{ backgroundColor: item.swatch }}
+                className={`size-4 rounded-full border border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),inset_0_-1px_2px_rgba(0,0,0,0.4)] outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-2 focus-visible:ring-white motion-reduce:transition-none ${
+                  active ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-(--craft-page)" : ""
+                }`}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+```
+
+```tsx title="bitmap-animations/types.ts"
+export type DrawAnimation = (
+  context: CanvasRenderingContext2D,
+  size: number,
+  frame: number,
+) => void;
+```
+
+```tsx title="bitmap-animations/index.ts"
+import type { DrawAnimation } from "./types";
+
+export const animations: {
+  id: string;
+  label: string;
+  load: () => Promise<DrawAnimation>;
+}[] = [
+  {
+    id: "rocket",
+    label: "Rocket launch",
+    load: async () => (await import("./rocket")).drawRocket,
+  },
+  {
+    id: "matrix",
+    label: "Matrix rain",
+    load: async () => (await import("./matrix")).drawMatrix,
+  },
+  {
+    id: "starfield",
+    label: "Starfield",
+    load: async () => (await import("./starfield")).drawStarfield,
+  },
+  {
+    id: "equalizer",
+    label: "Equalizer",
+    load: async () => (await import("./equalizer")).drawEqualizer,
+  },
+  {
+    id: "fire",
+    label: "Fire",
+    load: async () => (await import("./fire")).drawFire,
+  },
+];
+```
+
+```tsx title="bitmap-animations/rocket.ts"
+import type { DrawAnimation } from "./types";
+
+export const drawRocket: DrawAnimation = (context, size, frame) => {
+  const tick = frame % 96;
+  const lift = tick < 10 ? 0 : Math.round((Math.min(tick - 10, 65) / 65) ** 1.35 * 96);
+  const launched = tick >= 10;
+
+  context.save();
+  context.scale(size / 64, size / 64);
+
+  const sky = context.createLinearGradient(0, 0, 0, 64);
+  sky.addColorStop(0, "#071226");
+  sky.addColorStop(1, "#174568");
+  context.fillStyle = sky;
+  context.fillRect(0, 0, 64, 64);
+
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 23 + 7) % 64;
+    const y = (i * 17 + 5) % 43;
+    context.fillStyle = (i + Math.floor(frame / 6)) % 5 === 0 ? "#ffffff" : "#7599b6";
+    context.fillRect(x, y, 1, 1);
+  }
+
+  context.fillStyle = "#14273d";
+  context.fillRect(0, 54, 64, 10);
+  context.fillStyle = "#354a5b";
+  context.fillRect(0, 54, 64, 2);
+  context.fillStyle = "#607b8a";
+  context.fillRect(23, 52, 18, 3);
+  context.fillStyle = "#253c51";
+  context.fillRect(8, 29, 2, 25);
+  for (let y = 31; y < 52; y += 5) context.fillRect(8, y, 9, 1);
+
+  if (launched && tick < 85) {
+    const spread = Math.min(18, Math.floor((tick - 10) / 3));
+    for (let i = 0; i < 7; i++) {
+      const x = 32 + (i - 3) * spread * 0.65;
+      const y = 55 + ((i * 3 + frame) % 5);
+      context.fillStyle = i % 2 ? "#b9c9c9" : "#e0e6db";
+      context.beginPath();
+      context.arc(x, y, 3 + (i % 3), 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  if (tick <= 75) {
+    context.save();
+    context.translate(32, 43 - lift);
+
+    if (launched) {
+      const flame = 10 + (frame % 3) * 2;
+      context.fillStyle = "#f05a31";
+      context.beginPath();
+      context.moveTo(-4, 8);
+      context.lineTo(0, 8 + flame);
+      context.lineTo(4, 8);
+      context.fill();
+      context.fillStyle = "#ffe371";
+      context.beginPath();
+      context.moveTo(-2, 8);
+      context.lineTo(0, 5 + flame);
+      context.lineTo(2, 8);
+      context.fill();
+    }
+
+    context.fillStyle = "#071b2d";
+    context.fillRect(-6, -17, 12, 25);
+    context.fillStyle = "#e8eee8";
+    context.fillRect(-5, -17, 10, 23);
+    context.fillStyle = "#b9d0d5";
+    context.fillRect(2, -16, 3, 20);
+    context.fillStyle = "#f35b48";
+    context.beginPath();
+    context.moveTo(-5, -17);
+    context.lineTo(0, -27);
+    context.lineTo(5, -17);
+    context.fill();
+    context.fillStyle = "#f35b48";
+    context.beginPath();
+    context.moveTo(-5, -2);
+    context.lineTo(-10, 8);
+    context.lineTo(-5, 6);
+    context.moveTo(5, -2);
+    context.lineTo(10, 8);
+    context.lineTo(5, 6);
+    context.fill();
+    context.fillStyle = "#173b58";
+    context.beginPath();
+    context.arc(0, -10, 4, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#64d5e6";
+    context.beginPath();
+    context.arc(-1, -11, 2, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#f35b48";
+    context.fillRect(-5, 2, 10, 2);
+    context.restore();
+  }
+
+  context.restore();
+};
+```
+
+```tsx title="bitmap-animations/matrix.ts"
+import type { DrawAnimation } from "./types";
+
+const GLYPHS = [
+  ["111", "101", "101", "101", "111"],
+  ["010", "110", "010", "010", "111"],
+  ["110", "001", "010", "100", "111"],
+  ["111", "001", "011", "001", "111"],
+  ["010", "101", "111", "101", "101"],
+  ["110", "101", "110", "101", "110"],
+  ["101", "101", "010", "101", "101"],
+  ["010", "010", "111", "010", "010"],
+];
+
+export const drawMatrix: DrawAnimation = (context, size, frame) => {
+  context.fillStyle = "#020907";
+  context.fillRect(0, 0, size, size);
+
+  const columns = Math.ceil(size / 5);
+  for (let col = 0; col < columns; col++) {
+    const speed = 1 + (col % 3);
+    const head = (frame * speed + col * 19) % (size + 90) - 45;
+    const length = 6 + (col % 6);
+
+    for (let tail = 0; tail < length; tail++) {
+      const y = head - tail * 7;
+      if (y < -5 || y >= size) continue;
+      const glyph = GLYPHS[(col * 11 + tail * 7 + Math.floor(frame / 5)) % GLYPHS.length];
+      context.fillStyle = tail === 0 ? "#d9ffe5" : tail < 3 ? "#56f995" : tail < 6 ? "#18944e" : "#0c472b";
+      for (let row = 0; row < 5; row++) {
+        for (let bit = 0; bit < 3; bit++) {
+          if (glyph[row][bit] === "1") context.fillRect(col * 5 + bit, y + row, 1, 1);
+        }
+      }
+    }
+  }
+};
+```
+
+```tsx title="bitmap-animations/starfield.ts"
+import type { DrawAnimation } from "./types";
+
+export const drawStarfield: DrawAnimation = (context, size, frame) => {
+  context.fillStyle = "#03060f";
+  context.fillRect(0, 0, size, size);
+
+  const count = Math.max(28, Math.floor(size * 1.1));
+  const cx = size / 2;
+  const cy = size / 2;
+
+  for (let i = 0; i < count; i++) {
+    const angle = ((i * 47) % 360) * (Math.PI / 180);
+    const seed = ((i * 97) % 1000) / 1000;
+    const travel = ((frame * (0.8 + seed * 2.4) + seed * size * 2) % (size * 0.95)) / (size * 0.95);
+    const radius = 1 + travel * travel * (size * 0.72);
+    const x = Math.round(cx + Math.cos(angle) * radius);
+    const y = Math.round(cy + Math.sin(angle) * radius);
+    if (x < 0 || y < 0 || x >= size || y >= size) continue;
+
+    const bright = travel > 0.75;
+    const mid = travel > 0.4;
+    context.fillStyle = bright ? "#ffffff" : mid ? "#9eb6ff" : "#3d4f7a";
+    const streak = bright ? 2 + Math.floor(travel * 3) : 1;
+    context.fillRect(x, y, streak, 1);
+    if (bright) context.fillRect(x, y, 1, 1);
+  }
+
+  context.fillStyle = "#12182a";
+  context.fillRect(Math.round(cx) - 1, Math.round(cy) - 1, 3, 3);
+  context.fillStyle = "#6b7a9e";
+  context.fillRect(Math.round(cx), Math.round(cy), 1, 1);
+};
+```
+
+```tsx title="bitmap-animations/equalizer.ts"
+import type { DrawAnimation } from "./types";
+
+export const drawEqualizer: DrawAnimation = (context, size, frame) => {
+  const sky = context.createLinearGradient(0, 0, 0, size);
+  sky.addColorStop(0, "#0a1020");
+  sky.addColorStop(1, "#121828");
+  context.fillStyle = sky;
+  context.fillRect(0, 0, size, size);
+
+  const bars = Math.max(8, Math.floor(size / 4));
+  const gap = Math.max(1, Math.floor(size / 64));
+  const width = Math.max(2, Math.floor((size - gap * (bars + 1)) / bars));
+  const floor = size - Math.max(2, Math.floor(size * 0.08));
+
+  for (let i = 0; i < bars; i++) {
+    const wave =
+      0.35 +
+      0.35 * Math.sin(frame * 0.18 + i * 0.7) +
+      0.25 * Math.sin(frame * 0.31 + i * 1.3) +
+      0.15 * Math.sin(frame * 0.09 + i);
+    const height = Math.max(2, Math.round(wave * (floor - 4)));
+    const x = gap + i * (width + gap);
+    const y = floor - height;
+
+    for (let row = 0; row < height; row++) {
+      const t = row / height;
+      context.fillStyle =
+        t > 0.82 ? "#ffe08a" : t > 0.55 ? "#5ce1a2" : t > 0.28 ? "#2f9eef" : "#3155d9";
+      context.fillRect(x, y + row, width, 1);
+    }
+
+    context.fillStyle = "#d7e0ea";
+    context.fillRect(x, y, width, 1);
+  }
+
+  context.fillStyle = "#1c2436";
+  context.fillRect(0, floor, size, size - floor);
+  context.fillStyle = "#3a455c";
+  context.fillRect(0, floor, size, 1);
+};
+```
+
+```tsx title="bitmap-animations/fire.ts"
+import type { DrawAnimation } from "./types";
+
+export const drawFire: DrawAnimation = (context, size, frame) => {
+  context.fillStyle = "#080604";
+  context.fillRect(0, 0, size, size);
+
+  const cols = size;
+  for (let x = 0; x < cols; x++) {
+    const edge = 1 - Math.abs(x / (size - 1) - 0.5) * 1.7;
+    const flicker =
+      0.55 +
+      0.25 * Math.sin(frame * 0.35 + x * 0.4) +
+      0.2 * Math.sin(frame * 0.17 + x * 0.9);
+    const height = Math.max(2, Math.round(edge * flicker * size * 0.78));
+
+    for (let row = 0; row < height; row++) {
+      const y = size - 1 - row;
+      const t = row / height;
+      const wobble = Math.sin(frame * 0.4 + x * 0.55 + row * 0.2) * (1 - t) * 1.2;
+      const px = Math.round(x + wobble);
+      if (px < 0 || px >= size) continue;
+
+      context.fillStyle =
+        t > 0.78
+          ? "#fff4c2"
+          : t > 0.55
+            ? "#ffb347"
+            : t > 0.32
+              ? "#ff6a2b"
+              : t > 0.14
+                ? "#d1341b"
+                : "#6a1a12";
+      context.fillRect(px, y, 1, 1);
+    }
+  }
+
+  context.fillStyle = "#1a120c";
+  context.fillRect(0, size - Math.max(2, Math.floor(size * 0.06)), size, size);
+  for (let i = 0; i < Math.floor(size / 3); i++) {
+    const x = (i * 13 + frame) % size;
+    const y = size - 2 - ((i * 5 + Math.floor(frame / 2)) % 4);
+    context.fillStyle = i % 2 ? "#3a2a1c" : "#2a1c12";
+    context.fillRect(x, y, 2, 1);
+  }
+};
+```
+
+## How it works
+
+Each animation draws a bitmap frame at the selected resolution. The device displays those pixels in the same square frame.

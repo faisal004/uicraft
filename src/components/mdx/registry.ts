@@ -23,6 +23,7 @@ import {
 import { ThanosSnapDemo } from "@/components/mdx/thanos-snap";
 import { WeatherBitmap } from "@/components/mdx/weather-bitmap";
 import { ImageBitmap } from "@/components/mdx/image-bitmap";
+import { BitmapDevice } from "@/components/bitmap-device";
 import { ViewTransitionDemo } from "@/components/mdx/view-transition-demo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
@@ -32,6 +33,7 @@ import { ThanosSnapThumbnail } from "@/components/mdx/thumbnails/thanos-snap";
 import { WavingFlagThumbnail } from "@/components/mdx/thumbnails/waving-flag";
 import { WeatherBitmapThumbnail } from "@/components/mdx/thumbnails/weather-bitmap";
 import { ImageBitmapThumbnail } from "@/components/mdx/thumbnails/image-bitmap";
+import { BitmapDeviceThumbnail } from "@/components/mdx/thumbnails/bitmap-device";
 import { WorldClockBoardThumbnail } from "@/components/mdx/thumbnails/world-clock-board";
 import { ViewTransitionThumbnail } from "@/components/mdx/thumbnails/view-transition";
 
@@ -55,6 +57,7 @@ export const mdxComponents = {
   WorldClockBitmapOutcome,
   WeatherBitmap,
   ImageBitmap,
+  BitmapDevice,
   ViewTransitionDemo,
   ThemeToggle,
 };
@@ -68,5 +71,6 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "world-clock-board": WorldClockBoardThumbnail,
   "weather-bitmap": WeatherBitmapThumbnail,
   "image-bitmap": ImageBitmapThumbnail,
+  "bitmap-device": BitmapDeviceThumbnail,
   "view-transition": ViewTransitionThumbnail,
 };
