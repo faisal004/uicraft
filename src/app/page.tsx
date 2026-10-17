@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AsciiField } from "@/components/ascii-field";
+import { DotField } from "@/components/dot-field";
 import { JsonLd } from "@/components/json-ld";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -19,9 +20,12 @@ export default function Home() {
           inLanguage: "en",
         }}
       />
-      <main className="relative isolate flex h-dvh flex-col overflow-hidden bg-[#1736f5] px-5 text-[#f4ff8c] dark:bg-[#111933] sm:px-8 lg:px-12">
-      <AsciiField />
-      <div className="noise pointer-events-none absolute inset-0 -z-10" />
+      <main className="relative isolate flex h-dvh flex-col overflow-hidden bg-[#1736f5] px-5 text-[#f4ff8c] dark:bg-black dark:text-[#e8eaf0] sm:px-8 lg:px-12">
+      <div className="contents dark:hidden">
+        <AsciiField />
+        <div className="noise pointer-events-none absolute inset-0 -z-10" />
+      </div>
+      <DotField />
 
       <header className="flex w-full items-center justify-between py-6 sm:py-8">
         <Link href="/" className="font-heading text-base transition-opacity duration-150 hover:opacity-55">
