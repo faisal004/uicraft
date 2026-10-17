@@ -25,6 +25,11 @@ import { WeatherBitmap } from "@/components/mdx/weather-bitmap";
 import { ImageBitmap } from "@/components/mdx/image-bitmap";
 import { BitmapDevice } from "@/components/bitmap-device";
 import { ViewTransitionDemo } from "@/components/mdx/view-transition-demo";
+import {
+  AsciiWaveFieldDemo,
+  AsciiWaveFieldPlayground,
+  AsciiWaveFieldStep,
+} from "@/components/mdx/ascii-wave-field";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
 import { TastefulButtonThumbnail } from "@/components/mdx/thumbnails/tasteful-button";
@@ -36,6 +41,7 @@ import { ImageBitmapThumbnail } from "@/components/mdx/thumbnails/image-bitmap";
 import { BitmapDeviceThumbnail } from "@/components/mdx/thumbnails/bitmap-device";
 import { WorldClockBoardThumbnail } from "@/components/mdx/thumbnails/world-clock-board";
 import { ViewTransitionThumbnail } from "@/components/mdx/thumbnails/view-transition";
+import { AsciiWaveFieldThumbnail } from "@/components/mdx/thumbnails/ascii-wave-field";
 
 export const mdxComponents = {
   TastefulButtonDemo,
@@ -59,6 +65,9 @@ export const mdxComponents = {
   ImageBitmap,
   BitmapDevice,
   ViewTransitionDemo,
+  AsciiWaveFieldDemo,
+  AsciiWaveFieldPlayground,
+  AsciiWaveFieldStep,
   ThemeToggle,
 };
 
@@ -73,4 +82,5 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "image-bitmap": ImageBitmapThumbnail,
   "bitmap-device": BitmapDeviceThumbnail,
   "view-transition": ViewTransitionThumbnail,
+  "ascii-wave-field": AsciiWaveFieldThumbnail,
 };
