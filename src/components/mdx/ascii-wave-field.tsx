@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { CraftFrame, RangeControl } from "@/components/mdx/craft-controls";
 import { cn } from "@/lib/utils";
 
-const ASCII_RAMP = [" ", ".", ":", "-", "=", "+", "*", "%", "@"] as const;
+const ASCII_RAMP = [" ",".",":", "-", "=", "+", "*", "%", "@"] as const;
 
 export type AsciiWaveLayer =
   | "dashes"
