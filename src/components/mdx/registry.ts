@@ -30,6 +30,8 @@ import {
   AsciiWaveFieldPlayground,
   AsciiWaveFieldStep,
 } from "@/components/mdx/ascii-wave-field";
+import { SvgClawDemo } from "@/components/mdx/svg-claw";
+import { SvgClawThumbnail } from "@/components/mdx/thumbnails/svg-claw";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
 import { TastefulButtonThumbnail } from "@/components/mdx/thumbnails/tasteful-button";
@@ -69,9 +71,11 @@ export const mdxComponents = {
   AsciiWaveFieldPlayground,
   AsciiWaveFieldStep,
   ThemeToggle,
+  SvgClawDemo,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
+  "svg-claw": SvgClawThumbnail,
   "tasteful-button": TastefulButtonThumbnail,
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,
