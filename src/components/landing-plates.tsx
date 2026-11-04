@@ -4,16 +4,18 @@ import type { ReactNode } from "react";
 
 import { BlueprintBlock } from "@/components/blueprint";
 import { BitmapTimer } from "@/components/landing/bitmap-timer";
+import { CellBar, plateCaptionClassName } from "@/components/landing/cell-bar";
 import { ParticleWordmark } from "@/components/landing/particle-wordmark";
+import { SnapDismiss } from "@/components/landing/snap-dismiss";
 import { StatusTicker } from "@/components/landing/status-ticker";
+import { SubscribeCta } from "@/components/landing/subscribe-cta";
 import { WavingBanner } from "@/components/landing/waving-banner";
 import type { ContentEntry } from "@/lib/content";
-import { cn } from "@/lib/utils";
 
 type Plate = { slug: string; use: string; demo: ReactNode };
 
 /**
- * Four crafts put to work: each plate uses a craft's technique for something
+ * Six crafts put to work: each plate uses a craft's technique for something
  * you might ship, and links to the craft that teaches it.
  */
 export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
@@ -32,22 +34,25 @@ export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
         />
       ),
     },
+    { slug: "thanos-snap", use: "as a dismiss", demo: <SnapDismiss /> },
     { slug: "bitmap-device", use: "as a timer", demo: <BitmapTimer /> },
+    { slug: "tasteful-button", use: "as a call to action", demo: <SubscribeCta /> },
     { slug: "waving-flag", use: "as a banner", demo: <WavingBanner /> },
   ];
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-baseline justify-between gap-4 px-5 py-3 font-mono text-[10px] uppercase text-foreground/50 sm:px-8 lg:px-10">
-        <span>Fig 0.1 · Four crafts, put to work</span>
+      <CellBar>
+        <span>Fig 0.1 · Six crafts, put to work</span>
         <Link
           href="/craft"
           className="shrink-0 text-(--craft-accent) transition-opacity duration-150 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4"
         >
           All {crafts.length} →
         </Link>
-      </div>
-      <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 border-t border-foreground/10">
+      </CellBar>
+      {/* A 1px gap over a tinted background draws every inner border at any column count. */}
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-px bg-foreground/10 lg:grid-cols-3 lg:grid-rows-2">
         {plates.map((plate, index) => {
           const craft = crafts.find((item) => item.slug === plate.slug);
           if (!craft) return null;
@@ -56,21 +61,14 @@ export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
             <BlueprintBlock
               key={plate.slug}
               label={`PLATE ${String(index + 1).padStart(2, "0")}`}
-              delay={900 + index * 110}
-              className={cn(
-                "min-h-0 border-foreground/10",
-                index % 2 === 0 && "border-r",
-                index < 2 && "border-b",
-              )}
+              delay={900 + index * 90}
+              className="min-h-52 bg-(--craft-page) lg:min-h-0"
             >
-              <div className="group flex h-full min-h-0 flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 <div className="relative grid min-h-0 flex-1 place-items-center overflow-hidden bg-(--craft-muted-surface)/60 p-4">
                   {plate.demo}
                 </div>
-                <Link
-                  href={`/craft/${craft.slug}`}
-                  className="flex items-center justify-between gap-3 border-t border-foreground/10 px-3 py-2 font-mono text-[10px] uppercase text-foreground/55 transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--craft-accent)"
-                >
+                <Link href={`/craft/${craft.slug}`} className={plateCaptionClassName}>
                   <span className="truncate">
                     {String(index + 1).padStart(2, "0")} · {craft.title}{" "}
                     <span className="text-foreground/35">{plate.use}</span>

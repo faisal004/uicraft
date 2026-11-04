@@ -27,7 +27,7 @@ export function BlueprintBlock({ label, delay, className, children }: BlueprintB
   );
 }
 
-/** Guide lines and a faint drafting grid that sketch the 2×2 layout first. */
+/** Guide lines and a faint drafting grid that sketch the layout first. */
 export function BlueprintGuides() {
   return (
     <div aria-hidden="true" className="bp-guides">
