@@ -40,7 +40,7 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
           className="group flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--craft-accent)"
         >
           <span className="size-3 rounded-full bg-(--craft-accent)" />
-          <span className="font-heading text-sm">UIcraft</span>
+          <span className="font-heading text-sm">UICraft</span>
         </Link>
       </SidebarHeader>
 

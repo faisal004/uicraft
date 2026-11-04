@@ -10,7 +10,7 @@ export const siteOpenGraphSize = {
 };
 
 export const siteOpenGraphAlt =
-  "UIcraft, Faisal Husain's playground for rebuilding interface interactions that catch his eye.";
+  "UICraft, Faisal Husain's playground for rebuilding interface interactions that catch his eye.";
 
 const fontsDirectory = path.join(process.cwd(), "src/assets/fonts");
 
@@ -98,7 +98,7 @@ export async function createSiteOpenGraph() {
           <div style={{ alignItems: "center", display: "flex", gap: 14 }}>
             <div style={{ background: "#181916", display: "flex", height: 14, width: 14 }} />
             <div style={{ display: "flex", fontFamily: "Geist", fontSize: 28, fontWeight: 500 }}>
-              UIcraft
+              UICraft
             </div>
           </div>
           <div style={{ display: "flex", fontFamily: "Geist", fontSize: 22, opacity: 0.72 }}>

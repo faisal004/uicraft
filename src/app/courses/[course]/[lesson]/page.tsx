@@ -59,7 +59,7 @@ export default async function CourseLessonPage({ params }: Props) {
     <main className="min-h-dvh bg-(--craft-page) text-foreground md:grid md:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="border-b border-foreground/15 bg-(--craft-sidebar) md:sticky md:top-0 md:h-dvh md:overflow-y-auto md:border-r md:border-b-0">
         <div className="p-5 md:p-6">
-          <Link href="/" className="font-mono text-xs text-foreground/50 hover:text-foreground">UIcraft</Link>
+          <Link href="/" className="font-mono text-xs text-foreground/50 hover:text-foreground">UICraft</Link>
           <p className="mt-8 font-mono text-[10px] uppercase tracking-widest text-blue-600">Personal course</p>
           <p className="mt-2 font-heading text-xl leading-6">{course.title}</p>
           <p className="mt-2 text-xs leading-5 text-foreground/50">{course.lessons.length} lessons</p>

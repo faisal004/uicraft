@@ -21,7 +21,7 @@ export default function CraftLayout({ children }: { children: ReactNode }) {
       <SidebarInset className="bg-(--craft-page) text-foreground">
         <header className="flex h-12 shrink-0 items-center gap-3 border-b border-foreground/10 px-4 md:hidden">
           <SidebarTrigger aria-label="Open experiments navigation" />
-          <span className="font-heading text-sm">UIcraft / Craft</span>
+          <span className="font-heading text-sm">UICraft / Craft</span>
           <div className="ml-auto">
             <ThemeToggle />
           </div>
