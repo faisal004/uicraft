@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
+import { DeferredPreview } from "@/components/mdx/deferred-preview";
 import { previewCrafts } from "@/components/mdx/registry";
 import { getCraftContent } from "@/lib/content";
 
@@ -26,7 +27,13 @@ export function CraftIndex() {
               className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--craft-accent)"
             >
               <div className="grid aspect-[4/3] place-items-center overflow-hidden border border-foreground/10 bg-(--craft-muted-surface) p-6">
-                {Preview ? <Preview /> : <span className="font-heading text-sm">Preview</span>}
+                {Preview ? (
+                  <DeferredPreview>
+                    <Preview />
+                  </DeferredPreview>
+                ) : (
+                  <span className="font-heading text-sm">Preview</span>
+                )}
               </div>
               <div className="pt-5">
                 <div className="flex items-center justify-between gap-4 font-mono text-[10px] uppercase text-foreground/45">

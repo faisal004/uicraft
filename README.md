@@ -1,4 +1,4 @@
-# UIcraft
+# UICraft
 
 A collection of interface animations and interactions rebuilt to understand how they work. Each study includes an interactive demo, implementation code, and an explanation.
 

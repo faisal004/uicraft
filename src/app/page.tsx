@@ -1,13 +1,25 @@
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
-import { AsciiField } from "@/components/ascii-field";
+import { BlueprintBlock, BlueprintGuides } from "@/components/blueprint";
 import { DotField } from "@/components/dot-field";
 import { JsonLd } from "@/components/json-ld";
-import { SiteFooter } from "@/components/site-footer";
+import { CellBar } from "@/components/landing/cell-bar";
+import { LandingPlates } from "@/components/landing-plates";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { siteConfig, siteUrl } from "@/lib/site";
+import { getCraftContent } from "@/lib/content";
+import { author, siteConfig, siteUrl } from "@/lib/site";
+
+const cellClassName = "relative flex min-w-0 flex-col border-foreground/10";
+const bodyClassName = "flex min-h-0 flex-1 flex-col justify-end p-5 sm:p-8 lg:p-10";
+const toggleClassName =
+  "size-7 border border-foreground/15 text-foreground/70 hover:bg-foreground/10 hover:text-foreground";
+const barLinkClassName =
+  "underline decoration-current/30 underline-offset-4 transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export default function Home() {
+  const crafts = getCraftContent();
+
   return (
     <>
       <JsonLd
@@ -18,50 +30,90 @@ export default function Home() {
           url: siteUrl.href,
           description: siteConfig.description,
           inLanguage: "en",
+          author,
+          publisher: author,
         }}
       />
-      <main className="relative isolate flex h-dvh flex-col overflow-hidden bg-[#1736f5] px-5 text-[#f4ff8c] dark:bg-black dark:text-[#e8eaf0] sm:px-8 lg:px-12">
-      <div className="contents dark:hidden">
-        <AsciiField />
-        <div className="noise pointer-events-none absolute inset-0 -z-10" />
-      </div>
-      <DotField />
-
-      <header className="flex w-full items-center justify-between py-6 sm:py-8">
-        <Link href="/" className="font-heading text-base transition-opacity duration-150 hover:opacity-55">
-          UIcraft
-        </Link>
-        <div className="flex items-center gap-4">
-          <p className="hidden text-sm text-current opacity-70 sm:block">Personal experiments, ongoing</p>
-          <ThemeToggle />
+      <main className="relative isolate min-h-dvh overflow-hidden bg-(--craft-page) text-foreground lg:h-dvh">
+        <div className="bp-late">
+          <DotField />
         </div>
-      </header>
+        <BlueprintGuides />
 
-      <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 items-center py-4 sm:py-6">
-        <div className="max-w-6xl">
-          <p className="mb-6 text-sm text-current opacity-70 sm:mb-8">
-            A place to remake what catches my eye.
-          </p>
-          <h1 className="hero-title font-heading max-w-5xl text-balance">
-            Saw something cool. Had to know how it worked.
-          </h1>
-          <p className="mt-6 max-w-2xl text-pretty text-base leading-7 text-current opacity-70 sm:mt-10 sm:text-lg sm:leading-8">
-            Not a UI library. Just a growing collection of animations and
-            interactions I’ve rebuilt from things I find online.
-          </p>
-          <Link
-            href="/craft"
-            className="font-heading mt-7 inline-flex border-b border-current pb-1 text-base transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4 sm:mt-10"
-          >
-            Enter the playground
-          </Link>
+        <div className="grid min-h-dvh grid-cols-1 lg:h-full lg:grid-cols-2 lg:grid-rows-2">
+          <section className={`${cellClassName} border-b lg:border-r`}>
+            <CellBar>
+              <BlueprintBlock label="MARK" delay={350}>
+                <Link
+                  href="/"
+                  className="font-heading text-sm normal-case text-foreground transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
+                >
+                  UICraft
+                </Link>
+              </BlueprintBlock>
+              <span className="hidden truncate lg:inline">
+                Made by{" "}
+                <a href="https://faisalhusa.in" target="_blank" rel="noreferrer" className={barLinkClassName}>
+                  Faisal Husain
+                </a>{" "}
+                ·{" "}
+                <a
+                  href="https://github.com/faisal004/uicraft"
+                  target="_blank"
+                  rel="noreferrer"
+                  className={barLinkClassName}
+                >
+                  Source on GitHub
+                </a>
+              </span>
+              {/* On phones this bar is the only one at the top, so the toggle lives here. */}
+              <ThemeToggle className={`${toggleClassName} lg:hidden`} />
+            </CellBar>
+            <div className={bodyClassName}>
+              <BlueprintBlock label="COPY 01" delay={500} className="mb-5 w-fit sm:mb-7">
+                <p className="text-sm text-foreground/60">A place to remake what catches my eye.</p>
+              </BlueprintBlock>
+              <BlueprintBlock label="TITLE" delay={600}>
+                <h1 className="hero-title font-heading text-balance">
+                  Saw something cool. Had to know how it worked.
+                </h1>
+              </BlueprintBlock>
+            </div>
+          </section>
+
+          <section className={`${cellClassName} border-b`}>
+            <CellBar className="hidden lg:flex">
+              <span>Personal experiments, ongoing</span>
+              <ThemeToggle className={toggleClassName} />
+            </CellBar>
+            <div className={bodyClassName}>
+              <BlueprintBlock label="COPY 02" delay={720} className="max-w-lg">
+                <p className="text-pretty text-base leading-7 text-foreground/70 sm:text-lg sm:leading-8">
+                  Not a UI library. Just a growing collection of animations and
+                  interactions I’ve rebuilt from things I find online, each with
+                  the full source and a step-by-step tutorial.
+                </p>
+              </BlueprintBlock>
+              <BlueprintBlock label="CTA" delay={820} className="mt-7 w-fit sm:mt-9">
+                <Link
+                  href="/craft"
+                  className="font-heading group inline-flex items-center gap-2 border-b border-current pb-1 text-base transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
+                >
+                  Enter the playground
+                  <ArrowUpRight
+                    className="size-4 text-(--craft-accent) transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </BlueprintBlock>
+            </div>
+          </section>
+
+          <section className="relative min-w-0 lg:col-span-2 lg:min-h-0">
+            <LandingPlates crafts={crafts} />
+          </section>
+
         </div>
-      </div>
-
-      <footer className="flex flex-col items-start gap-2 py-6 text-xs text-current opacity-70 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-8">
-        <SiteFooter />
-        <span>Est. whenever curiosity struck</span>
-      </footer>
       </main>
     </>
   );

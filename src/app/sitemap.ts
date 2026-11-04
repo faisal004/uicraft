@@ -6,7 +6,7 @@ import { siteUrl } from "@/lib/site";
 export default function sitemap(): MetadataRoute.Sitemap {
   const crafts = getCraftContent();
   const publishedDates = crafts
-    .map((craft) => craft.publishedAt)
+    .map((craft) => craft.updatedAt)
     .filter((date): date is string => Boolean(date));
   const latestPublishedAt = publishedDates.sort().at(-1);
 
@@ -27,7 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     ...crafts.map((craft) => ({
       url: new URL(`/craft/${craft.slug}`, siteUrl).href,
-      lastModified: craft.publishedAt,
+      lastModified: craft.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.8,
       images: [new URL(`/craft/${craft.slug}/opengraph-image`, siteUrl).href],

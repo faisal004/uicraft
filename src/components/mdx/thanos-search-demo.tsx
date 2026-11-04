@@ -196,7 +196,7 @@ export function ThanosSearchDemo() {
     <div ref={pageRef} className="min-h-dvh bg-white font-[Arial,sans-serif] text-[#202124]">
       <header className="border-b border-[#dadce0]">
         <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-5 py-5 sm:gap-8 sm:px-10">
-          <Link href="/craft/thanos-snap" className="shrink-0 text-[22px] font-medium tracking-[-0.08em] sm:text-[27px]" aria-label="Back to UIcraft Thanos Snap">
+          <Link href="/craft/thanos-snap" className="shrink-0 text-[22px] font-medium tracking-[-0.08em] sm:text-[27px]" aria-label="Back to UICraft Thanos Snap">
             <span className="text-[#4285f4]">G</span><span className="text-[#ea4335]">o</span><span className="text-[#fbbc05]">o</span><span className="text-[#4285f4]">g</span><span className="text-[#34a853]">l</span><span className="text-[#ea4335]">e</span>
           </Link>
           <div className="flex h-12 max-w-[690px] flex-1 items-center gap-3 rounded-full border border-[#dadce0] px-4 shadow-[0_1px_4px_#20212412] sm:h-14 sm:px-6">
