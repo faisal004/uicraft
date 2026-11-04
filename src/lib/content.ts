@@ -9,8 +9,10 @@ const contentDirectory = path.join(process.cwd(), "src/content/craft");
 export type ContentEntry = {
   slug: string;
   title: string;
+  seoTitle?: string;
   description: string;
   publishedAt?: string;
+  updatedAt?: string;
   category?: string;
   preview?: string;
   order: number;
@@ -21,6 +23,10 @@ export type ContentDocument = ContentEntry & {
   body: string;
 };
 
+function toDate(value: unknown) {
+  return value ? new Date(value as string).toISOString().slice(0, 10) : undefined;
+}
+
 function readDocument(filename: string): ContentDocument {
   const slug = filename.replace(/\.mdx$/, "");
   const source = fs.readFileSync(path.join(contentDirectory, filename), "utf8");
@@ -30,15 +36,15 @@ function readDocument(filename: string): ContentDocument {
     throw new Error(`${filename} is missing required frontmatter.`);
   }
 
-  const publishedAt = data.publishedAt
-    ? new Date(data.publishedAt).toISOString().slice(0, 10)
-    : undefined;
+  const publishedAt = toDate(data.publishedAt);
 
   return {
     slug,
     title: String(data.title),
+    seoTitle: data.seoTitle ? String(data.seoTitle) : undefined,
     description: String(data.description),
     publishedAt,
+    updatedAt: toDate(data.updatedAt) ?? publishedAt,
     category: data.category ? String(data.category) : undefined,
     preview: data.preview ? String(data.preview) : undefined,
     order: Number(data.order ?? 999),
@@ -55,8 +61,10 @@ export function getAllContent(): ContentEntry[] {
     .map((document) => ({
       slug: document.slug,
       title: document.title,
+      seoTitle: document.seoTitle,
       description: document.description,
       publishedAt: document.publishedAt,
+      updatedAt: document.updatedAt,
       category: document.category,
       preview: document.preview,
       order: document.order,

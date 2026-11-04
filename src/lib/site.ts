@@ -11,11 +11,19 @@ const normalizedUrl = configuredUrl.startsWith("http")
 export const siteUrl = new URL(normalizedUrl);
 
 export const siteConfig = {
-  name: "UIcraft",
-  title: "UIcraft | Interface interaction studies",
+  name: "UICraft",
+  title: "UICraft | UI Animations & Interactions Rebuilt from Scratch",
   description:
-    "A personal playground for rebuilding memorable interface animations and interactions to understand what makes them feel right.",
+    "Memorable UI animations and interactions rebuilt from scratch in React, CSS, and Canvas, each with a copy/paste component and a step-by-step tutorial.",
   shortDescription:
     "Interface animation and interaction studies, rebuilt from scratch.",
   locale: "en_US",
+} as const;
+
+export const author = {
+  "@type": "Person",
+  "@id": "https://faisalhusa.in/#person",
+  name: "Faisal Husain",
+  url: "https://faisalhusa.in",
+  sameAs: ["https://github.com/faisal004"],
 } as const;

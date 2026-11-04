@@ -61,7 +61,7 @@ export function createSocialImage({
             position: "relative",
           }}
         >
-          <span>UIcraft</span>
+          <span>UICraft</span>
           <span
             style={{
               border: "2px solid rgba(244,255,140,0.55)",

@@ -1,7 +1,7 @@
 import { getContentBySlug } from "@/lib/content";
 import { createSocialImage, socialImageSize } from "@/lib/social-image";
 
-export const alt = "UIcraft interaction study";
+export const alt = "UICraft interaction study";
 export const size = socialImageSize;
 export const contentType = "image/png";
 
@@ -14,7 +14,7 @@ export default async function OpenGraphImage({
   const document = getContentBySlug(slug);
 
   return createSocialImage({
-    title: document?.title ?? "UIcraft",
+    title: document?.title ?? "UICraft",
     description:
       document?.description ??
       "Interface animation and interaction studies, rebuilt from scratch.",

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/json-ld";
 import { MdxPage } from "@/components/mdx/mdx-page";
 import { getContentBySlug, getCraftContent } from "@/lib/content";
-import { siteConfig, siteUrl } from "@/lib/site";
+import { author, siteConfig, siteUrl } from "@/lib/site";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -22,8 +22,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {};
   }
 
+  const title = document.seoTitle ?? document.title;
+
   return {
-    title: document.title,
+    title,
     description: document.description,
     keywords: [
       document.category,
@@ -38,14 +40,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "article",
       url: `/craft/${document.slug}`,
       siteName: siteConfig.name,
-      title: `${document.title} | UIcraft`,
+      title: `${title} | UICraft`,
       description: document.description,
       publishedTime: document.publishedAt,
+      modifiedTime: document.updatedAt,
+      authors: [author.url],
       tags: document.category ? [document.category, "Interaction design"] : ["Interaction design"],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${document.title} | UIcraft`,
+      title: `${title} | UICraft`,
       description: document.description,
     },
   };
@@ -68,18 +72,15 @@ export default async function CraftPage({ params }: Props) {
           {
             "@context": "https://schema.org",
             "@type": "TechArticle",
-            headline: document.title,
+            headline: document.seoTitle ?? document.title,
+            name: document.title,
             description: document.description,
             url,
             mainEntityOfPage: url,
             image: new URL(`/craft/${document.slug}/opengraph-image`, siteUrl).href,
             datePublished: document.publishedAt,
-            dateModified: document.publishedAt,
-            author: {
-              "@type": "Organization",
-              name: siteConfig.name,
-              url: siteUrl.href,
-            },
+            dateModified: document.updatedAt,
+            author,
             publisher: {
               "@type": "Organization",
               name: siteConfig.name,
@@ -100,7 +101,7 @@ export default async function CraftPage({ params }: Props) {
               {
                 "@type": "ListItem",
                 position: 1,
-                name: "UIcraft",
+                name: "UICraft",
                 item: siteUrl.href,
               },
               {

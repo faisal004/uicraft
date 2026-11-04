@@ -5,9 +5,15 @@ import { DotField } from "@/components/dot-field";
 import { JsonLd } from "@/components/json-ld";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { siteConfig, siteUrl } from "@/lib/site";
+import { getCraftContent } from "@/lib/content";
+import { author, siteConfig, siteUrl } from "@/lib/site";
 
 export default function Home() {
+  const latest = getCraftContent()
+    .filter((craft) => craft.publishedAt)
+    .sort((a, b) => b.publishedAt!.localeCompare(a.publishedAt!))
+    .slice(0, 3);
+
   return (
     <>
       <JsonLd
@@ -18,6 +24,8 @@ export default function Home() {
           url: siteUrl.href,
           description: siteConfig.description,
           inLanguage: "en",
+          author,
+          publisher: author,
         }}
       />
       <main className="relative isolate flex h-dvh flex-col overflow-hidden bg-[#1736f5] px-5 text-[#f4ff8c] dark:bg-black dark:text-[#e8eaf0] sm:px-8 lg:px-12">
@@ -29,7 +37,7 @@ export default function Home() {
 
       <header className="flex w-full items-center justify-between py-6 sm:py-8">
         <Link href="/" className="font-heading text-base transition-opacity duration-150 hover:opacity-55">
-          UIcraft
+          UICraft
         </Link>
         <div className="flex items-center gap-4">
           <p className="hidden text-sm text-current opacity-70 sm:block">Personal experiments, ongoing</p>
@@ -55,6 +63,18 @@ export default function Home() {
           >
             Enter the playground
           </Link>
+          <nav aria-label="Latest crafts" className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+            <span className="opacity-70">Latest:</span>
+            {latest.map((craft) => (
+              <Link
+                key={craft.slug}
+                href={`/craft/${craft.slug}`}
+                className="underline decoration-current/40 underline-offset-4 transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
+              >
+                {craft.title}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
 

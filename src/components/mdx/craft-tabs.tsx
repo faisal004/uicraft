@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 
 import {
   Tabs,
@@ -21,10 +21,13 @@ const panelClassName =
   "min-w-0 bg-(--craft-surface) p-5 outline-none sm:p-8 lg:p-10 [&_ol]:max-w-none [&_p]:max-w-none [&_ul]:max-w-none";
 
 export function CraftTabs({ implementation, howItWorks }: CraftTabsProps) {
+  const [tab, setTab] = useState<string>("implementation");
+
   return (
     <Tabs
       className="mt-16 w-full gap-0 overflow-hidden border border-foreground/10 bg-(--craft-surface) sm:mt-24"
-      defaultValue="implementation"
+      value={tab}
+      onValueChange={(value) => setTab(String(value))}
     >
       <TabsList
         aria-label="Craft article sections"
@@ -38,11 +41,13 @@ export function CraftTabs({ implementation, howItWorks }: CraftTabsProps) {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent className={panelClassName} value="implementation">
-        {implementation}
+      {/* Both panels stay in the server HTML so search engines can read the tutorial.
+          Remounting on activation lets demos measure themselves once visible. */}
+      <TabsContent className={panelClassName} value="implementation" keepMounted>
+        <Fragment key={tab === "implementation" ? "active" : "hidden"}>{implementation}</Fragment>
       </TabsContent>
-      <TabsContent className={panelClassName} value="how-it-works">
-        {howItWorks}
+      <TabsContent className={panelClassName} value="how-it-works" keepMounted>
+        <Fragment key={tab === "how-it-works" ? "active" : "hidden"}>{howItWorks}</Fragment>
       </TabsContent>
     </Tabs>
   );

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Pixel } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/next";
-import { siteConfig, siteUrl } from "@/lib/site";
+import { author, siteConfig, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const geist = Geist({
@@ -20,12 +20,12 @@ export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: {
     default: siteConfig.title,
-    template: "%s | UIcraft",
+    template: "%s | UICraft",
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
-  authors: [{ name: siteConfig.name, url: siteUrl }],
-  creator: siteConfig.name,
+  authors: [{ name: author.name, url: author.url }],
+  creator: author.name,
   publisher: siteConfig.name,
   category: "technology",
   keywords: [
@@ -35,6 +35,8 @@ export const metadata: Metadata = {
     "motion design",
     "frontend experiments",
     "creative development",
+    "canvas animation",
+    "React components",
   ],
   referrer: "origin-when-cross-origin",
   alternates: {
