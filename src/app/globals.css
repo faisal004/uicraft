@@ -393,3 +393,37 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
     animation: none;
   }
 }
+
+/* Landing plates */
+.landing-ticker {
+  /* Each LED is a dot cut out of the text by a repeating radial mask. */
+  -webkit-mask-image: radial-gradient(circle at center, #000 0 1.1px, transparent 1.4px);
+  mask-image: radial-gradient(circle at center, #000 0 1.1px, transparent 1.4px);
+  -webkit-mask-size: var(--ticker-dot) var(--ticker-dot);
+  mask-size: var(--ticker-dot) var(--ticker-dot);
+  text-shadow: 0 0 6px currentColor;
+}
+
+.landing-ticker__track {
+  animation: landing-ticker 14s steps(280, end) infinite;
+}
+
+.landing-wave__column {
+  animation: landing-wave 700ms ease-in-out infinite alternate both;
+}
+
+@keyframes landing-ticker {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes landing-wave {
+  from { transform: translateY(var(--wave)); }
+  to { transform: translateY(calc(var(--wave) * -1)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-ticker__track,
+  .landing-wave__column {
+    animation: none;
+  }
+}

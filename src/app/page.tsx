@@ -9,14 +9,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { getCraftContent } from "@/lib/content";
 import { author, siteConfig, siteUrl } from "@/lib/site";
 
-/** Crafts shown on the landing plates, in order. */
-const HANDPICKED = ["text-to-particles", "dot-matrix-ticker", "bitmap-device", "waving-flag"];
-
 const cellClassName = "relative flex min-w-0 flex-col border-foreground/10 p-5 sm:p-8 lg:p-10";
 
 export default function Home() {
   const crafts = getCraftContent();
-  const handpicked = HANDPICKED.flatMap((slug) => crafts.filter((craft) => craft.slug === slug));
 
   return (
     <>
@@ -101,7 +97,7 @@ export default function Home() {
           </footer>
 
           <div className="relative min-h-[28rem] min-w-0 border-b border-foreground/10 bg-(--craft-page)/85 backdrop-blur-[2px] lg:min-h-0 lg:border-b-0">
-            <LandingPlates crafts={handpicked} total={crafts.length} />
+            <LandingPlates crafts={crafts} />
           </div>
         </div>
       </main>
