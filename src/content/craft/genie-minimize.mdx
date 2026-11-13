@@ -1,6 +1,7 @@
 ---
-title: Genie Minimize
-description: A desktop window that funnels into the dock when minimised and pours back out when restored.
+title: Genie Effect
+seoTitle: "Apple Genie Effect: macOS Minimize Animation in WebGL"
+description: The Apple genie effect rebuilt for the web. A window funnels into its dock slot when minimised and pours back out when restored, drawn with WebGL.
 publishedAt: 2026-11-13
 category: Animation
 preview: genie-minimize
@@ -11,3 +12,29 @@ order: 15
 <GenieMinimizeDemo src="/reel.mp4" className="craft-bleed h-[36rem]" />
 
 [Open the full page demo ↗](/demo/genie-minimize)
+
+## What is the Apple genie effect?
+
+The genie effect is the animation macOS plays when you minimise a window to the Dock. The window's sides bend into a funnel aimed at the Dock, and the window slides down through it, squeezing as it goes, like a genie being pulled back into a lamp. Restoring the window plays the same motion in reverse. Apple offers it in System Settings next to the plainer Scale effect.
+
+## How this genie effect works
+
+This version runs in the browser. Each window, including its title bar, is painted into a 2D canvas and drawn as a single WebGL plane. The plane is a grid of 16 columns by 64 rows. A vertex shader moves the grid in two phases that overlap:
+
+1. **Bend.** The sides of the window curve into an S-shaped funnel. It is full width at the far edge of the window and as narrow as the dock slot at the bottom.
+2. **Drain.** The picture slides down the funnel. Each row moves on its own clock, nearest the dock first, so the window pours into the slot instead of dropping as one block. Each row's width comes from where it is in the funnel, so it squeezes as it reaches the narrow end.
+
+A fragment shader cuts the rounded corners and measures the edge in screen pixels, so the outline stays smooth while the shape is squeezed.
+
+## Things to try
+
+- Click the yellow traffic light to minimise a window, then click it in the Dock to bring it back.
+- Click the red traffic light to close a window into its app icon instead of a dock slot.
+- Move the Dock to the left or right from the menu bar. The funnel turns to follow it.
+- Drag windows around the desktop and minimise them from different positions.
+
+With reduced motion turned on, windows move to the Dock without the animation.
+
+## Related
+
+See the same funnel in [Genie Video](/craft/genie-video), where a blog cover video folds into a mini player as you scroll.
