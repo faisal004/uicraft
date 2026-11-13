@@ -429,7 +429,8 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
 }
 
 /* Craft demo block: many demos ship their own bordered frame. When one does,
-   the preview panel becomes that frame instead of nesting a box in a box. */
+   the preview panel becomes that frame instead of nesting a box in a box.
+   `.craft-bleed` opts an unframed demo into filling the panel edge to edge. */
 .craft-preview {
   padding: 1.25rem;
 }
@@ -439,16 +440,16 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
 .craft-preview > :last-child {
   margin-bottom: 0;
 }
-.craft-preview:has(> .border:first-child, > :first-child > .border:first-child) {
+.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child) {
   padding: 0;
 }
 .craft-preview > .border:first-child,
-.craft-preview > :first-child > .border:first-child {
+.craft-preview > :first-child:not(.border) > .border:first-child {
   margin-block: 0;
   border-width: 0;
   border-radius: 0;
 }
-.craft-preview:has(> .border:first-child, > :first-child > .border:first-child) > :not(:first-child) {
+.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child) > :not(:first-child) {
   margin-inline: 1.25rem;
   margin-bottom: 1rem;
 }

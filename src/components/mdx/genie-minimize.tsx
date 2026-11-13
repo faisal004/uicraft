@@ -423,8 +423,8 @@ const WINDOWS: { id: WinId; app: string; title: string; theme: Theme; ratio: num
     title: "Calendar",
     theme: "light",
     ratio: 0.8,
-    place: { right: "5vw", top: "calc(1.75rem + 34vh)", width: "min(470px, 40vw)" },
-    zoomWidth: "min(900px, 90vw, calc((100svh - 10rem) / 0.8))",
+    place: { right: "5cqw", top: "calc(1.75rem + 34cqh)", width: "min(470px, 40cqw)" },
+    zoomWidth: "min(900px, 90cqw, calc((100cqh - 10rem) / 0.8))",
   },
   {
     id: "terminal",
@@ -432,8 +432,8 @@ const WINDOWS: { id: WinId; app: string; title: string; theme: Theme; ratio: num
     title: "guest — zsh — 80×24",
     theme: "dark",
     ratio: 0.6,
-    place: { right: "9vw", top: "calc(1.75rem + 4vh)", width: "min(540px, 44vw)" },
-    zoomWidth: "min(1000px, 92vw, calc((100svh - 10rem) / 0.6))",
+    place: { right: "9cqw", top: "calc(1.75rem + 4cqh)", width: "min(540px, 44cqw)" },
+    zoomWidth: "min(1000px, 92cqw, calc((100cqh - 10rem) / 0.6))",
   },
   {
     id: "player",
@@ -441,8 +441,8 @@ const WINDOWS: { id: WinId; app: string; title: string; theme: Theme; ratio: num
     title: "Colours in motion.mp4",
     theme: "dark",
     ratio: 0.625,
-    place: { left: "5vw", top: "calc(1.75rem + 9vh)", width: "min(720px, 56vw)" },
-    zoomWidth: "min(1180px, 94vw, calc((100svh - 10rem) / 0.625))",
+    place: { left: "5cqw", top: "calc(1.75rem + 9cqh)", width: "min(720px, 56cqw)" },
+    zoomWidth: "min(1180px, 94cqw, calc((100cqh - 10rem) / 0.625))",
   },
 ];
 
@@ -468,7 +468,8 @@ function Clock() {
   );
 }
 
-export function GenieMinimizeDemo({ src }: { src: string }) {
+// `className` sets the desktop size: the full viewport by default, or a fixed box when embedded in a page.
+export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const markerRefs = useRef<Partial<Record<WinId, HTMLDivElement | null>>>({});
   const shadowRefs = useRef<Partial<Record<WinId, HTMLDivElement | null>>>({});
@@ -565,8 +566,10 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
       const t = (now - startedAt) / 1000;
       const date = new Date();
 
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      // Everything is measured against the canvas, so the desktop can be full screen or a box in a page.
+      const frame = canvas.getBoundingClientRect();
+      const vw = Math.max(frame.width, 1);
+      const vh = Math.max(frame.height, 1);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.round(vw * dpr);
       const h = Math.round(vh * dpr);
@@ -598,8 +601,10 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
         const marker = markerRefs.current[id];
         const targetEl = state.target === "slot" ? slotElements.current[id] : iconElements.current[win.app];
         if (!marker || !targetEl) continue;
-        const a = marker.getBoundingClientRect();
-        const b = targetEl.getBoundingClientRect();
+        const am = marker.getBoundingClientRect();
+        const bm = targetEl.getBoundingClientRect();
+        const a = { left: am.left - frame.left, top: am.top - frame.top, width: am.width, height: am.height };
+        const b = { left: bm.left - frame.left, top: bm.top - frame.top, width: bm.width, height: bm.height };
         if (a.width === 0) continue;
 
         const layer = layers[id];
@@ -719,7 +724,7 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
 
   return (
     <main
-      className="relative h-svh w-full overflow-hidden text-white select-none"
+      className={`relative isolate w-full overflow-hidden [container-type:size] text-white select-none ${className}`}
       style={{
         background:
           "radial-gradient(80% 70% at 15% 20%, #ff8a5c 0%, transparent 60%), radial-gradient(70% 60% at 85% 25%, #8b5cff 0%, transparent 60%), radial-gradient(90% 80% at 60% 100%, #1e4fd6 0%, transparent 65%), linear-gradient(160deg, #2a1f55 0%, #120f2a 100%)",
@@ -783,7 +788,7 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
         <Clock />
       </header>
 
-      <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 block h-svh w-screen" />
+      <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 block h-full w-full" />
 
       {/* Window markers: each plane is drawn over its marker. Only the drop shadow (below the canvas)
           and invisible hit areas over the title bar (above it) are real DOM. The area slides aside so
