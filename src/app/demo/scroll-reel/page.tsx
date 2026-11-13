@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ScrollReelMorph } from "@/components/scroll-reel-morph";
+import { ScrollReelMorph } from "@/components/mdx/genie-video";
 
 export const metadata: Metadata = {
   title: "Scroll Reel Morph Demo",
