@@ -1,5 +1,7 @@
 "use client";
 
+import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 import { useEffect, useRef } from "react";
 
 import { CraftFrame } from "@/components/mdx/craft-controls";
@@ -255,6 +257,23 @@ export function ScrollReelMorph({ src, children }: { src: string; children?: Rea
     [src],
   );
 
+  // Smooth, eased page scrolling (Lenis). Skipped for reduced motion, where native scrolling is kinder.
+  const lenisRef = useRef<Lenis | null>(null);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const lenis = new Lenis({ autoRaf: true, lerp: 0.09 });
+    lenisRef.current = lenis;
+    return () => {
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+
+  const backToTop = () => {
+    if (lenisRef.current) lenisRef.current.scrollTo(0, { duration: 1.2 });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <>
       <canvas
@@ -280,7 +299,7 @@ export function ScrollReelMorph({ src, children }: { src: string; children?: Rea
         type="button"
         tabIndex={-1}
         aria-label="Back to the cover video"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        onClick={backToTop}
         className="pointer-events-none fixed right-4 bottom-4 z-20 aspect-video w-[min(44vw,320px)] cursor-pointer rounded-[16px] outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) focus-visible:ring-offset-2 sm:right-6 sm:bottom-6"
       />
     </>

@@ -35,6 +35,7 @@ import { SvgClawThumbnail } from "@/components/mdx/thumbnails/svg-claw";
 import { WordSwapClawDemo } from "@/components/mdx/word-swap-claw";
 import { WordSwapClawThumbnail } from "@/components/mdx/thumbnails/word-swap-claw";
 import { GenieVideoDemo } from "@/components/mdx/genie-video";
+import { GenieVideoFigure } from "@/components/mdx/genie-video-steps";
 import { GenieVideoThumbnail } from "@/components/mdx/thumbnails/genie-video";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
@@ -78,6 +79,7 @@ export const mdxComponents = {
   SvgClawDemo,
   WordSwapClawDemo,
   GenieVideoDemo,
+  GenieVideoFigure,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
