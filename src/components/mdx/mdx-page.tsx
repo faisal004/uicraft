@@ -3,7 +3,8 @@ import rehypePrettyCode from "rehype-pretty-code";
 
 import { CodeBlock } from "@/components/mdx/code-block";
 import { CraftIndex } from "@/components/mdx/craft-index";
-import { CraftTabs } from "@/components/mdx/craft-tabs";
+import { CraftBlock } from "@/components/mdx/craft-block";
+import { PageToc, type TocItem } from "@/components/mdx/page-toc";
 import { ShareButton } from "@/components/share-button";
 import { mdxComponents } from "@/components/mdx/registry";
 import type { ContentDocument } from "@/lib/content";
@@ -17,13 +18,21 @@ const components = {
   ...mdxComponents,
   CraftIndex,
   h2: (props: React.ComponentProps<"h2">) => (
-    <h2 className="mt-16 text-balance text-3xl font-medium sm:mt-24 sm:text-4xl" {...props} />
+    <h2
+      id={slugify(textOf(props.children))}
+      className="mt-16 scroll-mt-20 text-balance text-2xl font-medium tracking-tight sm:mt-20"
+      {...props}
+    />
   ),
   h3: (props: React.ComponentProps<"h3">) => (
-    <h3 className="mt-10 text-balance text-lg font-medium text-foreground" {...props} />
+    <h3
+      id={slugify(textOf(props.children))}
+      className="mt-12 scroll-mt-20 text-balance text-lg font-medium text-foreground"
+      {...props}
+    />
   ),
   p: (props: React.ComponentProps<"p">) => (
-    <p className="mt-4  text-pretty text-base leading-8 text-(--craft-muted)" {...props} />
+    <p className="mt-4 text-pretty text-[15px] leading-7 text-(--craft-muted)" {...props} />
   ),
   a: (props: React.ComponentProps<"a">) => (
     <a
@@ -33,10 +42,10 @@ const components = {
     />
   ),
   ul: (props: React.ComponentProps<"ul">) => (
-    <ul className="mt-4 max-w-2xl list-disc space-y-2 pl-5 text-base leading-8 text-(--craft-muted)" {...props} />
+    <ul className="mt-4 list-disc space-y-2 pl-5 text-[15px] leading-7 text-(--craft-muted)" {...props} />
   ),
   ol: (props: React.ComponentProps<"ol">) => (
-    <ol className="mt-4 max-w-2xl list-decimal space-y-2 pl-5 text-base leading-8 text-(--craft-muted)" {...props} />
+    <ol className="mt-4 list-decimal space-y-2 pl-5 text-[15px] leading-7 text-(--craft-muted)" {...props} />
   ),
   li: (props: React.ComponentProps<"li">) => <li className="text-pretty" {...props} />,
   pre: CodeBlock,
@@ -48,29 +57,68 @@ const prettyCodeOptions = {
   defaultLang: "plaintext",
 };
 
-function splitCraftSections(body: string) {
-  const implementationMarker = /^##\s+Implementation\s*$/im.exec(body);
-  const howItWorksMarker = /^##\s+How it works\s*$/im.exec(body);
+function stripMarkdown(text: string) {
+  return text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[`*_]/g, "")
+    .trim();
+}
 
-  if (
-    implementationMarker?.index === undefined ||
-    howItWorksMarker?.index === undefined ||
-    howItWorksMarker.index < implementationMarker.index
-  ) {
-    return undefined;
+function slugify(text: string) {
+  return stripMarkdown(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function textOf(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (node && typeof node === "object" && "props" in node) {
+    return textOf((node.props as { children?: React.ReactNode }).children);
+  }
+  return "";
+}
+
+// Splits a craft body into the live demo (everything before the first h2),
+// the optional `## Implementation` source, and the article that follows.
+// Headings inside fenced code are ignored.
+function splitCraftSections(body: string) {
+  const lines = body.split("\n");
+  const sections: { title: string; lines: string[] }[] = [];
+  const preview: string[] = [];
+  const toc: TocItem[] = [];
+  let fence: string | undefined;
+
+  for (const line of lines) {
+    const fenceMatch = /^\s*(```|~~~)/.exec(line);
+    if (fenceMatch) {
+      if (!fence) fence = fenceMatch[1];
+      else if (line.trim().startsWith(fence)) fence = undefined;
+    }
+
+    const heading = fence ? null : /^(#{2,3})\s+(.+?)\s*$/.exec(line);
+    if (heading?.[1] === "##") sections.push({ title: heading[2], lines: [] });
+    (sections.at(-1)?.lines ?? preview).push(line);
+
+    const inImplementation = sections.at(-1)?.title.toLowerCase() === "implementation";
+    if (heading && !inImplementation) {
+      const title = stripMarkdown(heading[2]);
+      toc.push({ id: slugify(title), title, depth: heading[1].length as 2 | 3 });
+    }
   }
 
+  const implementation = sections.find((section) => section.title.toLowerCase() === "implementation");
+  const article = sections
+    .filter((section) => section !== implementation)
+    .map((section) => section.lines.join("\n"))
+    .join("\n\n");
+
   return {
-    preview: body.slice(0, implementationMarker.index).trim(),
-    implementation: body
-      .slice(
-        implementationMarker.index + implementationMarker[0].length,
-        howItWorksMarker.index,
-      )
-      .trim(),
-    howItWorks: body
-      .slice(howItWorksMarker.index + howItWorksMarker[0].length)
-      .trim(),
+    preview: preview.join("\n").trim(),
+    implementation: implementation?.lines.slice(1).join("\n").trim(),
+    article: article.trim(),
+    toc,
   };
 }
 
@@ -89,13 +137,6 @@ function renderMdx(source: string) {
 }
 
 export function MdxPage({ document }: { document: ContentDocument }) {
-  const eyebrow =
-    document.kind === "introduction"
-      ? "Introduction"
-      : `Craft / ${document.category ?? "Study"}`;
-  const craftSections =
-    document.kind === "craft" ? splitCraftSections(document.body) : undefined;
-
   if (document.kind === "introduction") {
     return (
       <div className="min-w-0 px-5 py-16 sm:px-10 sm:py-20 lg:px-14 xl:px-20">
@@ -115,58 +156,57 @@ export function MdxPage({ document }: { document: ContentDocument }) {
     );
   }
 
+  const sections = splitCraftSections(document.body);
+  const toc: TocItem[] = [{ id: "demo", title: "Demo", depth: 2 }, ...sections.toc];
+  const publishedAt = document.publishedAt
+    ? new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric" }).format(
+        new Date(`${document.publishedAt}T00:00:00`),
+      )
+    : undefined;
+
   return (
-    <div className="min-w-0 px-5 py-10 sm:px-10 sm:py-12 lg:px-14 xl:px-20">
-      <article className="mx-auto max-w-6xl pb-24">
-        <header className="grid grid-cols-2 border-l border-t border-foreground/10 sm:grid-cols-12 bg-(--craft-surface)">
-          <div className="flex min-h-16 items-center border-r border-b border-foreground/10 px-4 py-3 sm:col-span-4">
-            <p className="text-sm text-(--craft-accent)">{eyebrow}</p>
-          </div>
-          <div className="flex min-h-16 items-center justify-end gap-4 border-r border-b border-foreground/10 px-4 py-3 sm:col-span-8">
-            {document.publishedAt ? (
-              <time
-                dateTime={document.publishedAt}
-                className="font-mono text-xs tabular-nums text-foreground/45"
-              >
-                {new Intl.DateTimeFormat("en", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                }).format(new Date(`${document.publishedAt}T00:00:00`))}
-              </time>
-            ) : null}
-            <ShareButton path={`/craft/${document.slug}`} />
-          </div>
-          <div className="col-span-2 border-r border-b border-foreground/10 px-5 py-8 sm:col-span-12 sm:px-6 sm:py-10">
-            <h1 className="font-heading w-full text-balance text-5xl leading-[0.98] sm:text-5xl lg:text-5xl">
-              {document.title}
-            </h1>
-          </div>
-          <div className="col-span-2 flex border-r border-b border-foreground/10 p-5 sm:col-span-12 sm:p-6">
-            <p className="max-w-2xl text-pretty text-base leading-7 text-(--craft-muted)">
+    <div className="min-w-0 px-4 py-10 sm:px-8 sm:py-14 lg:px-12">
+      <div className="mx-auto grid max-w-6xl gap-12 xl:grid-cols-[minmax(0,1fr)_13rem]">
+        <article className="mx-auto w-full max-w-3xl min-w-0 pb-24">
+          <header>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="font-heading text-balance text-4xl leading-tight tracking-tight sm:text-[2.75rem]">
+                {document.title}
+              </h1>
+              <ShareButton path={`/craft/${document.slug}`} />
+            </div>
+            <p className="mt-3 max-w-2xl text-pretty text-base leading-7 text-(--craft-muted)">
               {document.description}
             </p>
-          </div>
-        </header>
+            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-foreground/60">
+              <span className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1">
+                {document.category ?? "Study"}
+              </span>
+              {publishedAt ? (
+                <time
+                  dateTime={document.publishedAt}
+                  className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1 font-mono tabular-nums"
+                >
+                  {publishedAt}
+                </time>
+              ) : null}
+            </div>
+          </header>
 
-        {craftSections ? (
-          <>
-            <section className="pt-14 sm:pt-20">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <h2 className="text-balance text-2xl font-medium sm:text-3xl">Demo</h2>
-                <span className="font-mono text-[10px] uppercase text-foreground/40">Interactive</span>
-              </div>
-              {craftSections.preview ? renderMdx(craftSections.preview) : null}
-            </section>
-            <CraftTabs
-              implementation={renderMdx(craftSections.implementation)}
-              howItWorks={renderMdx(craftSections.howItWorks)}
-            />
-          </>
-        ) : (
-          renderMdx(document.body)
-        )}
-      </article>
+          <CraftBlock
+            preview={renderMdx(sections.preview)}
+            code={sections.implementation ? renderMdx(sections.implementation) : undefined}
+          />
+
+          {sections.article ? renderMdx(sections.article) : null}
+        </article>
+
+        <aside className="hidden xl:block">
+          <div className="sticky top-14">
+            <PageToc items={toc} />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

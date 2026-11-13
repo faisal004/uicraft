@@ -34,6 +34,11 @@ import { SvgClawDemo } from "@/components/mdx/svg-claw";
 import { SvgClawThumbnail } from "@/components/mdx/thumbnails/svg-claw";
 import { WordSwapClawDemo } from "@/components/mdx/word-swap-claw";
 import { WordSwapClawThumbnail } from "@/components/mdx/thumbnails/word-swap-claw";
+import { GenieVideoDemo } from "@/components/mdx/genie-video";
+import { GenieVideoFigure } from "@/components/mdx/genie-video-steps";
+import { GenieVideoThumbnail } from "@/components/mdx/thumbnails/genie-video";
+import { GenieMinimizeDemo } from "@/components/mdx/genie-minimize";
+import { GenieMinimizeThumbnail } from "@/components/mdx/thumbnails/genie-minimize";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
 import { TastefulButtonThumbnail } from "@/components/mdx/thumbnails/tasteful-button";
@@ -75,11 +80,16 @@ export const mdxComponents = {
   ThemeToggle,
   SvgClawDemo,
   WordSwapClawDemo,
+  GenieVideoDemo,
+  GenieVideoFigure,
+  GenieMinimizeDemo,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
   "svg-claw": SvgClawThumbnail,
   "word-swap-claw": WordSwapClawThumbnail,
+  "genie-video": GenieVideoThumbnail,
+  "genie-minimize": GenieMinimizeThumbnail,
   "tasteful-button": TastefulButtonThumbnail,
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,
