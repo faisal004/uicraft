@@ -13,9 +13,11 @@ import { GenieDock, useNow, type DockSlot } from "@/components/mdx/genie-dock";
 const COLS = 16;
 const ROWS = 64; // all the bending is vertical, so the grid needs far more rows than columns
 const RADIUS = 12;
+const DOCK_RADIUS = 4; // corner radius once a window has shrunk into the dock
 const BAR = 34; // title bar height in CSS px
 const LIGHTS = [20, 40, 60]; // traffic-light centres from the left, in CSS px
 const LIGHT_R = 6;
+const HIT = 20; // clickable size of each traffic light; neighbours are 20px apart, so they meet without gaps
 const DURATION = 650; // ms
 const TEX_W = 1280;
 
@@ -548,8 +550,8 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
       toWH: u("u_toWH"),
       progress: u("u_progress"),
       dir: u("u_dir"),
+      radius: u("u_radius"),
     };
-    gl.uniform1f(u("u_radius"), RADIUS);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -608,12 +610,20 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
         if (a.width === 0) continue;
 
         const layer = layers[id];
-        const texH = Math.round((TEX_W * a.height) / a.width);
-        if (layer.paint.width !== TEX_W || layer.paint.height !== texH) {
-          layer.paint.width = TEX_W;
+        const landing = clamp01(state.progress);
+        const settle = landing * landing * (3 - 2 * landing); // smoothstep
+        // Paint at roughly the size it's drawn on screen: a 1280px texture squeezed into a dock-sized
+        // thumbnail goes soft, while text painted small by the 2D canvas stays crisp. Stay full size
+        // until late in the fold, when the far edge is the last part still wide.
+        const late = clamp01((landing - 0.7) / 0.3);
+        const drawnW = a.width + (Math.max(b.width, 1) - a.width) * late;
+        const texW = Math.min(TEX_W, Math.max(64, Math.ceil((drawnW * dpr) / 16) * 16));
+        const texH = Math.round((texW * a.height) / a.width);
+        if (layer.paint.width !== texW || layer.paint.height !== texH) {
+          layer.paint.width = texW;
           layer.paint.height = texH;
         }
-        const s = TEX_W / a.width;
+        const s = texW / a.width;
         if (id === "player") paintPlayer(layer.ctx, s, video);
         else if (id === "terminal") paintTerminal(layer.ctx, s, t);
         else paintCalendar(layer.ctx, s, date);
@@ -633,7 +643,9 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
         gl.uniform2f(uni.fromWH, from.w, from.h);
         gl.uniform2f(uni.toXY, to.x, to.y);
         gl.uniform2f(uni.toWH, to.w, to.h);
-        gl.uniform1f(uni.progress, clamp01(state.progress));
+        gl.uniform1f(uni.progress, landing);
+        // Corners shrink with the window, so a thumbnail doesn't turn into a pill.
+        gl.uniform1f(uni.radius, RADIUS + (DOCK_RADIUS - RADIUS) * settle);
         gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
       }
     };
@@ -689,6 +701,13 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
     return true;
   };
 
+  // Traffic lights, left to right: close, minimise, zoom.
+  const pressLight = (id: WinId, index: number) => {
+    if (index === 0) close(id);
+    else if (index === 1) minimise(id);
+    else setZoomed((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // Drag a window by its title bar. The offset is a transform, so the layout never changes.
   const startDrag = (id: WinId, event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -698,11 +717,17 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
     const state = engine.current[id];
     const startX = event.clientX - state.drag.x;
     const startY = event.clientY - state.drag.y;
+    const baseTop = marker.offsetTop - state.drag.y; // offsetTop includes the drag margin
     const target = event.currentTarget;
     target.setPointerCapture(event.pointerId);
     const move = (e: PointerEvent) => {
-      state.drag = { x: e.clientX - startX, y: Math.max(-marker.offsetTop + 28, e.clientY - startY) };
-      marker.style.transform = `translate(${state.drag.x}px, ${state.drag.y}px)`;
+      state.drag = { x: e.clientX - startX, y: Math.max(-baseTop + 28, e.clientY - startY) };
+      // Margins, not a transform: a transform would make the marker a stacking context and trap
+      // its hit areas' z-index, so windows behind could steal clicks.
+      // Windows anchored by `left` follow margin-left; ones anchored by `right` follow margin-right.
+      marker.style.marginLeft = `${state.drag.x}px`;
+      marker.style.marginRight = `${-state.drag.x}px`;
+      marker.style.marginTop = `${state.drag.y}px`;
     };
     const up = () => {
       target.removeEventListener("pointermove", move);
@@ -809,9 +834,8 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
               role="region"
               aria-label={`${win.title} window`}
               aria-hidden={mode !== "open"}
-              className="absolute transition-[width] duration-300 ease-out"
+              className="pointer-events-none absolute transition-[width] duration-300 ease-out"
               style={{ ...win.place, width: zoomed[win.id] ? win.zoomWidth : win.place.width, aspectRatio: `${1 / win.ratio}` }}
-              onPointerDown={() => focus(win.id)}
             >
               <div
                 ref={(el) => {
@@ -821,10 +845,26 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
                 className="pointer-events-none absolute inset-0 rounded-[12px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.5),0_22px_60px_rgba(0,0,0,0.5),0_6px_16px_rgba(0,0,0,0.3)] transition-opacity duration-200"
               />
               {win.id === "player" ? <span className="sr-only">A video of colourful paint swirling in water.</span> : null}
+              {/* The window body: stacked in focus order, so a window in front blocks clicks to the ones behind. */}
               {mode === "open" ? (
-                <div className="absolute inset-x-0 top-0 h-[34px] cursor-default" style={{ zIndex: 20 + z * 2 }} onPointerDown={(event) => startDrag(win.id, event)}>
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-auto absolute inset-0 rounded-[12px]"
+                  style={{ zIndex: 20 + z * 2 }}
+                  onPointerDown={() => focus(win.id)}
+                />
+              ) : null}
+              {mode === "open" ? (
+                <div
+                  className="pointer-events-auto absolute inset-x-0 top-0 cursor-default"
+                  style={{ height: BAR, zIndex: 21 + z * 2 }}
+                  onPointerDown={(event) => startDrag(win.id, event)}
+                >
+                  {/* Hit areas sit exactly over the painted lights (same LIGHTS / BAR constants), a little
+                      larger than the 12px dots so a click anywhere on a light lands. */}
                   <div
-                    className="absolute top-0 left-[8px] flex h-[34px] items-center gap-[6px]"
+                    className="absolute top-0 left-0"
+                    style={{ width: LIGHTS[2] + HIT / 2, height: BAR }}
                     onPointerDown={(event) => event.stopPropagation()}
                     onMouseEnter={() => {
                       engine.current[win.id].hover = true;
@@ -833,14 +873,18 @@ export function GenieMinimizeDemo({ src, className = "h-svh" }: { src: string; c
                       engine.current[win.id].hover = false;
                     }}
                   >
-                    <button type="button" aria-label={`Close ${win.app}`} onClick={() => close(win.id)} className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
-                    <button type="button" aria-label={`Minimise ${win.app}`} onClick={() => minimise(win.id)} className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
-                    <button
-                      type="button"
-                      aria-label={zoomed[win.id] ? `Exit zoom ${win.app}` : `Zoom ${win.app}`}
-                      onClick={() => setZoomed((prev) => ({ ...prev, [win.id]: !prev[win.id] }))}
-                      className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                    />
+                    {[`Close ${win.app}`, `Minimise ${win.app}`, zoomed[win.id] ? `Exit zoom ${win.app}` : `Zoom ${win.app}`].map(
+                      (label, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          aria-label={label}
+                          onClick={() => pressLight(win.id, index)}
+                          className="absolute cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                          style={{ left: LIGHTS[index] - HIT / 2, top: BAR / 2 - HIT / 2, width: HIT, height: HIT }}
+                        />
+                      ),
+                    )}
                   </div>
                 </div>
               ) : null}

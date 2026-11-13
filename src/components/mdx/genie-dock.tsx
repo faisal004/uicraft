@@ -400,7 +400,7 @@ export function GenieDock({
                       slotElements.current[item.id] = el;
                     }}
                     aria-hidden="true"
-                    className="aspect-[16/10] w-full"
+                    className="mx-[5px] aspect-[16/10] w-[calc(100%-10px)] shrink-0"
                   />
                 </span>
               </button>
