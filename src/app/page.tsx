@@ -82,9 +82,9 @@ export default function Home() {
             <div className={bodyClassName}>
               <div className="max-w-lg">
                 <p className="text-pretty text-base leading-7 text-foreground/70 sm:text-lg sm:leading-8">
-                  Not a UI library. Just a growing collection of animations and
-                  interactions I’ve rebuilt from things I find online, each with
-                  the full source and a step-by-step tutorial.
+                  Not a component library. A notebook of small animations and
+                  interactions I’ve taken apart and rebuilt, one experiment at a
+                  time.
                 </p>
               </div>
               <div className="mt-7 w-fit sm:mt-9">
