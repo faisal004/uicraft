@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 // Each claw runs the same choreography from its own start time.
-const CLAW = { approach: 1400, beat: 160, open: 320, lift: 260, retreat: 820, liftBy: 14, spread: 30 };
-const CLAW_END = CLAW.approach + CLAW.beat + CLAW.open + CLAW.lift + CLAW.retreat;
+export const CLAW = { approach: 1400, beat: 160, open: 320, lift: 260, retreat: 820, liftBy: 14, spread: 30 };
+export const CLAW_END = CLAW.approach + CLAW.beat + CLAW.open + CLAW.lift + CLAW.retreat;
 // Square tittle matching the 20-unit i stem; its centre sits where Geist places the dot.
 const DOT = { x: 420, y: 212, size: 20, grip: 52, hold: 5, startY: -110, start: 0 };
 // Crossbar and stem edges of the Geist 800 “t” at 146px, measured from the glyph’s left edge.
@@ -19,7 +19,7 @@ const easeIn = (value: number) => value * value * value;
 const easeInOut = (value: number) => value < 0.5 ? 4 * value * value * value : 1 - Math.pow(2 - 2 * value, 3) / 2;
 
 // offset: distance back along the approach path (0 = placing). angle: finger rotation in degrees.
-function clawPose(time: number, start: number, far: number, hold: number) {
+export function clawPose(time: number, start: number, far: number, hold: number) {
   const placed = start + CLAW.approach;
   const opening = placed + CLAW.beat;
   const opened = opening + CLAW.open;

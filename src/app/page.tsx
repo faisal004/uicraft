@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
-import { BlueprintBlock, BlueprintGuides } from "@/components/blueprint";
-import { DotField } from "@/components/dot-field";
 import { JsonLd } from "@/components/json-ld";
 import { CellBar } from "@/components/landing/cell-bar";
 import { LandingPlates } from "@/components/landing-plates";
@@ -35,22 +33,17 @@ export default function Home() {
         }}
       />
       <main className="relative isolate min-h-dvh overflow-hidden bg-(--craft-page) text-foreground lg:h-dvh">
-        <div className="bp-late">
-          <DotField />
-        </div>
-        <BlueprintGuides />
-
         <div className="grid min-h-dvh grid-cols-1 lg:h-full lg:grid-cols-2 lg:grid-rows-2">
           <section className={`${cellClassName} border-b lg:border-r`}>
             <CellBar>
-              <BlueprintBlock label="MARK" delay={350}>
+              <div>
                 <Link
                   href="/"
                   className="font-heading text-sm normal-case text-foreground transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
                 >
                   UICraft
                 </Link>
-              </BlueprintBlock>
+              </div>
               <span className="hidden truncate lg:inline">
                 Made by{" "}
                 <a href="https://faisalhusa.in" target="_blank" rel="noreferrer" className={barLinkClassName}>
@@ -70,14 +63,14 @@ export default function Home() {
               <ThemeToggle className={`${toggleClassName} lg:hidden`} />
             </CellBar>
             <div className={bodyClassName}>
-              <BlueprintBlock label="COPY 01" delay={500} className="mb-5 w-fit sm:mb-7">
+              <div className="mb-5 w-fit sm:mb-7">
                 <p className="text-sm text-foreground/60">A place to remake what catches my eye.</p>
-              </BlueprintBlock>
-              <BlueprintBlock label="TITLE" delay={600}>
+              </div>
+              <div>
                 <h1 className="hero-title font-heading text-balance">
                   Saw something cool. Had to know how it worked.
                 </h1>
-              </BlueprintBlock>
+              </div>
             </div>
           </section>
 
@@ -87,14 +80,14 @@ export default function Home() {
               <ThemeToggle className={toggleClassName} />
             </CellBar>
             <div className={bodyClassName}>
-              <BlueprintBlock label="COPY 02" delay={720} className="max-w-lg">
+              <div className="max-w-lg">
                 <p className="text-pretty text-base leading-7 text-foreground/70 sm:text-lg sm:leading-8">
                   Not a UI library. Just a growing collection of animations and
                   interactions I’ve rebuilt from things I find online, each with
                   the full source and a step-by-step tutorial.
                 </p>
-              </BlueprintBlock>
-              <BlueprintBlock label="CTA" delay={820} className="mt-7 w-fit sm:mt-9">
+              </div>
+              <div className="mt-7 w-fit sm:mt-9">
                 <Link
                   href="/craft"
                   className="font-heading group inline-flex items-center gap-2 border-b border-current pb-1 text-base transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
@@ -105,7 +98,7 @@ export default function Home() {
                     aria-hidden="true"
                   />
                 </Link>
-              </BlueprintBlock>
+              </div>
             </div>
           </section>
 
