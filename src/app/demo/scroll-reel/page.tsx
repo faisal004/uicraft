@@ -9,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ScrollReelMorph />;
+  // "Colours In Motion" from Pexels (pexels.com/video/5914207), Pexels License: free to use.
+  return <ScrollReelMorph src="/reel.mp4" />;
 }

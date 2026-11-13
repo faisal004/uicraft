@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 // A WebGL plane that starts on a small DOM card and bends its way into a full-screen frame as you scroll.
@@ -22,7 +21,6 @@ uniform vec2 u_toXY;
 uniform vec2 u_toWH;
 uniform float u_progress;
 varying vec2 v_uv;
-varying vec2 v_local;
 varying vec2 v_size;
 varying float v_progress;
 
@@ -50,7 +48,6 @@ void main() {
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
 
   v_uv = a_pos;
-  v_local = local;
   v_size = wh;
   v_progress = p;
 }
@@ -64,13 +61,22 @@ uniform float u_texAspect;
 uniform float u_radius;
 uniform vec3 u_tint;
 varying vec2 v_uv;
-varying vec2 v_local;
 varying vec2 v_size;
 varying float v_progress;
 
-float roundedBox(vec2 p, vec2 halfSize, float r) {
-  vec2 q = abs(p) - halfSize + r;
-  return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+uniform float u_dpr;
+
+// Distance (in real screen pixels) from this fragment to the plane's rounded outline, positive inside.
+// It's measured from the UV edges with screen-space derivatives, so it stays correct however the
+// sheet is stretched or bent; every corner keeps the same radius mid-morph.
+float edgeDistance(vec2 uv, float r) {
+  vec2 pxPerUv = 1.0 / vec2(
+    length(vec2(dFdx(uv.x), dFdy(uv.x))),
+    length(vec2(dFdx(uv.y), dFdy(uv.y)))
+  );
+  vec2 q = min(uv, 1.0 - uv) * pxPerUv; // pixels to the nearest vertical / horizontal edge
+  if (q.x < r && q.y < r) return r - length(vec2(r) - q);
+  return min(q.x, q.y);
 }
 
 void main() {
@@ -84,8 +90,7 @@ void main() {
   vec3 duotone = mix(u_tint, vec3(1.0), smoothstep(0.35, 1.0, luma));
   color = mix(duotone, color, v_progress);
 
-  float d = roundedBox(v_local, v_size * 0.5, u_radius);
-  float alpha = 1.0 - smoothstep(-fwidth(d), 0.0, d);
+  float alpha = clamp(edgeDistance(v_uv, u_radius * u_dpr) + 0.5, 0.0, 1.0);
   gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
@@ -176,26 +181,34 @@ function buildGrid() {
   return { positions: new Float32Array(positions), indices: new Uint16Array(indices) };
 }
 
-export function ScrollReelMorph() {
+// `src`: a same-origin video file (e.g. "/reel.mp4" in public/). Without it, an animated placeholder is used.
+export function ScrollReelMorph({ src }: { src?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLElement>(null);
-  const playRef = useRef<HTMLSpanElement>(null);
-  const reelRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const thumb = thumbRef.current!;
     const frame = frameRef.current!;
     const pin = pinRef.current!;
-    const play = playRef.current!;
-    const reel = reelRef.current!;
 
-    const source = document.createElement("canvas");
-    source.width = TEX_W;
-    source.height = TEX_H;
-    const ctx2d = source.getContext("2d")!;
+    const placeholder = document.createElement("canvas");
+    placeholder.width = TEX_W;
+    placeholder.height = TEX_H;
+    const ctx2d = placeholder.getContext("2d")!;
+
+    let video: HTMLVideoElement | null = null;
+    if (src) {
+      video = document.createElement("video");
+      video.src = src;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.crossOrigin = "anonymous";
+      video.play().catch(() => {});
+    }
 
     const gl = canvas.getContext("webgl", { premultipliedAlpha: true, antialias: true });
     if (!gl || !gl.getExtension("OES_standard_derivatives")) {
@@ -229,13 +242,15 @@ export function ScrollReelMorph() {
     const u = (name: string) => gl.getUniformLocation(program, name);
     const uni = {
       res: u("u_res"),
+      dpr: u("u_dpr"),
       fromXY: u("u_fromXY"),
       fromWH: u("u_fromWH"),
       toXY: u("u_toXY"),
       toWH: u("u_toWH"),
       progress: u("u_progress"),
     };
-    gl.uniform1f(u("u_texAspect"), TEX_W / TEX_H);
+    const texAspect = u("u_texAspect");
+    gl.uniform1f(texAspect, TEX_W / TEX_H);
     gl.uniform1f(u("u_radius"), RADIUS);
     gl.uniform3fv(u("u_tint"), TINT);
     gl.enable(gl.BLEND);
@@ -262,30 +277,29 @@ export function ScrollReelMorph() {
       const a = thumb.getBoundingClientRect();
       const b = frame.getBoundingClientRect();
       const scroll = window.scrollY;
-      // 0 when the card is centred on screen, 1 when the pinned section locks in place.
-      const from = Math.max(0, a.top + scroll + a.height / 2 - vh / 2);
-      const to = pin.getBoundingClientRect().top + scroll;
-      const progress = fit(scroll, from, to);
+      // Both boxes live in one pinned stage, so nothing scrolls away mid-morph: the plane only grows
+      // from the card into the frame. 0 when the stage pins, 1 after one more screen of scrolling.
+      const from = pin.getBoundingClientRect().top + scroll;
+      const progress = fit(scroll, from, from + vh);
 
-      // After the frame lands, the words slide apart over the next 60% of a screen.
-      const split = fit(scroll, to, to + vh * 0.6);
-      // Keep the words inside the frame: they only open a gap, never leave it.
-      const offset = split * Math.min(b.width * 0.12, 220);
-      play.style.transform = `translate3d(${-offset}px,0,0)`;
-      reel.style.transform = `translate3d(${offset}px,0,0)`;
-
-      // Reduced motion: hold the footage on one frame.
-      const t = motion.matches ? frozenAt : (frozenAt = (now - start) / 1000);
-      drawReel(ctx2d, t);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      if (video && video.readyState >= 2) {
+        // Reduced motion: hold the footage on one frame.
+        if (motion.matches && !video.paused) video.pause();
+        gl.uniform1f(texAspect, video.videoWidth / video.videoHeight);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+      } else {
+        const t = motion.matches ? frozenAt : (frozenAt = (now - start) / 1000);
+        drawReel(ctx2d, t);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, placeholder);
+      }
 
       gl.uniform2f(uni.res, vw, vh);
+      gl.uniform1f(uni.dpr, w / vw);
       gl.uniform2f(uni.fromXY, a.left, a.top);
       gl.uniform2f(uni.fromWH, a.width, a.height);
       gl.uniform2f(uni.toXY, b.left, b.top);
       gl.uniform2f(uni.toWH, b.width, b.height);
       gl.uniform1f(uni.progress, progress);
-      play.style.opacity = reel.style.opacity = String(fit(progress, 0.85, 1));
 
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -297,68 +311,36 @@ export function ScrollReelMorph() {
     // (React Strict Mode runs effects twice), and a lost one can't be revived.
     return () => {
       cancelAnimationFrame(raf);
+      video?.pause();
+      video?.removeAttribute("src");
       gl.deleteTexture(texture);
       gl.deleteProgram(program);
     };
-  }, []);
+  }, [src]);
 
   return (
-    <main className="relative bg-[#0b0b0d] text-[#f4f4f4]">
+    <main className="relative bg-[#0b0b0d]">
       <canvas
         ref={canvasRef}
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-10 block h-screen w-screen"
       />
 
-      <section className="relative flex min-h-screen flex-col justify-center px-6 sm:px-12">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/50">Scroll reel morph</p>
-        <h1 className="mt-6 max-w-5xl text-balance text-5xl font-semibold leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
-          Small card,
-          <br />
-          big picture.
-        </h1>
-        <div className="mt-12 grid items-start gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-16">
-          {/* Start marker: the plane is drawn here, the box itself stays invisible. */}
-          <div
-            ref={thumbRef}
-            aria-hidden="true"
-            className="invisible aspect-video w-full rounded-[18px] bg-[#1a2efa]"
-          />
-          <p className="max-w-sm text-pretty text-base leading-7 text-white/60 md:pt-4">
-            Keep scrolling. The card bends out of its corner and opens into the full frame.
-          </p>
-        </div>
-      </section>
-
-      <section ref={pinRef} className="relative h-[260vh]">
-        {/* z-20: sticky makes its own stacking context, so the wrapper itself must sit above the canvas. */}
-        <div className="sticky top-0 z-20 flex h-screen items-center justify-center px-4 sm:px-16">
-          {/* End marker: same deal, sticky so it holds still once the plane lands.
-              An inset wide frame with page margins, capped so it never fills the whole screen. */}
+      <section ref={pinRef} className="relative h-[250vh]">
+        <div className="sticky top-0 flex h-screen items-center justify-center px-4 sm:px-16">
+          {/* End marker: the wide frame the plane opens into. Invisible; only marks the layout. */}
           <div
             ref={frameRef}
             aria-hidden="true"
             className="invisible aspect-video w-full rounded-[18px] bg-[#222] sm:aspect-[21/9] sm:w-[min(100%,calc(80vh*21/9))]"
           />
-          <h2 className="absolute inset-0 flex items-center justify-center gap-[0.3em] text-5xl font-semibold uppercase tracking-tight sm:text-8xl lg:text-9xl">
-            <span ref={playRef} className="opacity-0 will-change-transform">
-              Play
-            </span>
-            <span ref={reelRef} className="opacity-0 will-change-transform">
-              Reel
-            </span>
-          </h2>
+          {/* Start marker: the card the plane starts on, in the same pinned stage. */}
+          <div
+            ref={thumbRef}
+            aria-hidden="true"
+            className="invisible absolute bottom-[12vh] left-6 bg-[#1a2efa] aspect-video w-[calc(100%-3rem)] rounded-[18px] sm:left-12 md:w-[44vw]"
+          />
         </div>
-      </section>
-
-      <section className="relative flex min-h-[70vh] flex-col justify-center gap-6 px-6 sm:px-12">
-        <p className="max-w-xl text-pretty text-lg leading-8 text-white/70">
-          One WebGL plane, two invisible DOM boxes. Each vertex runs its own delayed copy of the scroll
-          progress, so the corners arrive at different times and the plane curves on the way.
-        </p>
-        <Link href="/craft" className="text-sm text-white/60 underline underline-offset-4 hover:text-white">
-          Back to crafts
-        </Link>
       </section>
     </main>
   );
