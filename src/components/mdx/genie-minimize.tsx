@@ -22,33 +22,45 @@ const TEX_W = 1280;
 const vertexShader = /* glsl */ `
 attribute vec2 a_pos; // 0..1, y-down like the DOM
 uniform vec2 u_res;
-uniform vec2 u_fromXY;
+uniform vec2 u_fromXY; // both boxes arrive already rotated into the "dock is below" frame
 uniform vec2 u_fromWH;
 uniform vec2 u_toXY;
 uniform vec2 u_toWH;
 uniform float u_progress;
+uniform float u_dir; // 0 = dock below, 1 = dock on the left, 2 = dock on the right
 varying vec2 v_uv;
 
 void main() {
-  // Phase 1: the funnel opens. Phase 2 starts before it finishes: the picture slides down.
+  // Work in a frame where the dock is always below. p.y runs from the edge away from the dock (0)
+  // to the edge nearest it (1); for a side dock that's a horizontal direction on screen.
+  vec2 p = a_pos;
+  if (u_dir == 1.0) p = vec2(a_pos.y, 1.0 - a_pos.x);
+  else if (u_dir == 2.0) p = vec2(a_pos.y, a_pos.x);
+
+  // Phase 1: the funnel opens. Phase 2 starts before it finishes: the picture slides toward the dock.
   float bend = smoothstep(0.0, 0.4, u_progress);
   float slide = smoothstep(0.2, 1.0, u_progress);
 
-  // Each row slides on its own clock. Bottom rows (a_pos.y = 1) leave first, top rows last,
+  // Each row slides on its own clock. Rows nearest the dock leave first, the far edge last,
   // so the window drains into the slot instead of dropping as a block.
-  float rowSlide = smoothstep(0.0, 1.0, clamp(slide * 1.6 - (1.0 - a_pos.y) * 0.6, 0.0, 1.0));
+  float rowSlide = smoothstep(0.0, 1.0, clamp(slide * 1.6 - (1.0 - p.y) * 0.6, 0.0, 1.0));
 
-  float fromRowY = u_fromXY.y + a_pos.y * u_fromWH.y;
-  float toRowY = u_toXY.y + a_pos.y * u_toWH.y;
+  float fromRowY = u_fromXY.y + p.y * u_fromWH.y;
+  float toRowY = u_toXY.y + p.y * u_toWH.y;
   float y = mix(fromRowY, toRowY, rowSlide);
 
-  // The funnel depends on where the row is on screen, not where it is in the picture:
-  // full window width at the window's top, slot width at the slot's top, an S-curve between.
+  // The funnel depends on where the row is, not where it is in the picture:
+  // full window width at the window's far edge, slot width at the slot, an S-curve between.
   float neck = smoothstep(u_fromXY.y, u_toXY.y, y) * bend;
   float left = mix(u_fromXY.x, u_toXY.x, neck);
   float right = mix(u_fromXY.x + u_fromWH.x, u_toXY.x + u_toWH.x, neck);
 
-  vec2 screen = vec2(mix(left, right, a_pos.x), y);
+  // Rotate the result back from the "dock is below" frame to the screen.
+  vec2 f = vec2(mix(left, right, p.x), y);
+  vec2 screen = f;
+  if (u_dir == 1.0) screen = vec2(-f.y, f.x);
+  else if (u_dir == 2.0) screen = vec2(f.y, f.x);
+
   vec2 clip = screen / u_res * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
   v_uv = a_pos;
@@ -82,6 +94,17 @@ void main() {
 `;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+export type DockSide = "bottom" | "left" | "right";
+const DIR: Record<DockSide, number> = { bottom: 0, left: 1, right: 2 };
+type Box = { x: number; y: number; w: number; h: number };
+
+// Rotate a screen box into the shader's "dock is below" frame (the inverse of the shader's last step).
+function toFrame(box: Box, side: DockSide): Box {
+  if (side === "left") return { x: box.y, y: -(box.x + box.w), w: box.h, h: box.w };
+  if (side === "right") return { x: box.y, y: box.x, w: box.h, h: box.w };
+  return box;
+}
 
 function compile(gl: WebGLRenderingContext, type: number, source: string) {
   const shader = gl.createShader(type)!;
@@ -423,6 +446,8 @@ const WINDOWS: { id: WinId; app: string; title: string; theme: Theme; ratio: num
   },
 ];
 
+const DOCK_CLEARANCE = 84; // px kept free for a side dock
+
 type Engine = {
   goal: number; // 0 = open, 1 = at its target
   progress: number;
@@ -460,6 +485,14 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
   const [slotOpen, setSlotOpen] = useState<Record<WinId, boolean>>({ player: false, terminal: false, calendar: false });
   const [zoomed, setZoomed] = useState<Record<WinId, boolean>>({ player: false, terminal: false, calendar: false });
   const [order, setOrder] = useState<WinId[]>(["calendar", "terminal", "player"]);
+  const [side, setSide] = useState<DockSide>("bottom");
+  const sideRef = useRef<DockSide>("bottom");
+  const [viewMenu, setViewMenu] = useState(false);
+  const chooseSide = (next: DockSide) => {
+    sideRef.current = next;
+    setSide(next);
+    setViewMenu(false);
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -513,18 +546,20 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
       toXY: u("u_toXY"),
       toWH: u("u_toWH"),
       progress: u("u_progress"),
+      dir: u("u_dir"),
     };
     gl.uniform1f(u("u_radius"), RADIUS);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const startedAt = performance.now();
+    let startedAt = -1;
     let raf = 0;
-    let last = performance.now();
+    let last = -1;
 
     const render = (now: number) => {
       raf = requestAnimationFrame(render);
+      if (startedAt < 0) startedAt = last = now; // timestamps come from the frame itself
       const dt = now - last;
       last = now;
       const t = (now - startedAt) / 1000;
@@ -583,12 +618,16 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, layer.paint);
 
         // Land on a box with the window's own shape, centred in the slot or icon.
+        const side = sideRef.current;
         const bw = Math.max(b.width, 1);
         const bh = Math.max(Math.min(b.height || bw, bw * win.ratio), 1);
-        gl.uniform2f(uni.fromXY, a.left, a.top);
-        gl.uniform2f(uni.fromWH, a.width, a.height);
-        gl.uniform2f(uni.toXY, b.left, b.top + ((b.height || bw) - bh) / 2);
-        gl.uniform2f(uni.toWH, bw, bh);
+        const from = toFrame({ x: a.left, y: a.top, w: a.width, h: a.height }, side);
+        const to = toFrame({ x: b.left, y: b.top + ((b.height || bw) - bh) / 2, w: bw, h: bh }, side);
+        gl.uniform1f(uni.dir, DIR[side]);
+        gl.uniform2f(uni.fromXY, from.x, from.y);
+        gl.uniform2f(uni.fromWH, from.w, from.h);
+        gl.uniform2f(uni.toXY, to.x, to.y);
+        gl.uniform2f(uni.toWH, to.w, to.h);
         gl.uniform1f(uni.progress, clamp01(state.progress));
         gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
       }
@@ -690,7 +729,52 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
       <header className="absolute inset-x-0 top-0 z-30 flex h-7 items-center justify-between bg-black/25 px-4 text-[13px] font-medium text-white/90 backdrop-blur-xl">
         <nav aria-label="Menu" className="flex items-center gap-5">
           <span className="font-semibold">{WINDOWS.find((win) => win.id === order[order.length - 1])?.app}</span>
-          {["File", "Edit", "View", "Window", "Help"].map((item) => (
+          {["File", "Edit"].map((item) => (
+            <span key={item} className="text-white/85">
+              {item}
+            </span>
+          ))}
+          {/* View menu: choose which edge the dock sits on. */}
+          <div className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={viewMenu}
+              onClick={() => setViewMenu((open) => !open)}
+              className={`-mx-2 rounded-[5px] px-2 py-[1px] text-white/85 outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${viewMenu ? "bg-white/20" : ""}`}
+            >
+              View
+            </button>
+            {viewMenu ? (
+              <>
+                <div aria-hidden="true" className="fixed inset-0" onClick={() => setViewMenu(false)} />
+                <div
+                  role="menu"
+                  aria-label="Dock position"
+                  className="absolute top-[calc(100%+4px)] -left-2 z-40 w-52 rounded-[9px] border border-white/15 bg-[#2b2b30]/85 p-[5px] text-[13px] shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setViewMenu(false);
+                  }}
+                >
+                  <p className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold text-white/45">Dock position</p>
+                  {(["left", "bottom", "right"] as DockSide[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={side === option}
+                      onClick={() => chooseSide(option)}
+                      className="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1 text-left text-white/90 outline-none hover:bg-[#3b7cf5] focus-visible:bg-[#3b7cf5]"
+                    >
+                      <span className="w-3 text-[11px]">{side === option ? "✓" : ""}</span>
+                      {option === "left" ? "Dock on Left" : option === "right" ? "Dock on Right" : "Dock on Bottom"}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+          {["Window", "Help"].map((item) => (
             <span key={item} className="text-white/85">
               {item}
             </span>
@@ -702,59 +786,66 @@ export function GenieMinimizeDemo({ src }: { src: string }) {
       <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 block h-svh w-screen" />
 
       {/* Window markers: each plane is drawn over its marker. Only the drop shadow (below the canvas)
-          and invisible hit areas over the title bar (above it) are real DOM. */}
-      {WINDOWS.map((win) => {
-        const mode = modes[win.id];
-        const z = order.indexOf(win.id);
-        return (
-          <div
-            key={win.id}
-            ref={(el) => {
-              markerRefs.current[win.id] = el;
-            }}
-            role="region"
-            aria-label={`${win.title} window`}
-            aria-hidden={mode !== "open"}
-            className="absolute transition-[width] duration-300 ease-out"
-            style={{ ...win.place, width: zoomed[win.id] ? win.zoomWidth : win.place.width, aspectRatio: `${1 / win.ratio}` }}
-            onPointerDown={() => focus(win.id)}
-          >
+          and invisible hit areas over the title bar (above it) are real DOM. The area slides aside so
+          windows start clear of a side dock. */}
+      <div
+        className="absolute inset-y-0 transition-[left,right] duration-300 ease-out"
+        style={{ left: side === "left" ? DOCK_CLEARANCE : 0, right: side === "right" ? DOCK_CLEARANCE : 0 }}
+      >
+        {WINDOWS.map((win) => {
+          const mode = modes[win.id];
+          const z = order.indexOf(win.id);
+          return (
             <div
+              key={win.id}
               ref={(el) => {
-                shadowRefs.current[win.id] = el;
+                markerRefs.current[win.id] = el;
               }}
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-[12px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.5),0_22px_60px_rgba(0,0,0,0.5),0_6px_16px_rgba(0,0,0,0.3)] transition-opacity duration-200"
-            />
-            {win.id === "player" ? <span className="sr-only">A video of colourful paint swirling in water.</span> : null}
-            {mode === "open" ? (
-              <div className="absolute inset-x-0 top-0 h-[34px] cursor-default" style={{ zIndex: 20 + z * 2 }} onPointerDown={(event) => startDrag(win.id, event)}>
-                <div
-                  className="absolute top-0 left-[8px] flex h-[34px] items-center gap-[6px]"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onMouseEnter={() => {
-                    engine.current[win.id].hover = true;
-                  }}
-                  onMouseLeave={() => {
-                    engine.current[win.id].hover = false;
-                  }}
-                >
-                  <button type="button" aria-label={`Close ${win.app}`} onClick={() => close(win.id)} className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
-                  <button type="button" aria-label={`Minimise ${win.app}`} onClick={() => minimise(win.id)} className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
-                  <button
-                    type="button"
-                    aria-label={zoomed[win.id] ? `Exit zoom ${win.app}` : `Zoom ${win.app}`}
-                    onClick={() => setZoomed((prev) => ({ ...prev, [win.id]: !prev[win.id] }))}
-                    className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                  />
+              role="region"
+              aria-label={`${win.title} window`}
+              aria-hidden={mode !== "open"}
+              className="absolute transition-[width] duration-300 ease-out"
+              style={{ ...win.place, width: zoomed[win.id] ? win.zoomWidth : win.place.width, aspectRatio: `${1 / win.ratio}` }}
+              onPointerDown={() => focus(win.id)}
+            >
+              <div
+                ref={(el) => {
+                  shadowRefs.current[win.id] = el;
+                }}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-[12px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.5),0_22px_60px_rgba(0,0,0,0.5),0_6px_16px_rgba(0,0,0,0.3)] transition-opacity duration-200"
+              />
+              {win.id === "player" ? <span className="sr-only">A video of colourful paint swirling in water.</span> : null}
+              {mode === "open" ? (
+                <div className="absolute inset-x-0 top-0 h-[34px] cursor-default" style={{ zIndex: 20 + z * 2 }} onPointerDown={(event) => startDrag(win.id, event)}>
+                  <div
+                    className="absolute top-0 left-[8px] flex h-[34px] items-center gap-[6px]"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onMouseEnter={() => {
+                      engine.current[win.id].hover = true;
+                    }}
+                    onMouseLeave={() => {
+                      engine.current[win.id].hover = false;
+                    }}
+                  >
+                    <button type="button" aria-label={`Close ${win.app}`} onClick={() => close(win.id)} className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+                    <button type="button" aria-label={`Minimise ${win.app}`} onClick={() => minimise(win.id)} className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+                    <button
+                      type="button"
+                      aria-label={zoomed[win.id] ? `Exit zoom ${win.app}` : `Zoom ${win.app}`}
+                      onClick={() => setZoomed((prev) => ({ ...prev, [win.id]: !prev[win.id] }))}
+                      className="size-[14px] cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                    />
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
 
       <GenieDock
+        side={side}
         slots={slots}
         running={running}
         onApp={onApp}

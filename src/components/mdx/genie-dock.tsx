@@ -204,6 +204,7 @@ const APPS: AppItem[] = [
 export type DockSlot = { id: string; title: string; open: boolean; minimised: boolean };
 
 export function GenieDock({
+  side = "bottom",
   slots,
   running,
   onApp,
@@ -211,6 +212,7 @@ export function GenieDock({
   iconElements,
   slotElements,
 }: {
+  side?: "bottom" | "left" | "right";
   slots: DockSlot[];
   running: Record<string, boolean>;
   // Return true if the app handled the click (it opened, restored or focused a window).
@@ -220,50 +222,68 @@ export function GenieDock({
   slotElements: RefObject<Record<string, HTMLElement | null>>;
 }) {
   const now = useNow();
+  const vertical = side !== "bottom";
   const items: Item[] = [...APPS, { kind: "divider" }, ...slots.map((slot) => ({ kind: "slot" as const, id: slot.id, title: slot.title })), { kind: "trash" }];
   const cellRefs = useRef<(HTMLElement | null)[]>([]);
   const iconRefs = useRef<(HTMLElement | null)[]>([]);
   const tipRefs = useRef<(HTMLElement | null)[]>([]);
   const pointerRef = useRef<number | null>(null);
   const itemsRef = useRef(items);
+  const sideRef = useRef(side);
   const slotOpenRef = useRef<Record<string, boolean>>({});
   const [hovered, setHovered] = useState<number | null>(null);
 
   useEffect(() => {
     itemsRef.current = items;
+    sideRef.current = side;
     slotOpenRef.current = Object.fromEntries(slots.map((slot) => [slot.id, slot.open]));
   });
 
   // One frame loop eases every icon toward its target size, so the lens glides instead of snapping.
+  // Along a bottom dock the lens follows the pointer's x; along a side dock, its y.
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sizes: number[] = [];
     let raf = 0;
     const loop = () => {
       raf = requestAnimationFrame(loop);
-      const x = pointerRef.current;
+      const pointer = pointerRef.current;
+      const isVertical = sideRef.current !== "bottom";
       itemsRef.current.forEach((item, i) => {
         const cell = cellRefs.current[i];
         if (!cell || item.kind === "divider") return;
         const base = item.kind === "slot" ? (slotOpenRef.current[item.id] ? ICON : 0) : ICON;
         if (sizes[i] === undefined) sizes[i] = base;
         let target = base;
-        if (x !== null && base > 0) {
+        if (pointer !== null && base > 0) {
           const r = cell.getBoundingClientRect();
-          const t = Math.max(0, 1 - Math.abs(x - (r.left + r.width / 2)) / REACH);
+          const centre = isVertical ? r.top + r.height / 2 : r.left + r.width / 2;
+          const t = Math.max(0, 1 - Math.abs(pointer - centre) / REACH);
           target = base * (1 + MAGNIFY * (0.5 - 0.5 * Math.cos(t * Math.PI)));
         }
         sizes[i] = motion.matches ? target : sizes[i] + (target - sizes[i]) * EASE;
         if (Math.abs(target - sizes[i]) < 0.05) sizes[i] = target;
         const size = sizes[i];
-        cell.style.width = `${size}px`;
+        // The cell grows along the dock; the icon grows out of the shelf toward the screen.
+        if (isVertical) {
+          cell.style.height = `${size}px`;
+          cell.style.width = `${ICON + PAD}px`;
+        } else {
+          cell.style.width = `${size}px`;
+          cell.style.height = `${ICON + PAD}px`;
+        }
         const icon = iconRefs.current[i];
         if (icon) {
           icon.style.width = `${size}px`;
           icon.style.height = `${size}px`;
         }
         const tip = tipRefs.current[i];
-        if (tip) tip.style.bottom = `${size + 12}px`;
+        if (tip) {
+          tip.style.bottom = tip.style.left = tip.style.right = "";
+          if (sideRef.current === "bottom") tip.style.bottom = `${size + 12}px`;
+          else if (sideRef.current === "left") tip.style.left = `${size + 16}px`;
+          else tip.style.right = `${size + 16}px`;
+        }
       });
     };
     raf = requestAnimationFrame(loop);
@@ -275,15 +295,26 @@ export function GenieDock({
     if (!icon || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     icon.style.animation = "none";
     void icon.offsetWidth; // restart the animation
-    icon.style.animation = "genie-dock-bounce 1.1s cubic-bezier(0.3, 0.7, 0.4, 1)";
+    const name = side === "bottom" ? "genie-dock-bounce" : side === "left" ? "genie-dock-bounce-right" : "genie-dock-bounce-left";
+    icon.style.animation = `${name} 1.1s cubic-bezier(0.3, 0.7, 0.4, 1)`;
   };
+
+  // Where the icon sits in its cell, and where the running dot and label go, for each side.
+  const iconPlace = side === "bottom" ? "bottom-[7px] left-1/2 -translate-x-1/2" : side === "left" ? "left-[7px] top-1/2 -translate-y-1/2" : "right-[7px] top-1/2 -translate-y-1/2";
+  const dotPlace = side === "bottom" ? "bottom-[1px] left-1/2 -translate-x-1/2" : side === "left" ? "left-[1px] top-1/2 -translate-y-1/2" : "right-[1px] top-1/2 -translate-y-1/2";
+  const tipPlace = side === "bottom" ? "left-1/2 -translate-x-1/2" : "top-1/2 -translate-y-1/2";
+  const cellSize = (width: number) => (vertical ? { width: ICON + PAD, height: width } : { width, height: ICON + PAD });
 
   return (
     <nav
       aria-label="Dock"
-      className="absolute inset-x-0 bottom-2 z-0 flex justify-center px-4"
+      className={
+        side === "bottom"
+          ? "absolute inset-x-0 bottom-2 z-0 flex justify-center px-4"
+          : `absolute inset-y-0 top-7 z-0 flex items-center py-4 ${side === "left" ? "left-2" : "right-2"}`
+      }
       onMouseMove={(event) => {
-        pointerRef.current = event.clientX;
+        pointerRef.current = vertical ? event.clientY : event.clientX;
       }}
       onMouseLeave={() => {
         pointerRef.current = null;
@@ -293,21 +324,39 @@ export function GenieDock({
       <style>{`
         @keyframes genie-dock-bounce {
           0%, 100% { transform: translateY(0); }
-          18% { transform: translateY(-46%); }
-          36% { transform: translateY(0); }
-          52% { transform: translateY(-24%); }
-          68% { transform: translateY(0); }
+          18% { transform: translateY(-46%); } 36% { transform: translateY(0); }
+          52% { transform: translateY(-24%); } 68% { transform: translateY(0); }
           80% { transform: translateY(-8%); }
         }
+        @keyframes genie-dock-bounce-right {
+          0%, 100% { transform: translateX(0); }
+          18% { transform: translateX(46%); } 36% { transform: translateX(0); }
+          52% { transform: translateX(24%); } 68% { transform: translateX(0); }
+          80% { transform: translateX(8%); }
+        }
+        @keyframes genie-dock-bounce-left {
+          0%, 100% { transform: translateX(0); }
+          18% { transform: translateX(-46%); } 36% { transform: translateX(0); }
+          52% { transform: translateX(-24%); } 68% { transform: translateX(0); }
+          80% { transform: translateX(-8%); }
+        }
       `}</style>
-      {/* The glass shelf keeps a fixed height; magnified icons rise out of it. */}
+      {/* The glass shelf keeps a fixed thickness; magnified icons rise out of it toward the screen. */}
       <div
-        className="relative flex items-end rounded-[20px] border border-white/25 bg-white/18 shadow-[0_12px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-2xl backdrop-saturate-[1.8]"
-        style={{ height: ICON + PAD * 2, paddingInline: PAD - 2 }}
+        className={`relative flex rounded-[20px] border border-white/25 bg-white/18 shadow-[0_12px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-2xl backdrop-saturate-[1.8] ${
+          vertical ? `flex-col ${side === "left" ? "items-start" : "items-end"}` : "items-end"
+        }`}
+        style={vertical ? { width: ICON + PAD * 2, paddingBlock: PAD - 2 } : { height: ICON + PAD * 2, paddingInline: PAD - 2 }}
       >
         {items.map((item, i) => {
           if (item.kind === "divider") {
-            return <span key="divider" aria-hidden="true" className="mx-[6px] mb-[6px] h-[78%] w-px self-end bg-white/30" />;
+            return (
+              <span
+                key="divider"
+                aria-hidden="true"
+                className={vertical ? `my-[6px] h-px w-[78%] bg-white/30 ${side === "left" ? "ml-[6px]" : "mr-[6px]"}` : "mx-[6px] mb-[6px] h-[78%] w-px self-end bg-white/30"}
+              />
+            );
           }
           const label = item.kind === "app" ? item.name : item.kind === "trash" ? "Trash" : item.title;
           const tip =
@@ -316,8 +365,8 @@ export function GenieDock({
                 ref={(el) => {
                   tipRefs.current[i] = el;
                 }}
-                className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 rounded-md border border-white/10 bg-[#2a2a2e]/90 px-2.5 py-[3px] text-[12px] whitespace-nowrap text-white/95 shadow-lg"
-                style={{ bottom: ICON + 12 }}
+                className={`pointer-events-none absolute z-10 rounded-md border border-white/10 bg-[#2a2a2e]/90 px-2.5 py-[3px] text-[12px] whitespace-nowrap text-white/95 shadow-lg ${tipPlace}`}
+                style={side === "bottom" ? { bottom: ICON + 12 } : side === "left" ? { left: ICON + 16 } : { right: ICON + 16 }}
               >
                 {label}
               </span>
@@ -341,10 +390,10 @@ export function GenieDock({
                 disabled={!slot?.minimised}
                 aria-label={`Restore ${item.title}`}
                 className="relative shrink-0 cursor-default outline-none focus-visible:[&>span]:ring-2 focus-visible:[&>span]:ring-white/70"
-                style={{ width: 0, height: ICON + PAD }}
+                style={cellSize(0)}
               >
                 {slot?.minimised && tip}
-                <span ref={iconRef} className="absolute bottom-[7px] left-1/2 flex -translate-x-1/2 items-center" style={{ width: 0, height: 0 }}>
+                <span ref={iconRef} className={`absolute flex items-center ${iconPlace}`} style={{ width: 0, height: 0 }}>
                   {/* A minimised window lands on this box (its aspect is set by the window). */}
                   <div
                     ref={(el) => {
@@ -371,7 +420,7 @@ export function GenieDock({
                 if (!handled || (item.kind === "app" && !running[item.name])) bounce(i);
               }}
               className="relative shrink-0 cursor-default outline-none focus-visible:[&>span]:ring-2 focus-visible:[&>span]:ring-white/70"
-              style={{ width: ICON, height: ICON + PAD }}
+              style={cellSize(ICON)}
             >
               {tip}
               <span
@@ -379,14 +428,14 @@ export function GenieDock({
                   iconRef(el);
                   if (item.kind === "app") iconElements.current[item.name] = el;
                 }}
-                className="absolute bottom-[7px] left-1/2 block -translate-x-1/2 rounded-[22%] drop-shadow-[0_3px_5px_rgba(0,0,0,0.3)]"
+                className={`absolute block rounded-[22%] drop-shadow-[0_3px_5px_rgba(0,0,0,0.3)] ${iconPlace}`}
                 style={{ width: ICON, height: ICON }}
               >
                 {item.kind === "app" ? item.icon(now) : <TrashIcon />}
               </span>
               <span
                 aria-hidden="true"
-                className={`absolute bottom-[1px] left-1/2 size-[4px] -translate-x-1/2 rounded-full transition-colors ${isRunning ? "bg-white/90 shadow-[0_0_4px_rgba(255,255,255,0.7)]" : "bg-transparent"}`}
+                className={`absolute size-[4px] rounded-full transition-colors ${dotPlace} ${isRunning ? "bg-white/90 shadow-[0_0_4px_rgba(255,255,255,0.7)]" : "bg-transparent"}`}
               />
             </button>
           );
