@@ -10,6 +10,8 @@ const MAGNIFY = 0.62; // extra scale right under the pointer
 const REACH = 150; // how far the lens spreads, in CSS px
 const EASE = 0.22; // how quickly sizes chase their target each frame (0..1)
 const PAD = 7;
+const SLOT_GAP = 10; // space between minimised windows (5px inset each side)
+const SLOT_ASPECT = 10 / 16; // height / width of a minimised window's slot
 
 // ---------- clock / date, client-only so server and client markup match ----------
 
@@ -265,8 +267,11 @@ export function GenieDock({
         if (Math.abs(target - sizes[i]) < 0.05) sizes[i] = target;
         const size = sizes[i];
         // The cell grows along the dock; the icon grows out of the shelf toward the screen.
+        // A minimised window is wider than tall, so along a side dock its cell only needs the
+        // thumbnail's height plus the gap, not a full square.
+        const along = isVertical && item.kind === "slot" && size > 0 ? Math.max(0, (size - SLOT_GAP) * SLOT_ASPECT + SLOT_GAP) : size;
         if (isVertical) {
-          cell.style.height = `${size}px`;
+          cell.style.height = `${along}px`;
           cell.style.width = `${ICON + PAD}px`;
         } else {
           cell.style.width = `${size}px`;
@@ -275,7 +280,7 @@ export function GenieDock({
         const icon = iconRefs.current[i];
         if (icon) {
           icon.style.width = `${size}px`;
-          icon.style.height = `${size}px`;
+          icon.style.height = `${isVertical ? along : size}px`;
         }
         const tip = tipRefs.current[i];
         if (tip) {
