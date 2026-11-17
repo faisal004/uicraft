@@ -1,0 +1,43 @@
+---
+title: Liquid Glass
+seoTitle: "Liquid Glass Lens Effect in WebGL: Refraction and Chromatic Aberration"
+description: A drag-around glass lens that magnifies the page behind it, bends it hardest at the rim, and splits the edge into colour, drawn with one WebGL fragment shader.
+publishedAt: 2026-11-17
+category: Shader
+preview: liquid-glass
+concept: webgl
+kind: craft
+order: 16
+---
+
+<LiquidGlassDemo />
+
+## What is a liquid glass effect?
+
+Liquid glass is a piece of interface that looks like a thick, clear lens sitting on top of the page. It doesn't blur what's behind it the way frosted glass does. It bends it. Content under the middle of the lens looks slightly magnified, and content near the edge gets pulled and stretched, the way the rim of a glass of water warps whatever is behind it. Apple's Liquid Glass design language is built around this look.
+
+## How this liquid glass works
+
+The page behind the glass is painted once into a 2D canvas and handed to WebGL as a texture. After that, one fragment shader draws every pixel of the canvas, every frame:
+
+1. **Find the lens.** The lens is a rounded rectangle described by a signed distance function. For any pixel it returns how far that pixel is from the outline: negative inside, positive outside. Pill, circle, and card are the same function with different sizes and corner radii.
+2. **Outside the lens,** the shader copies the page and darkens it slightly where a soft shadow falls just below the glass.
+3. **Inside the lens,** it reads the page from a shifted spot instead. Everything is magnified a little, and near the rim the sample is pushed inward along the outline's normal. The push grows with the cube of the distance from the edge, so the middle stays calm and the rim bends hard.
+4. **Split the colours.** Red, green, and blue are each read with a slightly different push. That gap is the rainbow fringe at the edge, and the Rainbow slider sets its size.
+5. **Light it.** A highlight on the top-left of the rim, a weaker one opposite, and a thin bright outline make it read as a solid object.
+
+The lens follows your pointer on a damped spring, and stretches in the direction it's moving, so a fast fling makes it wobble.
+
+## Things to try
+
+- Drag the glass over the big "Refract" headline and watch the letters bulge at the rim, then park it on the edge of the red circle to see the colours split.
+- Fling it and let go to see it stretch and settle.
+- Switch between Pill, Circle, and Card. The lens morphs between shapes.
+- Turn Refraction to 0 to see only the magnification, then turn up Rainbow to exaggerate the fringe.
+- Click the demo and use the arrow keys to move the lens. Hold Shift for bigger steps.
+
+With reduced motion turned on, the lens stays where you put it: no drifting and no wobble.
+
+## Related
+
+[Genie Effect](/craft/webgl/genie-minimize) uses the same signed distance idea to keep a window's rounded corners smooth while WebGL squeezes it into the Dock.
