@@ -1,8 +1,8 @@
-import { getCraftContent } from "@/lib/content";
+import { getCraftsByConcept } from "@/lib/content";
 import { author, siteConfig, siteUrl } from "@/lib/site";
 
 export function GET() {
-  const crafts = getCraftContent();
+  const groups = getCraftsByConcept();
 
   const text = [
     `# ${siteConfig.name}`,
@@ -11,12 +11,19 @@ export function GET() {
     "",
     `Made by ${author.name} (${author.url}). Each craft page has a live demo, one copy/paste component, and a beginner tutorial.`,
     "",
-    "## Crafts",
+    "Crafts are grouped by concept, the main technique each one is built with.",
     "",
-    ...crafts.map(
-      (craft) =>
-        `- [${craft.seoTitle ?? craft.title}](${new URL(`/craft/${craft.slug}`, siteUrl).href}): ${craft.description}`,
-    ),
+    ...groups.flatMap((group) => [
+      `## ${group.title}`,
+      "",
+      `${group.description} All ${group.title} crafts: ${new URL(`/craft/${group.slug}`, siteUrl).href}`,
+      "",
+      ...group.crafts.map(
+        (craft) =>
+          `- [${craft.seoTitle ?? craft.title}](${new URL(craft.href, siteUrl).href}): ${craft.description}`,
+      ),
+      "",
+    ]),
     "",
     "## Optional",
     "",

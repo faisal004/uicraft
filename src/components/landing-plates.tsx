@@ -44,7 +44,7 @@ export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
                 <div className="relative grid min-h-0 flex-1 place-items-center overflow-hidden bg-(--craft-muted-surface)/60 p-4">
                   {plate.demo}
                 </div>
-                <Link href={`/craft/${craft.slug}`} className={plateCaptionClassName}>
+                <Link href={craft.href} className={plateCaptionClassName}>
                   <span className="truncate">
                     {String(index + 1).padStart(2, "0")} · {craft.title}{" "}
                     <span className="text-foreground/35">{plate.use}</span>

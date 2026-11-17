@@ -10,7 +10,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open <http://localhost:3000>. The craft studies are at `/craft`.
+Open <http://localhost:3000>. The craft studies are at `/craft`, grouped by concept (the technique behind them) at `/craft/<concept>/<slug>`. Concepts live in `src/lib/concepts.ts`; each craft names its `concept` in frontmatter. Old `/craft/<slug>` URLs redirect permanently via `next.config.ts`.
 
 ## Configuration
 
