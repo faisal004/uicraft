@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getCraftContent } from "@/lib/content";
+import { getCraftContent, getCraftsByConcept } from "@/lib/content";
 import { siteUrl } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -25,12 +25,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
       images: [new URL("/opengraph-image", siteUrl).href],
     },
+    ...getCraftsByConcept().map((group) => ({
+      url: new URL(`/craft/${group.slug}`, siteUrl).href,
+      lastModified: group.crafts
+        .map((craft) => craft.updatedAt)
+        .filter((date): date is string => Boolean(date))
+        .sort()
+        .at(-1),
+      changeFrequency: "weekly" as const,
+      priority: 0.85,
+    })),
     ...crafts.map((craft) => ({
-      url: new URL(`/craft/${craft.slug}`, siteUrl).href,
+      url: new URL(craft.href, siteUrl).href,
       lastModified: craft.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.8,
-      images: [new URL(`/craft/${craft.slug}/opengraph-image`, siteUrl).href],
+      images: [new URL(`${craft.href}/opengraph-image`, siteUrl).href],
     })),
   ];
 }

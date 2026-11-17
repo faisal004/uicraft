@@ -20,7 +20,7 @@ export function GET() {
 
   const items = crafts
     .map((craft) => {
-      const url = new URL(`/craft/${craft.slug}`, siteUrl).href;
+      const url = new URL(craft.href, siteUrl).href;
       const publicationDate = craft.publishedAt
         ? new Date(`${craft.publishedAt}T00:00:00Z`).toUTCString()
         : undefined;

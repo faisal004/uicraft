@@ -7,6 +7,8 @@ import { CraftBlock } from "@/components/mdx/craft-block";
 import { PageToc, type TocItem } from "@/components/mdx/page-toc";
 import { ShareButton } from "@/components/share-button";
 import { mdxComponents } from "@/components/mdx/registry";
+import Link from "next/link";
+import { getConcept } from "@/lib/concepts";
 import type { ContentDocument } from "@/lib/content";
 
 function mdxLinkTarget(href?: string) {
@@ -156,6 +158,7 @@ export function MdxPage({ document }: { document: ContentDocument }) {
     );
   }
 
+  const concept = document.concept ? getConcept(document.concept) : undefined;
   const sections = splitCraftSections(document.body);
   const toc: TocItem[] = [{ id: "demo", title: "Demo", depth: 2 }, ...sections.toc];
   const publishedAt = document.publishedAt
@@ -173,15 +176,25 @@ export function MdxPage({ document }: { document: ContentDocument }) {
               <h1 className="font-heading text-balance text-4xl leading-tight tracking-tight sm:text-[2.75rem]">
                 {document.title}
               </h1>
-              <ShareButton path={`/craft/${document.slug}`} />
+              <ShareButton path={document.href} />
             </div>
             <p className="mt-3 max-w-2xl text-pretty text-base leading-7 text-(--craft-muted)">
               {document.description}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-foreground/60">
-              <span className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1">
-                {document.category ?? "Study"}
-              </span>
+              {concept ? (
+                <Link
+                  href={`/craft/${concept.slug}`}
+                  className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1 hover:border-(--craft-accent) hover:text-(--craft-accent)"
+                >
+                  {concept.title}
+                </Link>
+              ) : null}
+              {document.category ? (
+                <span className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1">
+                  {document.category}
+                </span>
+              ) : null}
               {publishedAt ? (
                 <time
                   dateTime={document.publishedAt}

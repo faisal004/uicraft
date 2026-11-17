@@ -196,7 +196,7 @@ export function ThanosSearchDemo() {
     <div ref={pageRef} className="min-h-dvh bg-white font-[Arial,sans-serif] text-[#202124]">
       <header className="border-b border-[#dadce0]">
         <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-5 py-5 sm:gap-8 sm:px-10">
-          <Link href="/craft/thanos-snap" className="shrink-0 text-[22px] font-medium tracking-[-0.08em] sm:text-[27px]" aria-label="Back to UICraft Thanos Snap">
+          <Link href="/craft/canvas/thanos-snap" className="shrink-0 text-[22px] font-medium tracking-[-0.08em] sm:text-[27px]" aria-label="Back to UICraft Thanos Snap">
             <span className="text-[#4285f4]">G</span><span className="text-[#ea4335]">o</span><span className="text-[#fbbc05]">o</span><span className="text-[#4285f4]">g</span><span className="text-[#34a853]">l</span><span className="text-[#ea4335]">e</span>
           </Link>
           <div className="flex h-12 max-w-[690px] flex-1 items-center gap-3 rounded-full border border-[#dadce0] px-4 shadow-[0_1px_4px_#20212412] sm:h-14 sm:px-6">
@@ -204,7 +204,7 @@ export function ThanosSearchDemo() {
             <Mic className="size-5 shrink-0 text-[#4285f4]" aria-hidden="true" />
             <Search className="size-5 shrink-0 text-[#4285f4]" aria-hidden="true" />
           </div>
-          <Link href="/craft/thanos-snap" className="ml-auto hidden items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] md:inline-flex"><ArrowLeft className="size-4" /> Back to craft</Link>
+          <Link href="/craft/canvas/thanos-snap" className="ml-auto hidden items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] md:inline-flex"><ArrowLeft className="size-4" /> Back to craft</Link>
         </div>
         <nav aria-label="Search categories" className="mx-auto flex max-w-[1440px] gap-6 overflow-x-auto px-5 text-sm text-[#5f6368] sm:pl-[150px]">
           <span className="flex shrink-0 items-center gap-1.5 border-b-[3px] border-[#1a73e8] px-1 pb-3 text-[#1a73e8]"><Search className="size-4" /> All</span>

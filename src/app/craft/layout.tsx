@@ -7,17 +7,17 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCraftContent } from "@/lib/content";
+import { getCraftsByConcept } from "@/lib/content";
 
 export default function CraftLayout({ children }: { children: ReactNode }) {
-  const crafts = getCraftContent();
+  const groups = getCraftsByConcept();
 
   return (
     <SidebarProvider
       className="min-h-dvh bg-(--craft-sidebar)"
       style={{ "--sidebar-width": "15rem" } as CSSProperties}
     >
-      <ExperimentsSidebar crafts={crafts} />
+      <ExperimentsSidebar groups={groups} />
       <SidebarInset className="bg-(--craft-page) text-foreground">
         <header className="flex h-12 shrink-0 items-center gap-3 border-b border-foreground/10 px-4 md:hidden">
           <SidebarTrigger aria-label="Open experiments navigation" />

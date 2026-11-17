@@ -1,3 +1,4 @@
+import { getConcept } from "@/lib/concepts";
 import { getContentBySlug } from "@/lib/content";
 import { createSocialImage, socialImageSize } from "@/lib/social-image";
 
@@ -8,7 +9,7 @@ export const contentType = "image/png";
 export default async function OpenGraphImage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ concept: string; slug: string }>;
 }) {
   const { slug } = await params;
   const document = getContentBySlug(slug);
@@ -18,6 +19,6 @@ export default async function OpenGraphImage({
     description:
       document?.description ??
       "Interface animation and interaction studies, rebuilt from scratch.",
-    category: document?.category,
+    category: (document?.concept && getConcept(document.concept)?.title) ?? document?.category,
   });
 }

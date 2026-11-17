@@ -18,11 +18,11 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { ContentEntry } from "@/lib/content";
+import type { ConceptGroup } from "@/lib/content";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
-export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
+export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const closeMobileSidebar = () => {
@@ -65,38 +65,52 @@ export function ExperimentsSidebar({ crafts }: { crafts: ContentEntry[] }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4 p-0">
-          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-foreground/45">
-            Experiments
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {crafts.map((craft, index) => {
-                const href = `/craft/${craft.slug}`;
-                const isActive = pathname === href;
+        {groups.map((group) => {
+          const conceptHref = `/craft/${group.slug}`;
+          const isConceptActive = pathname === conceptHref;
 
-                return (
-                  <SidebarMenuItem key={craft.slug}>
-                    <SidebarMenuButton
-                      render={<Link href={href} />}
-                      onClick={closeMobileSidebar}
-                      isActive={isActive}
-                      className={cn(
-                        "h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)",
-                        isActive && "text-(--craft-accent)",
-                      )}
-                    >
-                      <span className="w-4 font-mono text-[10px] tabular-nums text-current opacity-40">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span>{craft.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          return (
+            <SidebarGroup key={group.slug} className="mt-4 p-0">
+              <SidebarGroupLabel
+                render={<Link href={conceptHref} />}
+                onClick={closeMobileSidebar}
+                aria-current={isConceptActive ? "page" : undefined}
+                className={cn(
+                  "mb-0.5 h-6 px-2 text-[11px] font-medium text-foreground/45 hover:text-(--craft-accent)",
+                  isConceptActive && "text-(--craft-accent)",
+                )}
+              >
+                {group.title}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.crafts.map((craft, index) => {
+                    const isActive = pathname === craft.href;
+
+                    return (
+                      <SidebarMenuItem key={craft.slug}>
+                        <SidebarMenuButton
+                          render={<Link href={craft.href} />}
+                          onClick={closeMobileSidebar}
+                          isActive={isActive}
+                          className={cn(
+                            "h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)",
+                            isActive && "text-(--craft-accent)",
+                          )}
+                        >
+                          <span className="w-4 font-mono text-[10px] tabular-nums text-current opacity-40">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <span>{craft.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
       <SidebarFooter className="grid grid-cols-3 gap-2 border-t border-foreground/10 p-2">
         <ThemeToggle className={footerAction} label="Theme" />

@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
+import { concepts, getConcept } from "@/lib/concepts";
+
 const contentDirectory = path.join(process.cwd(), "src/content/craft");
 
 export type ContentEntry = {
@@ -17,6 +19,10 @@ export type ContentEntry = {
   preview?: string;
   order: number;
   kind: "introduction" | "craft";
+  /** Concept slug. Every craft has one; the introduction does not. */
+  concept?: string;
+  /** Canonical path, e.g. `/craft/webgl/genie-minimize`. */
+  href: string;
 };
 
 export type ContentDocument = ContentEntry & {
@@ -37,6 +43,14 @@ function readDocument(filename: string): ContentDocument {
   }
 
   const publishedAt = toDate(data.publishedAt);
+  const kind = data.kind === "introduction" ? "introduction" : "craft";
+  const concept = data.concept ? String(data.concept) : undefined;
+
+  if (kind === "craft" && (!concept || !getConcept(concept))) {
+    throw new Error(
+      `${filename} needs a \`concept\` from src/lib/concepts.ts (got ${concept ?? "nothing"}).`,
+    );
+  }
 
   return {
     slug,
@@ -48,7 +62,9 @@ function readDocument(filename: string): ContentDocument {
     category: data.category ? String(data.category) : undefined,
     preview: data.preview ? String(data.preview) : undefined,
     order: Number(data.order ?? 999),
-    kind: data.kind === "introduction" ? "introduction" : "craft",
+    kind,
+    concept,
+    href: kind === "craft" ? `/craft/${concept}/${slug}` : "/craft",
     body: content,
   };
 }
@@ -69,6 +85,8 @@ export function getAllContent(): ContentEntry[] {
       preview: document.preview,
       order: document.order,
       kind: document.kind,
+      concept: document.concept,
+      href: document.href,
     }))
     .sort((a, b) => a.order - b.order);
 }
@@ -85,4 +103,18 @@ export function getContentBySlug(slug: string): ContentDocument | undefined {
   }
 
   return readDocument(filename);
+}
+
+export type ConceptGroup = (typeof concepts)[number] & { crafts: ContentEntry[] };
+
+export function getCraftsByConcept(): ConceptGroup[] {
+  const crafts = getCraftContent();
+
+  return [...concepts]
+    .sort((a, b) => a.order - b.order)
+    .map((concept) => ({
+      ...concept,
+      crafts: crafts.filter((craft) => craft.concept === concept.slug),
+    }))
+    .filter((group) => group.crafts.length > 0);
 }

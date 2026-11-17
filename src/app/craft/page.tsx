@@ -6,7 +6,7 @@ import { getContentBySlug, getCraftContent } from "@/lib/content";
 import { author, siteConfig, siteUrl } from "@/lib/site";
 
 const description =
-  "Every UI animation and interaction rebuilt on UICraft: canvas effects, LED displays, view transitions, and more, each with source code and a tutorial.";
+  "Every UI animation and interaction rebuilt on UICraft, grouped by technique: design engineering, CSS, SVG, Canvas, and WebGL. Each one has source code and a tutorial.";
 
 export const metadata: Metadata = {
   title: "UI Animation & Interaction Experiments",
@@ -54,8 +54,8 @@ export default function CraftPage() {
             "@type": "TechArticle",
             headline: craft.seoTitle ?? craft.title,
             description: craft.description,
-            url: new URL(`/craft/${craft.slug}`, siteUrl).href,
-            image: new URL(`/craft/${craft.slug}/opengraph-image`, siteUrl).href,
+            url: new URL(craft.href, siteUrl).href,
+            image: new URL(`${craft.href}/opengraph-image`, siteUrl).href,
             datePublished: craft.publishedAt,
             dateModified: craft.updatedAt,
             author,

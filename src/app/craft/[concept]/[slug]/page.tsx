@@ -4,21 +4,34 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/json-ld";
 import { MdxPage } from "@/components/mdx/mdx-page";
 import { getContentBySlug, getCraftContent } from "@/lib/content";
+import { getConcept } from "@/lib/concepts";
 import { author, siteConfig, siteUrl } from "@/lib/site";
 
 type Props = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ concept: string; slug: string }>;
 };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
-  return getCraftContent().map(({ slug }) => ({ slug }));
+  return getCraftContent().map(({ concept, slug }) => ({ concept: concept!, slug }));
+}
+
+async function getCraft(params: Props["params"]) {
+  const { concept, slug } = await params;
+  const document = getContentBySlug(slug);
+
+  if (!document || document.kind !== "craft" || document.concept !== concept) {
+    return undefined;
+  }
+
+  return document;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const document = getContentBySlug(slug);
+  const document = await getCraft(params);
 
-  if (!document || document.kind !== "craft") {
+  if (!document) {
     return {};
   }
 
@@ -28,17 +41,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description: document.description,
     keywords: [
+      getConcept(document.concept!)?.title,
       document.category,
       "interaction design",
       "UI animation",
       "frontend craft",
     ].filter((keyword): keyword is string => Boolean(keyword)),
     alternates: {
-      canonical: `/craft/${document.slug}`,
+      canonical: document.href,
     },
     openGraph: {
       type: "article",
-      url: `/craft/${document.slug}`,
+      url: document.href,
       siteName: siteConfig.name,
       title: `${title} | UICraft`,
       description: document.description,
@@ -56,14 +70,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CraftPage({ params }: Props) {
-  const { slug } = await params;
-  const document = getContentBySlug(slug);
+  const document = await getCraft(params);
 
-  if (!document || document.kind !== "craft") {
+  if (!document) {
     notFound();
   }
 
-  const url = new URL(`/craft/${document.slug}`, siteUrl).href;
+  const concept = getConcept(document.concept!)!;
+  const conceptUrl = new URL(`/craft/${concept.slug}`, siteUrl).href;
+  const url = new URL(document.href, siteUrl).href;
 
   return (
     <>
@@ -77,7 +92,7 @@ export default async function CraftPage({ params }: Props) {
             description: document.description,
             url,
             mainEntityOfPage: url,
-            image: new URL(`/craft/${document.slug}/opengraph-image`, siteUrl).href,
+            image: new URL(`${document.href}/opengraph-image`, siteUrl).href,
             datePublished: document.publishedAt,
             dateModified: document.updatedAt,
             author,
@@ -90,8 +105,8 @@ export default async function CraftPage({ params }: Props) {
             keywords: [document.category, "interaction design", "UI animation"].filter(Boolean),
             isPartOf: {
               "@type": "CollectionPage",
-              name: "Craft",
-              url: new URL("/craft", siteUrl).href,
+              name: concept.title,
+              url: conceptUrl,
             },
           },
           {
@@ -113,6 +128,12 @@ export default async function CraftPage({ params }: Props) {
               {
                 "@type": "ListItem",
                 position: 3,
+                name: concept.title,
+                item: conceptUrl,
+              },
+              {
+                "@type": "ListItem",
+                position: 4,
                 name: document.title,
                 item: url,
               },
