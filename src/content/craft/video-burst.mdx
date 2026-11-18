@@ -1,0 +1,46 @@
+---
+title: Video Burst
+seoTitle: "Scroll-Driven Video Particle Burst in WebGL: A Hero That Shatters on Scroll"
+description: A hero video drawn as thousands of small tiles. Scroll and it bursts into drifting particles that still carry the live footage; scroll back and it pulls itself together. One WebGL vertex shader does it all.
+publishedAt: 2026-11-18
+category: Particles
+preview: video-burst
+concept: webgl
+kind: craft
+order: 17
+---
+
+<VideoBurstDemo />
+
+[Open the full page demo ↗](/demo/video-burst)
+
+## What is a video burst?
+
+A video burst is a hero video that comes apart as you scroll past it. The video isn't playing in a normal `<video>` element on the page. It's drawn as a grid of small square tiles, each one painting its own piece of the current frame. Lined up, the tiles are the video. When you scroll, they let go: the middle first, then out towards the edges, each tile flying off, swirling, floating up, and shrinking into a round dot that keeps the colour of the footage under it.
+
+Because the scroll position decides everything, it runs backwards too. Scroll up and the dots fly home and the picture closes up again.
+
+## How this video burst works
+
+1. **Hide the video and use it as a texture.** A muted, looping `<video>` plays off screen. Every frame that changes is uploaded to WebGL as a texture. The clip is one slow camera pan, so it was encoded forwards and then backwards: the camera drifts right, glides back, and ends one frame before where it started, so the loop has no visible jump.
+2. **Cover the hero with tiles.** JavaScript lays a grid of 7 px squares over the canvas and gives each one four random numbers. That grid goes into one buffer, and it's rebuilt only when the hero changes size.
+3. **Paint each tile with its piece of the video.** Each tile is drawn as a WebGL point. Every pixel inside a point reads the video at its own spot, so neighbouring tiles join up into the full picture. The crop matches `object-fit: cover`.
+4. **Send one number per frame.** The scroll position becomes a progress value from 0 to 1. The vertex shader gives each tile its own slice of that range, starting earlier in the middle and later at the edges.
+5. **Fly, swirl, lift, and come forward.** Within its slice, a tile moves away from the centre with an ease-out, rotates around the middle, drifts up, and is pushed towards or away from you so near dots spread and grow.
+6. **Turn tiles into dots.** As a tile flies, its spread over the video shrinks to a single colour and its square edge fades to a soft circle.
+
+Nothing is simulated, so there's nothing to get out of sync. Progress 0 is always the video and progress 1 is always the cloud.
+
+## Things to try
+
+- Scroll a little and watch the hole open in the middle while the edges hold.
+- Stop halfway. The loose dots keep fluttering and keep changing colour with the footage.
+- Scroll back to the top and watch the picture close up.
+- Click the hero and use the arrow keys or Page Down to scroll it.
+- Open the [full page demo](/demo/video-burst), where the page scroll drives the burst.
+
+With reduced motion turned on, the video holds on its first frame and loose dots don't flutter. Scrolling still takes it apart, since you're the one moving it.
+
+## Related
+
+[Scroll Reel Morph](/demo/scroll-reel) is another scroll-driven WebGL video: a cover that folds into a mini player. [Text to Particles](/craft/canvas/text-to-particles) does the opposite with the 2D canvas, gathering loose particles into words.

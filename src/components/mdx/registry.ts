@@ -41,6 +41,8 @@ import { GenieMinimizeDemo } from "@/components/mdx/genie-minimize";
 import { GenieMinimizeThumbnail } from "@/components/mdx/thumbnails/genie-minimize";
 import { LiquidGlassDemo } from "@/components/mdx/liquid-glass";
 import { LiquidGlassThumbnail } from "@/components/mdx/thumbnails/liquid-glass";
+import { VideoBurstDemo } from "@/components/mdx/video-burst";
+import { VideoBurstThumbnail } from "@/components/mdx/thumbnails/video-burst";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
 import { TastefulButtonThumbnail } from "@/components/mdx/thumbnails/tasteful-button";
@@ -86,6 +88,7 @@ export const mdxComponents = {
   GenieVideoFigure,
   GenieMinimizeDemo,
   LiquidGlassDemo,
+  VideoBurstDemo,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
@@ -94,6 +97,7 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "genie-video": GenieVideoThumbnail,
   "genie-minimize": GenieMinimizeThumbnail,
   "liquid-glass": LiquidGlassThumbnail,
+  "video-burst": VideoBurstThumbnail,
   "tasteful-button": TastefulButtonThumbnail,
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,
