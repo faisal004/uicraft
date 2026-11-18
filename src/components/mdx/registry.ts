@@ -41,7 +41,14 @@ import { GenieMinimizeDemo } from "@/components/mdx/genie-minimize";
 import { GenieMinimizeThumbnail } from "@/components/mdx/thumbnails/genie-minimize";
 import { LiquidGlassDemo } from "@/components/mdx/liquid-glass";
 import { LiquidGlassThumbnail } from "@/components/mdx/thumbnails/liquid-glass";
-import { PullCordDemo, PullCordStep } from "@/components/mdx/pull-cord";
+import {
+  ConstraintExplainer,
+  PullCordDemo,
+  PullCordLoop,
+  PullCordPlayground,
+  PullCordStep,
+  VerletExplainer,
+} from "@/components/mdx/pull-cord";
 import { PullCordThumbnail } from "@/components/mdx/thumbnails/pull-cord";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
@@ -90,6 +97,10 @@ export const mdxComponents = {
   LiquidGlassDemo,
   PullCordDemo,
   PullCordStep,
+  PullCordLoop,
+  PullCordPlayground,
+  VerletExplainer,
+  ConstraintExplainer,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {

@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
-import { CraftFrame } from "@/components/mdx/craft-controls";
+import { CraftFrame, RangeControl } from "@/components/mdx/craft-controls";
 import { playClick } from "@/lib/click";
 
 // Pull cord theme toggle: a light-switch string hanging from the top of the demo. The cord is a
@@ -20,10 +29,14 @@ const LENGTH = 130; // rest length of the whole cord
 const SEGMENT = LENGTH / (POINTS - 1); // rest length between two neighbouring points
 
 const STEP_MS = 1000 / 120; // the simulation always advances in 120 Hz steps
-const GRAVITY = 0.12; // px per step²
-const DAMPING = 0.985; // share of velocity kept each step
-const STIFFNESS = 0.5; // share of a length error fixed per pass
-const PASSES = 6; // constraint passes per step
+export type Physics = {
+  gravity: number; // px per step²: speed added downwards every step
+  damping: number; // share of velocity kept each step
+  stiffness: number; // share of a length error fixed per pass
+  passes: number; // constraint passes per step
+};
+
+export const PHYSICS: Physics = { gravity: 0.12, damping: 0.985, stiffness: 0.5, passes: 6 };
 
 const MAX_STRETCH = 70; // how far past its rest length the cord can be pulled
 const TRIGGER = 38; // pull past this and let go to toggle
@@ -47,15 +60,15 @@ const REST = createRope();
 const REST_END = REST[REST.length - 1];
 
 // Velocity is not stored: it is the gap between where a point is and where it was.
-function integrate(points: Point[]) {
+function integrate(points: Point[], { gravity, damping }: Physics) {
   for (let i = 1; i < points.length; i++) {
     const p = points[i];
-    const vx = (p.x - p.px) * DAMPING;
-    const vy = (p.y - p.py) * DAMPING;
+    const vx = (p.x - p.px) * damping;
+    const vy = (p.y - p.py) * damping;
     p.px = p.x;
     p.py = p.y;
     p.x += vx;
-    p.y += vy + GRAVITY;
+    p.y += vy + gravity;
   }
 }
 
@@ -66,9 +79,9 @@ function pin(p: Point, to: Vec) {
 
 // Push every pair of neighbours back towards SEGMENT apart. The anchor never moves, and while the
 // handle is held neither does the last point, so the rope between them has to stretch.
-function constrain(points: Point[], grab: Vec | null) {
+function constrain(points: Point[], grab: Vec | null, { stiffness, passes }: Physics) {
   const last = points.length - 1;
-  for (let pass = 0; pass < PASSES; pass++) {
+  for (let pass = 0; pass < passes; pass++) {
     pin(points[0], ANCHOR);
     if (grab) pin(points[last], grab);
     for (let i = 1; i <= last; i++) {
@@ -77,7 +90,7 @@ function constrain(points: Point[], grab: Vec | null) {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const distance = Math.hypot(dx, dy) || 1;
-      const pull = ((distance - SEGMENT) / distance) * STIFFNESS;
+      const pull = ((distance - SEGMENT) / distance) * stiffness;
       // How much of the fix `a` takes. A pinned point takes none of it.
       const share = i === 1 ? 0 : grab && i === last ? 1 : 0.5;
       a.x += dx * pull * share;
@@ -149,8 +162,57 @@ function setDark(dark: boolean) {
   }
 }
 
-function PullCordScene({ stage, replayKey = 0 }: { stage: Stage; replayKey?: number }) {
+// Teaching overlays for steps 4 and 5. Stretch is measured from the anchor, so the lines are arcs:
+// the handle counts as "past the trigger" anywhere outside the outer arc, not only straight down.
+function arcPath(radius: number) {
+  const spread = (55 * Math.PI) / 180;
+  const from = { x: ANCHOR.x - Math.sin(spread) * radius, y: ANCHOR.y + Math.cos(spread) * radius };
+  const to = { x: ANCHOR.x + Math.sin(spread) * radius, y: from.y };
+  return `M ${from.x.toFixed(1)} ${from.y.toFixed(1)} A ${radius} ${radius} 0 0 0 ${to.x.toFixed(1)} ${to.y.toFixed(1)}`;
+}
+
+// A spot on an arc, `degrees` to the right of straight down, for labelling it.
+function onArc(radius: number, degrees: number) {
+  const angle = (degrees * Math.PI) / 180;
+  return { x: ANCHOR.x + Math.sin(angle) * radius, y: ANCHOR.y + Math.cos(angle) * radius };
+}
+
+function Guides({ showTrigger, stretchRef }: { showTrigger: boolean; stretchRef: RefObject<SVGTextElement | null> }) {
+  return (
+    <g className="pointer-events-none font-mono" fontSize={9}>
+      <path d={arcPath(LENGTH)} fill="none" stroke="currentColor" strokeOpacity={0.35} strokeDasharray="3 4" />
+      <text {...onArc(LENGTH + 4, 32)} fill="currentColor" fillOpacity={0.6}>
+        rest
+      </text>
+      {showTrigger ? (
+        <>
+          <path d={arcPath(LENGTH + TRIGGER)} fill="none" stroke="#f97316" strokeOpacity={0.7} strokeDasharray="3 4" />
+          <text {...onArc(LENGTH + TRIGGER + 4, 28)} fill="#f97316">
+            trigger
+          </text>
+        </>
+      ) : null}
+      <text ref={stretchRef} x={WIDTH - 6} y={HEIGHT - 10} textAnchor="end" fill="currentColor" fillOpacity={0.7}>
+        stretch 0px
+      </text>
+    </g>
+  );
+}
+
+function PullCordScene({
+  stage,
+  replayKey = 0,
+  physics = PHYSICS,
+  guides = false,
+}: {
+  stage: Stage;
+  replayKey?: number;
+  physics?: Physics;
+  guides?: boolean; // draw the rest and trigger lines and a live stretch readout
+}) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const stretchRef = useRef<SVGTextElement>(null);
+  const physicsRef = useRef(physics);
   const pathRef = useRef<SVGPathElement>(null);
   const handleRef = useRef<SVGGElement>(null);
   const dotRefs = useRef<(SVGCircleElement | null)[]>([]);
@@ -165,6 +227,12 @@ function PullCordScene({ stage, replayKey = 0 }: { stage: Stage; replayKey?: num
   const armedRef = useRef(false);
   // Follow the site theme, whichever control changed it.
   const dark = useSyncExternalStore(subscribeToTheme, isDark, () => false);
+
+  // The playground changes the numbers while the rope is running.
+  useEffect(() => {
+    physicsRef.current = physics;
+    wake.current();
+  }, [physics]);
 
   const canGrab = stage >= 4;
   const canToggle = stage >= 5;
@@ -187,6 +255,9 @@ function PullCordScene({ stage, replayKey = 0 }: { stage: Stage; replayKey?: num
       const before = points[points.length - 2];
       const angle = (Math.atan2(end.y - before.y, end.x - before.x) * 180) / Math.PI - 90;
       handleRef.current?.setAttribute("transform", `translate(${end.x} ${end.y}) rotate(${angle})`);
+      if (stretchRef.current) {
+        stretchRef.current.textContent = `stretch ${Math.max(0, stretchOf(points)).toFixed(0)}px`;
+      }
       points.forEach((p, i) => {
         dotRefs.current[i]?.setAttribute("cx", String(p.x));
         dotRefs.current[i]?.setAttribute("cy", String(p.y));
@@ -207,8 +278,8 @@ function PullCordScene({ stage, replayKey = 0 }: { stage: Stage; replayKey?: num
         owed = 0;
       }
       while (owed >= STEP_MS) {
-        integrate(points);
-        if (stage >= 3) constrain(points, grab.current);
+        integrate(points, physicsRef.current);
+        if (stage >= 3) constrain(points, grab.current, physicsRef.current);
         owed -= STEP_MS;
       }
       // Step 2 has nothing holding the points, so they fall away. Hang a fresh rope once they're gone.
@@ -314,6 +385,7 @@ function PullCordScene({ stage, replayKey = 0 }: { stage: Stage; replayKey?: num
       aria-hidden={canToggle ? undefined : true}
     >
       <rect x={ANCHOR.x - 14} y={-4} width={28} height={8} rx={3} fill="currentColor" opacity={0.25} />
+      {guides && stage >= 4 ? <Guides showTrigger={canToggle} stretchRef={stretchRef} /> : null}
       <path
         ref={pathRef}
         d={ropePath(REST)}
@@ -409,7 +481,7 @@ export function PullCordStep({ step }: { step: number | string }) {
       meta={stage >= 4 ? "drag the handle" : undefined}
     >
       <div className="surface-grid relative flex h-[340px] justify-center overflow-hidden">
-        <PullCordScene stage={stage} replayKey={replayKey} />
+        <PullCordScene stage={stage} replayKey={replayKey} guides={stage >= 4} />
         {canReplay ? (
           <button
             type="button"
@@ -419,6 +491,329 @@ export function PullCordStep({ step }: { step: number | string }) {
             Replay
           </button>
         ) : null}
+      </div>
+    </CraftFrame>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Explainers for the tutorial. They teach one idea each and are not part of the toggle itself.
+
+function ExplainerButton({ onClick, children, disabled }: { onClick: () => void; children: ReactNode; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="border border-(--demo-border) bg-(--demo-bg) px-3 py-1.5 font-mono text-[11px] text-(--demo-ink) hover:bg-(--demo-bar) disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
+}
+
+function Readout({ rows }: { rows: [string, string][] }) {
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-[11px] tabular-nums">
+      {rows.map(([term, value]) => (
+        <div key={term} className="contents">
+          <dt className="text-(--demo-subtle)">{term}</dt>
+          <dd className="text-(--demo-ink)">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Arrow({ from, to, color, id }: { from: Vec; to: Vec; color: string; id: string }) {
+  if (Math.hypot(to.x - from.x, to.y - from.y) < 0.5) return null;
+  return (
+    <>
+      <defs>
+        <marker id={id} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
+        </marker>
+      </defs>
+      <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={color} strokeWidth={2} markerEnd={`url(#${id})`} />
+    </>
+  );
+}
+
+const VELOCITY_COLOR = "#3b82f6";
+const GRAVITY_COLOR = "#16a34a";
+const FIX_COLOR = "#f97316";
+
+// One thrown point, one Verlet step at a time. Gravity is exaggerated so each step is visible.
+const VERLET_GRAVITY = 4.5;
+const VERLET_START: Point = { x: 24, y: 196, px: -6, py: 232 };
+
+export function VerletExplainer() {
+  const [point, setPoint] = useState<Point>(VERLET_START);
+  const [trail, setTrail] = useState<Vec[]>([]);
+  const [playing, setPlaying] = useState(false);
+  const gone = point.x > 370 || point.y > 230;
+
+  const vx = point.x - point.px;
+  const vy = point.y - point.py;
+  const next = { x: point.x + vx, y: point.y + vy + VERLET_GRAVITY };
+
+  function step() {
+    setTrail((t) => [...t, { x: point.px, y: point.py }]);
+    setPoint({ x: next.x, y: next.y, px: point.x, py: point.y });
+  }
+
+  function reset() {
+    setPlaying(false);
+    setTrail([]);
+    setPoint(VERLET_START);
+  }
+
+  useEffect(() => {
+    if (!playing || gone) return;
+    const timer = setTimeout(step, 350);
+    return () => clearTimeout(timer);
+  });
+
+  return (
+    <CraftFrame label="One point, one step at a time" meta="gravity exaggerated">
+      <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto]">
+        <svg viewBox="0 0 360 230" className="surface-grid w-full border border-(--demo-border) text-(--demo-ink)">
+          {trail.map((t, i) => (
+            <circle key={i} cx={t.x} cy={t.y} r={3} fill="currentColor" opacity={0.18} />
+          ))}
+          {!gone ? (
+            <>
+              {/* Where the point will be: current + velocity + gravity. */}
+              <Arrow id="v-next" from={point} to={{ x: point.x + vx, y: point.y + vy }} color={VELOCITY_COLOR} />
+              <Arrow id="v-gravity" from={{ x: point.x + vx, y: point.y + vy }} to={next} color={GRAVITY_COLOR} />
+              <circle cx={next.x} cy={next.y} r={6} fill="none" stroke="currentColor" strokeDasharray="2 2" />
+              <text x={next.x + 9} y={next.y + 4} fontSize={10} fill="currentColor" className="font-mono">
+                next
+              </text>
+            </>
+          ) : null}
+          {/* Previous position, and the step it took to get here: that gap is the velocity. */}
+          <circle cx={point.px} cy={point.py} r={6} fill="none" stroke="currentColor" opacity={0.5} />
+          <line x1={point.px} y1={point.py} x2={point.x} y2={point.y} stroke={VELOCITY_COLOR} strokeOpacity={0.4} strokeWidth={2} strokeDasharray="3 3" />
+          <circle cx={point.x} cy={point.y} r={6} fill={FIX_COLOR} />
+          <text x={point.px - 30} y={point.py + 4} fontSize={10} fill="currentColor" opacity={0.6} className="font-mono">
+            prev
+          </text>
+          <text x={point.x + 10} y={point.y + 16} fontSize={10} fill="currentColor" className="font-mono">
+            now
+          </text>
+        </svg>
+        <div className="grid content-start gap-4 md:w-52">
+          <Readout
+            rows={[
+              ["now", `${point.x.toFixed(1)}, ${point.y.toFixed(1)}`],
+              ["prev", `${point.px.toFixed(1)}, ${point.py.toFixed(1)}`],
+              ["velocity", `${vx.toFixed(1)}, ${vy.toFixed(1)}`],
+              ["gravity", `0, ${VERLET_GRAVITY.toFixed(1)}`],
+              ["next", `${next.x.toFixed(1)}, ${next.y.toFixed(1)}`],
+            ]}
+          />
+          <div className="grid gap-1.5 font-mono text-[10px] text-(--demo-subtle)">
+            <span>
+              <span style={{ color: VELOCITY_COLOR }}>■</span> velocity = now − prev
+            </span>
+            <span>
+              <span style={{ color: GRAVITY_COLOR }}>■</span> gravity, added every step
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <ExplainerButton onClick={step} disabled={gone}>
+              Step
+            </ExplainerButton>
+            <ExplainerButton onClick={() => setPlaying((p) => !p)} disabled={gone}>
+              {playing ? "Pause" : "Play"}
+            </ExplainerButton>
+            <ExplainerButton onClick={reset}>Reset</ExplainerButton>
+          </div>
+        </div>
+      </div>
+    </CraftFrame>
+  );
+}
+
+// Two neighbours on the cord, and what one constraint pass does to them.
+const CONSTRAINT_W = 360;
+const CONSTRAINT_H = 240;
+const CONSTRAINT_REST = 80;
+const CONSTRAINT_A: Vec = { x: 150, y: 105 };
+const CONSTRAINT_B: Vec = { x: 320, y: 210 };
+
+export function ConstraintExplainer() {
+  const [a, setA] = useState<Vec>(CONSTRAINT_A);
+  const [b, setB] = useState<Vec>(CONSTRAINT_B);
+  const [pinned, setPinned] = useState(true);
+  const [stiffness, setStiffness] = useState(0.5);
+  const [dragging, setDragging] = useState<"a" | "b" | null>(null);
+
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const distance = Math.hypot(dx, dy) || 1;
+  const error = distance - CONSTRAINT_REST;
+  const pull = (error / distance) * stiffness;
+  const share = pinned ? 0 : 0.5;
+  const nextA = { x: a.x + dx * pull * share, y: a.y + dy * pull * share };
+  const nextB = { x: b.x - dx * pull * (1 - share), y: b.y - dy * pull * (1 - share) };
+  const stretched = Math.abs(error) < 0.5 ? "at rest" : error > 0 ? "too far apart" : "too close";
+
+  function toScene(event: PointerEvent<SVGCircleElement>): Vec {
+    const box = event.currentTarget.ownerSVGElement!.getBoundingClientRect();
+    return {
+      x: Math.min(CONSTRAINT_W - 8, Math.max(8, ((event.clientX - box.left) / box.width) * CONSTRAINT_W)),
+      y: Math.min(CONSTRAINT_H - 8, Math.max(8, ((event.clientY - box.top) / box.height) * CONSTRAINT_H)),
+    };
+  }
+
+  function handlers(which: "a" | "b") {
+    return {
+      onPointerDown(event: PointerEvent<SVGCircleElement>) {
+        if (which === "a" && pinned) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setDragging(which);
+      },
+      onPointerMove(event: PointerEvent<SVGCircleElement>) {
+        if (dragging !== which) return;
+        (which === "a" ? setA : setB)(toScene(event));
+      },
+      onPointerUp() {
+        setDragging(null);
+      },
+    };
+  }
+
+  function runPass() {
+    setA(nextA);
+    setB(nextB);
+  }
+
+  return (
+    <CraftFrame label="One distance constraint" meta="drag the orange point">
+      <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto]">
+        <svg
+          viewBox={`0 0 ${CONSTRAINT_W} ${CONSTRAINT_H}`}
+          className="surface-grid w-full touch-none border border-(--demo-border) text-(--demo-ink)"
+        >
+          <circle cx={a.x} cy={a.y} r={CONSTRAINT_REST} fill="none" stroke="currentColor" strokeOpacity={0.3} strokeDasharray="4 5" />
+          <text x={a.x} y={a.y - CONSTRAINT_REST - 6} textAnchor="middle" fontSize={10} fill="currentColor" opacity={0.6} className="font-mono">
+            rest length
+          </text>
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="currentColor" strokeWidth={2} strokeOpacity={0.6} />
+          {/* Where each point lands after one pass. */}
+          <Arrow id="c-fix-b" from={b} to={nextB} color={FIX_COLOR} />
+          {!pinned ? <Arrow id="c-fix-a" from={a} to={nextA} color={FIX_COLOR} /> : null}
+          <circle cx={nextB.x} cy={nextB.y} r={7} fill="none" stroke={FIX_COLOR} strokeDasharray="2 2" />
+          {!pinned ? <circle cx={nextA.x} cy={nextA.y} r={7} fill="none" stroke={FIX_COLOR} strokeDasharray="2 2" /> : null}
+          <circle
+            cx={a.x}
+            cy={a.y}
+            r={8}
+            fill={pinned ? "currentColor" : FIX_COLOR}
+            className={pinned ? undefined : "cursor-grab"}
+            {...handlers("a")}
+          />
+          {pinned ? <rect x={a.x - 12} y={a.y - 20} width={24} height={5} fill="currentColor" opacity={0.4} /> : null}
+          <circle cx={b.x} cy={b.y} r={8} fill={FIX_COLOR} className="cursor-grab" {...handlers("b")} />
+          <circle cx={b.x} cy={b.y} r={20} fill="transparent" className="cursor-grab" {...handlers("b")} />
+          <text x={a.x - 22} y={a.y + 4} fontSize={11} fill="currentColor" className="font-mono" textAnchor="end">
+            a
+          </text>
+          <text x={b.x + 14} y={b.y + 4} fontSize={11} fill="currentColor" className="font-mono">
+            b
+          </text>
+        </svg>
+        <div className="grid content-start gap-4 md:w-56">
+          <Readout
+            rows={[
+              ["distance", `${distance.toFixed(1)}px`],
+              ["rest", `${CONSTRAINT_REST}px`],
+              ["error", `${error.toFixed(1)}px · ${stretched}`],
+              ["pull", pull.toFixed(3)],
+              ["a moves", `${(share * 100).toFixed(0)}% of the fix`],
+              ["b moves", `${((1 - share) * 100).toFixed(0)}% of the fix`],
+            ]}
+          />
+          <RangeControl label="Stiffness" value={stiffness} min={0.1} max={1} step={0.05} decimals={2} onChange={setStiffness} />
+          <div className="flex flex-wrap gap-2">
+            <ExplainerButton onClick={runPass}>Run one pass</ExplainerButton>
+            <ExplainerButton onClick={() => setPinned((p) => !p)}>{pinned ? "Unpin a" : "Pin a"}</ExplainerButton>
+            <ExplainerButton
+              onClick={() => {
+                setA(CONSTRAINT_A);
+                setB(CONSTRAINT_B);
+              }}
+            >
+              Reset
+            </ExplainerButton>
+          </div>
+        </div>
+      </div>
+    </CraftFrame>
+  );
+}
+
+// The whole frame loop as a diagram.
+export function PullCordLoop() {
+  const box = "border border-(--demo-border) bg-(--demo-bg) px-3 py-2 font-mono text-[11px] text-(--demo-ink)";
+  const note = "font-mono text-[10px] text-(--demo-subtle)";
+  const arrow = <span className="self-center text-(--demo-subtle)">↓</span>;
+  return (
+    <CraftFrame label="What runs every frame" meta="requestAnimationFrame">
+      <div className="surface-grid grid justify-items-center gap-2 p-6">
+        <div className={box}>browser asks for a frame</div>
+        {arrow}
+        <div className={box}>owed += time since last frame</div>
+        {arrow}
+        <div className="grid justify-items-center gap-2 border border-dashed border-(--demo-border) p-3">
+          <span className={note}>while owed ≥ 8.3 ms (one 120 Hz step)</span>
+          <div className="flex flex-wrap justify-center gap-2">
+            <div className={box}>
+              integrate
+              <span className={`block ${note}`}>move + gravity</span>
+            </div>
+            <span className="self-center text-(--demo-subtle)">→</span>
+            <div className={box}>
+              constrain × {PHYSICS.passes}
+              <span className={`block ${note}`}>pull neighbours back</span>
+            </div>
+          </div>
+          <span className={note}>owed −= 8.3 ms</span>
+        </div>
+        {arrow}
+        <div className={box}>
+          draw
+          <span className={`block ${note}`}>write the path’s d attribute</span>
+        </div>
+        {arrow}
+        <div className={box}>
+          still for 30 frames?
+          <span className={`block ${note}`}>yes: stop until the next grab · no: ask for another frame</span>
+        </div>
+      </div>
+    </CraftFrame>
+  );
+}
+
+export function PullCordPlayground() {
+  const [physics, setPhysics] = useState<Physics>(PHYSICS);
+  const set = (key: keyof Physics) => (value: number) => setPhysics((p) => ({ ...p, [key]: value }));
+
+  return (
+    <CraftFrame label="Playground" meta="pull it after each change">
+      <div className="grid gap-4 p-4 md:grid-cols-[1fr_240px]">
+        <div className="surface-grid relative flex h-[340px] justify-center overflow-hidden border border-(--demo-border)">
+          <PullCordScene stage={5} physics={physics} guides />
+        </div>
+        <div className="grid content-start gap-3">
+          <RangeControl label="Gravity" value={physics.gravity} min={0.01} max={0.4} step={0.01} decimals={2} onChange={set("gravity")} />
+          <RangeControl label="Damping" value={physics.damping} min={0.9} max={0.999} step={0.001} decimals={3} onChange={set("damping")} />
+          <RangeControl label="Stiffness" value={physics.stiffness} min={0.05} max={1} step={0.05} decimals={2} onChange={set("stiffness")} />
+          <RangeControl label="Passes" value={physics.passes} min={1} max={20} step={1} onChange={set("passes")} />
+          <ExplainerButton onClick={() => setPhysics(PHYSICS)}>Reset to defaults</ExplainerButton>
+        </div>
       </div>
     </CraftFrame>
   );

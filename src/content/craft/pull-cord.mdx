@@ -14,17 +14,34 @@ order: 17
 
 Pull the handle down until it turns orange, then let go. The whole site switches theme, and the cord snaps back, overshoots, and swings until it settles. Tap the handle or focus it and press Enter for a quick tug.
 
+## The big idea
+
+Most UI animation is **scripted**: you say "go from here to there in 300 ms" and the browser fills in the frames. That can't produce this cord. Where it ends up depends on how far you pulled, which way, and how fast you let go. Nobody can write those keyframes in advance.
+
+So instead of describing the motion, we describe the **rules** and let the motion happen:
+
+- Things keep moving the way they were moving.
+- Gravity pulls everything down a little more every moment.
+- Air slowly takes energy away.
+- A string's pieces stay roughly the same distance apart.
+
+A program that applies rules like these over and over, a tiny slice of time at a time, is a **physics simulation**. Each slice is called a **step**. This cord takes 120 steps every second.
+
+Nothing in the code says "swing" or "bounce". Swinging is what you get when those four rules fight each other.
+
+## Words you'll need
+
+- **Point.** A dot with a position, `x` and `y`, in pixels. The cord is a chain of 12 points.
+- **Anchor.** The point at the top, nailed to the ceiling. It never moves.
+- **Velocity.** How far a point moves in one step, and in which direction.
+- **Gravity.** A small amount added to the downward velocity every step. Adding speed over time is what *acceleration* means.
+- **Damping.** Multiplying the velocity by a number just under 1 every step, so motion fades out instead of going on forever.
+- **Constraint.** A rule the simulation enforces after moving things. Here the rule is "these two neighbours should be `SEGMENT` pixels apart".
+- **Coordinates.** In SVG, `x` grows to the right and `y` grows **downwards**, so gravity is a positive number added to `y`.
+
 ## How it works
 
-The cord isn't an animation with keyframes. It's a tiny physics simulation that runs about 120 times a second. Nothing tells the cord to swing. It swings because gravity pulls it down, the ceiling holds the top, and the pieces of the cord pull on each other.
-
-The method is called **Verlet integration**. It's the same trick used for cloth, hair, and ragdolls in games because it's short to write and very hard to make explode. You only need three ideas:
-
-1. **Points.** The cord is a chain of 12 points.
-2. **Motion.** Each point keeps moving the way it was moving, and gravity adds a bit of downward speed.
-3. **Constraints.** Neighbouring points are pushed back to a fixed distance apart, so the chain behaves like one piece of string.
-
-Each step below adds one of those ideas, so you can watch what each one does on its own.
+The method is called **Verlet integration** (said "ver-LAY"). Games use it for cloth, hair, rope, and ragdolls because it's short to write and very hard to make explode. Each step below adds one idea, with a live demo of the cord at that stage.
 
 ### 01 — Draw the cord
 
@@ -32,9 +49,9 @@ Each step below adds one of those ideas, so you can watch what each one does on 
 
 Start with what you see: an `<svg>` with a small mount at the top and one `<path>` for the cord. A path's `d` attribute is a list of drawing commands. `M x y` moves the pen, `Q cx cy x y` draws a curve that bends towards the control point `cx cy`, and `L x y` draws a straight line.
 
-The scene is a fixed `200 × 300` box, and the SVG is drawn at exactly that size, so one SVG unit is one CSS pixel. The top of the cord, the **anchor**, sits at the middle of the top edge.
+The scene is a fixed `200 × 300` box, and the SVG is drawn at exactly that size, so one SVG unit is one CSS pixel. The anchor sits at the middle of the top edge.
 
-The cord is stored as points. Each point has a current position (`x`, `y`) and a previous position (`px`, `py`). For now both are the same, which means "not moving". The orange dots show where the points are; the dark one is the anchor.
+The cord is stored as points. Each point has its current position (`x`, `y`) and its **previous** position (`px`, `py`). You'll see why in the next step. For now both are the same, which means "not moving". The orange dots are the points; the dark one is the anchor.
 
 ```tsx title="pull-cord.tsx"
 const WIDTH = 200;
@@ -71,84 +88,76 @@ function ropePath(points: Point[]) {
 
 ### 02 — Give the points motion
 
-<PullCordStep step="2" />
+Here's the trick that makes Verlet different: **velocity isn't stored anywhere**. If a point was at `px` one step ago and is at `x` now, it moved `x - px` in one step. That gap *is* its velocity. To get the next position, repeat that move and add gravity:
 
-Here's the core of Verlet integration: **velocity isn't stored anywhere**. A point's velocity is simply where it is now minus where it was one step ago. To move a point forward one step:
+```txt
+next = now + (now − prev) + gravity
+```
 
-1. Work out its velocity: `x - px`.
-2. Shrink it a little with `DAMPING`. Keeping 98.5% each step is like air resistance. Without it the cord would swing forever.
+Step through it with one thrown point. The faint circle is where it was, the orange dot is where it is, the blue arrow repeats the last move, and the green arrow adds gravity. The dashed circle is where it lands.
+
+<VerletExplainer />
+
+Press Step a few times and watch the blue arrow. It starts pointing up and to the right. Each step the green arrow bends it a bit more downwards, and the path traces a curve. That's a thrown ball's arc, and nothing in the code mentions curves.
+
+In code, with damping added, one step looks like this:
+
+1. Work out the velocity: `x - px`.
+2. Shrink it a little with `damping`. Keeping 98.5% each step works like air resistance.
 3. Remember the current position as the previous one.
-4. Add the velocity to the position, plus `GRAVITY` on the y axis. Adding a little extra downward movement every step is what makes things accelerate as they fall.
+4. Add the velocity, plus `gravity` on `y`.
 
-The loop starts at `1` because point `0` is the anchor and never moves.
+The loop starts at `1` because point `0` is the anchor and never moves. The numbers live in one `PHYSICS` object so the playground at the end can change them.
 
 ```tsx title="pull-cord.tsx"
-const GRAVITY = 0.12; // px per step²
-const DAMPING = 0.985; // share of velocity kept each step
+export const PHYSICS: Physics = { gravity: 0.12, damping: 0.985, stiffness: 0.5, passes: 6 };
 
-function integrate(points: Point[]) {
+function integrate(points: Point[], { gravity, damping }: Physics) {
   for (let i = 1; i < points.length; i++) {
     const p = points[i];
-    const vx = (p.x - p.px) * DAMPING;
-    const vy = (p.y - p.py) * DAMPING;
+    const vx = (p.x - p.px) * damping;
+    const vy = (p.y - p.py) * damping;
     p.px = p.x;
     p.py = p.y;
     p.x += vx;
-    p.y += vy + GRAVITY;
+    p.y += vy + gravity;
   }
 }
 ```
 
-A nice side effect: to push a point you don't set a velocity, you just move its *previous* position. The Replay button does that, nudging `px` to the left on the lower points, so they drift right as they fall.
+A handy side effect: to push a point, you don't set a velocity, you just move its *previous* position. Put `px` a little to the left of `x`, and the point now "remembers" moving right, so it keeps going right.
 
-In this step nothing holds the points together, so they fall off the bottom. That's correct: so far these are 11 separate pebbles, not a string.
+Now run that on the whole cord:
 
-**Running it.** The browser calls `requestAnimationFrame` once per screen refresh, which is 60 times a second on most screens and 120 or more on others. If the simulation took one step per frame, the cord would fall twice as fast on a 120 Hz screen. Instead the loop adds the elapsed time to a balance it `owes`, then takes as many fixed 120 Hz steps as that balance pays for. If the tab was in the background for a while, the balance is capped so the cord doesn't try to catch up on seconds of physics at once.
+<PullCordStep step="2" />
 
-```tsx title="pull-cord.tsx"
-const STEP_MS = 1000 / 120; // the simulation always advances in 120 Hz steps
-
-function tick(now: number) {
-  // Run as many fixed steps as the elapsed time owes; cap the backlog after a stalled tab.
-  owed = Math.min(owed + now - last, STEP_MS * 8);
-  last = now;
-  // ...
-  while (owed >= STEP_MS) {
-    integrate(points);
-    if (stage >= 3) constrain(points, grab.current);
-    owed -= STEP_MS;
-  }
-  // ...
-  draw();
-```
-
-`draw` writes the new path straight onto the `<path>` element with `setAttribute`. It doesn't go through React state, because re-rendering a component 120 times a second for one attribute would be wasted work.
+The points fall off the bottom. That's correct. So far they're 11 separate pebbles that happen to start in a line. Nothing says they belong together. Press Replay to drop them again.
 
 ### 03 — Hold them together
 
-<PullCordStep step="3" />
+A real string doesn't fall apart because each bit is tied to the next. We copy that with a **distance constraint**: for each pair of neighbours, measure the distance, compare it with the rest length, and move the points to fix the difference.
 
-A string doesn't fall apart because each bit of it is tied to the next. We copy that with a **distance constraint**: for each pair of neighbours, measure how far apart they are, compare it to `SEGMENT`, and move both points to fix the difference.
+Try it on a single pair. Drag `b` around. The dashed circle shows every spot that's exactly the rest length from `a`. The orange arrow shows where one pass would move `b`: straight towards or away from `a`, back towards that circle.
 
-- If they're too far apart, `pull` is positive and the points move towards each other.
-- If they're too close, `pull` is negative and they move apart.
-- `STIFFNESS` of `0.5` fixes half the error each pass. Fixing it all at once makes the cord jittery, because fixing one pair breaks its neighbours.
-- `share` decides who moves. Normally both points move half the way. The anchor never moves, so the point under it takes the whole fix.
+<ConstraintExplainer />
 
-One pass over the chain isn't enough, because each fix nudges the next pair out of place. Running `PASSES = 6` passes per step lets the corrections spread along the cord.
+Things to notice:
+
+- Drag `b` outside the circle: the error is positive and `b` gets pulled in. Drag it inside: the error is negative and `b` gets pushed out.
+- With **stiffness** at `0.5`, one pass only fixes half the error. Press Run one pass a few times and `b` closes in on the circle: half the gap, then a quarter, then an eighth.
+- Unpin `a`. Now both points move, half each, towards each other. In the cord, the anchor is pinned, so the point under it takes the whole fix. Every other pair splits it.
+
+Why not fix it all at once with stiffness `1`? In a chain, fixing one pair moves a point that also belongs to the next pair, which breaks that one. Fixing a bit at a time, over several **passes**, lets the corrections spread along the chain and settle. Six passes per step is plenty for 12 points.
 
 ```tsx title="pull-cord.tsx"
-const STIFFNESS = 0.5; // share of a length error fixed per pass
-const PASSES = 6; // constraint passes per step
-
 function pin(p: Point, to: Vec) {
   p.x = p.px = to.x;
   p.y = p.py = to.y;
 }
 
-function constrain(points: Point[], grab: Vec | null) {
+function constrain(points: Point[], grab: Vec | null, { stiffness, passes }: Physics) {
   const last = points.length - 1;
-  for (let pass = 0; pass < PASSES; pass++) {
+  for (let pass = 0; pass < passes; pass++) {
     pin(points[0], ANCHOR);
     if (grab) pin(points[last], grab);
     for (let i = 1; i <= last; i++) {
@@ -157,7 +166,7 @@ function constrain(points: Point[], grab: Vec | null) {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const distance = Math.hypot(dx, dy) || 1;
-      const pull = ((distance - SEGMENT) / distance) * STIFFNESS;
+      const pull = ((distance - SEGMENT) / distance) * stiffness;
       // How much of the fix `a` takes. A pinned point takes none of it.
       const share = i === 1 ? 0 : grab && i === last ? 1 : 0.5;
       a.x += dx * pull * share;
@@ -169,19 +178,52 @@ function constrain(points: Point[], grab: Vec | null) {
 }
 ```
 
-Notice there's no code here about swinging. Gravity pulls each point down, the constraint drags it back towards the anchor, the leftover velocity carries it past the middle, and damping slowly eats the energy. Swinging is what falls out.
+`pull` divides the error by the distance so that `dx * pull` and `dy * pull` together have a length of exactly `error × stiffness`, pointing along the line between the two points.
 
-### 04 — Grab the handle
+Put both rules together and the pebbles become a string:
+
+<PullCordStep step="3" />
+
+Here's why it swings, with no swing code anywhere. Replay flicks the bottom to the right. Gravity pulls each point down. The constraints won't let the points get further from the anchor, so falling turns into moving sideways, back towards the middle. When the cord reaches the middle it's still moving, so velocity carries it past. Then gravity slows it, it stops, and it falls back the other way. Damping takes a little energy each step, so every swing is smaller than the last.
+
+### 04 — Run it at a steady pace
+
+The browser calls `requestAnimationFrame` once per screen refresh: 60 times a second on most screens, 120 or more on others. If we took one step per frame, the cord would fall twice as fast on a 120 Hz screen.
+
+Instead the loop keeps a balance of time it `owes` the simulation. Each frame adds the time since the last frame, then pays for as many fixed 8.3 ms steps as it can afford. On a 60 Hz screen that's two steps per frame. On a 120 Hz screen, one. Either way, one second of real time is 120 steps.
+
+<PullCordLoop />
+
+If the tab was in the background, the balance could be several seconds. It's capped at 8 steps, so the cord doesn't try to catch up on seconds of physics in one frame.
+
+```tsx title="pull-cord.tsx"
+function tick(now: number) {
+  // Run as many fixed steps as the elapsed time owes; cap the backlog after a stalled tab.
+  owed = Math.min(owed + now - last, STEP_MS * 8);
+  last = now;
+  // ...
+  while (owed >= STEP_MS) {
+    integrate(points, physicsRef.current);
+    if (stage >= 3) constrain(points, grab.current, physicsRef.current);
+    owed -= STEP_MS;
+  }
+  // ...
+  draw();
+```
+
+`draw` writes the new path straight onto the `<path>` element with `setAttribute`. It doesn't go through React state, because re-rendering a component 120 times a second to change one attribute would be wasted work.
+
+### 05 — Grab the handle
 
 <PullCordStep step="4" />
 
-Now the bottom point gets a handle you can drag. The handle is a rounded `<rect>` inside a `<g>`, moved to the last point each frame and rotated to follow the last segment, so it hangs at the angle of the cord.
+Now the bottom point gets a handle you can drag. The dashed arc is the cord's rest length: every spot the handle can reach without stretching. The readout in the corner shows how far past that you've pulled.
 
 Pointer events turn your finger or mouse into a second pin:
 
 - `pointerdown` calls `setPointerCapture`, so the handle keeps getting `pointermove` events even when the pointer slides off it.
 - The pointer position is converted from screen pixels into scene units with `getBoundingClientRect`.
-- While it's held, `grab.current` is set, and `constrain` pins the last point there, just like the anchor.
+- While it's held, `grab.current` is set, and `constrain` pins the last point there, exactly like the anchor.
 - `touch-none` (CSS `touch-action: none`) stops the page from scrolling while you drag on a phone.
 
 ```tsx title="pull-cord.tsx"
@@ -194,9 +236,11 @@ function onPointerDown(event: PointerEvent<SVGGElement>) {
 }
 ```
 
-With both ends pinned, the constraints can't get every segment back to its rest length, so the cord **stretches**. When you let go, the last point is free again. Each segment is longer than `SEGMENT`, so the constraints pull it back hard, it overshoots above the rest position, and gravity swings it back down. That springy recoil comes from the same constraint code as the swing.
+Pull below the arc and both ends are pinned further apart than the cord's length. The constraints can't make every segment the right length, so they share the error out evenly and the cord **stretches**, like a rubber band.
 
-`clampGrab` stops the stretch at `MAX_STRETCH` past the cord's length, so you can't drag the cord across the page.
+Let go and the bottom is free again. Every segment is too long, so the constraints pull hard, all in the same direction. The points pick up speed upward, overshoot the rest position, and gravity brings them back down into a swing. That springy recoil comes from the same constraint code as the swing.
+
+`clampGrab` stops the handle at `MAX_STRETCH` past the cord's length, so you can't drag the cord across the page:
 
 ```tsx title="pull-cord.tsx"
 const MAX_STRETCH = 70; // how far past its rest length the cord can be pulled
@@ -211,11 +255,13 @@ function clampGrab(to: Vec): Vec {
 }
 ```
 
-### 05 — Pull to toggle
+### 06 — Pull to toggle
 
 <PullCordStep step="5" />
 
-A real pull switch clicks partway down, and the light changes when you let go. The stretch is the distance from the anchor to the handle minus the cord's rest length. Past `TRIGGER` the switch **arms**: it plays a click and the handle turns orange. Releasing while armed flips the theme. Releasing before that just lets the cord bounce back.
+A real pull switch clicks partway down, and the light changes when you let go. The orange arc is that click point. Pull the handle past it and the switch **arms**: it plays a click and the handle turns orange. Release while armed and the theme flips. Release before that and the cord just bounces back.
+
+Stretch is measured as a distance from the anchor, which is why the guides are arcs and not straight lines: pulling down and to the side counts too.
 
 ```tsx title="pull-cord.tsx"
 const TRIGGER = 38; // pull past this and let go to toggle
@@ -262,12 +308,12 @@ function setDark(dark: boolean) {
 
 A `MutationObserver` watches that class too, read through React's `useSyncExternalStore`, so if you switch the theme from the header, the cord's switch state stays in sync.
 
-### 06 — Keyboard, screen readers, and reduced motion
+### 07 — Keyboard, screen readers, and reduced motion
 
 Dragging is the fun way in, but it can't be the only one.
 
 - The handle has `role="switch"`, `aria-checked`, and the label "Dark theme", so a screen reader announces it as "Dark theme, switch, off". `tabIndex={0}` puts it in the tab order, and a ring shows on `:focus-visible`.
-- A tap without dragging, or Enter or Space, calls `tug`. It kicks the lower points downward by moving their previous positions up, so the cord jerks and swings, then flips the theme straight away.
+- A tap without dragging, or Enter or Space, calls `tug`. It kicks the lower points downward by moving their *previous* positions up (the same trick as in step 2), then flips the theme straight away.
 
 ```tsx title="pull-cord.tsx"
 function tug() {
@@ -280,7 +326,7 @@ function tug() {
 }
 ```
 
-- With **reduced motion** turned on, there's no simulation at all. The cord is drawn as a straight line from the anchor to the handle, follows your drag, and jumps straight back when you let go. The toggle still works the same way.
+- With **reduced motion** turned on, there's no simulation at all. The cord is a straight line from the anchor to the handle, follows your drag, and jumps straight back when you let go. The toggle works the same way.
 
 ```tsx title="pull-cord.tsx"
 function layStraight(points: Point[], end: Vec) {
@@ -291,7 +337,7 @@ function layStraight(points: Point[], end: Vec) {
 }
 ```
 
-### 07 — Let it sleep
+### 08 — Let it sleep
 
 A cord that has stopped swinging doesn't need 120 steps a second. After each frame the loop checks whether any point still moved more than a hundredth of a pixel. Once the cord has been still for 30 frames, the loop stops asking for frames. Grabbing, tapping, or pressing a key calls `wake`, which starts it again. When the component unmounts, the effect cleanup cancels any pending frame.
 
@@ -305,9 +351,19 @@ if (still > 30) {
 frame = requestAnimationFrame(tick);
 ```
 
-## Things to try
+## Playground
 
-- Pull slowly and stop just before the handle turns orange, then let go. The cord bounces but the theme stays.
-- Drag the handle far to one side and release it to get a big swing.
-- Change `GRAVITY` to `0.03` for a cord that floats like it's underwater, or `DAMPING` to `0.999` for one that barely stops.
-- Drop `PASSES` to `1`. The cord turns stretchy, like a rubber band.
+Every number in `PHYSICS` changes how the cord feels. Move a slider, then pull the cord.
+
+<PullCordPlayground />
+
+- **Gravity** at `0.03` makes the cord float like it's underwater. At `0.4` it's a heavy chain.
+- **Damping** at `0.999` barely loses energy, so it swings for ages. At `0.9` it's like moving through honey.
+- **Stiffness** and **Passes** together decide how stretchy the cord is. One pass with low stiffness is a rubber band. Twenty passes at full stiffness is almost a rigid rod, and the recoil gets snappier.
+
+## Why Verlet?
+
+You could give each point a velocity and update it with forces, like a physics textbook. Verlet is nicer here for two reasons:
+
+- **Constraints are just moves.** When a constraint shoves a point, the next step sees the new position and works out the velocity from it. There's no separate velocity to keep in sync, so constraints can't push the simulation out of control.
+- **Pushing is easy.** To fling, tug, or kick a point, move its previous position. The tug and the Replay buttons in this page both work that way.
