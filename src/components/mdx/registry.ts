@@ -54,6 +54,8 @@ import {
 import { PullCordThumbnail } from "@/components/mdx/thumbnails/pull-cord";
 import { LanyardBadgeDemo } from "@/components/mdx/lanyard-badge";
 import { LanyardBadgeThumbnail } from "@/components/mdx/thumbnails/lanyard-badge";
+import { MainCharacterDemo } from "@/components/mdx/main-character";
+import { MainCharacterThumbnail } from "@/components/mdx/thumbnails/main-character";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
 import { TastefulButtonThumbnail } from "@/components/mdx/thumbnails/tasteful-button";
@@ -107,6 +109,7 @@ export const mdxComponents = {
   VerletExplainer,
   ConstraintExplainer,
   LanyardBadgeDemo,
+  MainCharacterDemo,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
@@ -118,6 +121,7 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "video-burst": VideoBurstThumbnail,
   "pull-cord": PullCordThumbnail,
   "lanyard-badge": LanyardBadgeThumbnail,
+  "main-character": MainCharacterThumbnail,
   "tasteful-button": TastefulButtonThumbnail,
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,
