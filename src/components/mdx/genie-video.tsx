@@ -4,7 +4,6 @@ import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import { useEffect, useRef } from "react";
 
-import { CraftFrame } from "@/components/mdx/craft-controls";
 
 // Genie video: a blog cover video that folds into a docked mini player as you scroll, and back out
 // when you return. The video is drawn on a WebGL plane. Two invisible DOM boxes mark where it starts
@@ -326,8 +325,7 @@ export function GenieVideoDemo() {
   );
 
   return (
-    <CraftFrame label="Genie video" meta="WebGL · scroll">
-      <div className="relative h-[28rem] w-full overflow-hidden bg-(--demo-bg) sm:h-[32rem]">
+    <div className="craft-fill relative min-h-[28rem] w-full overflow-hidden sm:min-h-[32rem]">
         <div ref={scrollerRef} className="absolute inset-0 overflow-y-auto overscroll-contain">
           <div className="px-5 pt-6 sm:px-8 sm:pt-8">
             {/* Start marker: the cover. */}
@@ -359,8 +357,7 @@ export function GenieVideoDemo() {
           onClick={() => scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
           className="pointer-events-none absolute right-3 bottom-3 aspect-video w-[min(40%,200px)] cursor-pointer rounded-[16px] outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) focus-visible:ring-offset-2"
         />
-      </div>
-    </CraftFrame>
+    </div>
   );
 }
 
@@ -369,4 +366,12 @@ const DEMO_COPY = [
   "Scroll a little and the video lets go of the cover. The corner nearest the dock leaves first and the rest of the sheet follows, stretching on the way, until it lands in the small player.",
   "Scroll back up and it unfolds into the cover again. Once it is docked, the mini player is a button that brings you back to the top.",
   "Nothing about the layout changes. The cover and the dock are empty boxes; one WebGL plane is drawn between them, and every point on it runs a slightly delayed copy of the scroll position.",
+  "The tray itself is nothing special: a baking sheet, a few millimetres of water, and a drop of dish soap to break the surface tension. The paint goes in last, one colour at a time, from a dropper held just above the water.",
+  "White spreads fastest. It races to the edges and leaves a thin skin behind, and every colour that follows has to push through it. That is where the cloud shapes come from: dense pigment meeting a surface that is already crowded.",
+  "Ochre is the slowest. It sinks a little before it spreads, so it arrives late and sits under everything else like a shadow. Filmed from above, it reads as depth even though the whole tray is flat.",
+  "The camera runs at a high frame rate and the footage is slowed down four times. Real time is too quick to follow; at quarter speed you can watch one cell of colour split, curl, and fold back into its neighbour.",
+  "Lighting matters more than the paint. A single soft light from one side picks out the ridges where pigments meet, and a black card on the other side keeps the water from reflecting the ceiling.",
+  "Most takes are thrown away. The good ones have a moment, usually around the eight-second mark, where the whole surface seems to hold still before it starts moving again in a new direction.",
+  "That pause is the part worth keeping. It is the frame this post opens on, and the one the mini player keeps showing in the corner while you read.",
+  "If you made it this far, scroll back to the top and watch the sheet unfold out of the corner and stretch back over the cover.",
 ];

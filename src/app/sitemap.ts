@@ -42,5 +42,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
       images: [new URL(`${craft.href}/opengraph-image`, siteUrl).href],
     })),
+    ...crafts.flatMap((craft) =>
+      craft.howItWorksHref
+        ? [
+            {
+              url: new URL(craft.howItWorksHref, siteUrl).href,
+              lastModified: craft.updatedAt,
+              changeFrequency: "monthly" as const,
+              priority: 0.7,
+            },
+          ]
+        : [],
+    ),
   ];
 }

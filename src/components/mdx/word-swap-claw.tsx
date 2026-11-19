@@ -19,6 +19,37 @@ const END = ADD.start + (ADDED - 1) * ADD.stagger + CLAW.travel + CLAW.beat + CL
 
 type Piece = { char: string; kind: "keep" | "remove" | "add"; fromX: number; toX: number; left: number; right: number; start: number };
 
+// The drawing is laid out on a 1000×500 board. The SVG grows its viewBox to fill
+// whatever box it sits in (scaled up to at most MAX_SCALE), so the board stays
+// centred and claws can travel in from the real edge of the page.
+const BOARD = { width: 1000, height: 500 };
+const MAX_SCALE = 1.1;
+
+function useFittedViewBox(ref: React.RefObject<HTMLElement | null>) {
+  const [box, setBox] = useState({ x: 0, y: 0, width: BOARD.width, height: BOARD.height });
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (!width || !height) return;
+      const scale = Math.min(width / BOARD.width, height / BOARD.height, MAX_SCALE);
+      const w = width / scale;
+      const h = height / scale;
+      setBox({ x: -(w - BOARD.width) / 2, y: -(h - BOARD.height) / 2, width: w, height: h });
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return box;
+}
+
+// One loop: fade in, play, hold the finished word, fade out, start again.
+const HOLD = 1600;
+const FADE = 350;
+
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const progress = (time: number, start: number, end: number) => clamp((time - start) / (end - start));
 const easeOut = (value: number) => 1 - Math.pow(1 - value, 3);
@@ -26,24 +57,24 @@ const easeIn = (value: number) => value * value * value;
 const easeInOut = (value: number) => value < 0.5 ? 4 * value * value * value : 1 - Math.pow(2 - 2 * value, 3) / 2;
 
 // Arrive open, close on the letter, then carry it up and out.
-function pickPose(time: number, start: number) {
+function pickPose(time: number, start: number, far: number) {
   const arrived = start + CLAW.travel;
   const closed = arrived + CLAW.close;
   const lifting = closed + CLAW.beat;
   let rise = 0;
-  if (time < arrived) rise = CLAW.far * (1 - easeInOut(progress(time, start, arrived)));
-  else if (time >= lifting) rise = CLAW.far * easeIn(progress(time, lifting, lifting + CLAW.lift));
+  if (time < arrived) rise = far * (1 - easeInOut(progress(time, start, arrived)));
+  else if (time >= lifting) rise = far * easeIn(progress(time, lifting, lifting + CLAW.lift));
   return { rise, letterRise: time >= lifting ? rise : 0, angle: CLAW.spread * (1 - easeOut(progress(time, arrived, closed))) };
 }
 
 // Arrive holding the letter, let go, then leave empty.
-function dropPose(time: number, start: number) {
+function dropPose(time: number, start: number, far: number) {
   const arrived = start + CLAW.travel;
   const opening = arrived + CLAW.beat;
   const opened = opening + CLAW.open;
   let rise = 0;
-  if (time < arrived) rise = CLAW.far * (1 - easeInOut(progress(time, start, arrived)));
-  else if (time >= opened) rise = CLAW.far * easeIn(progress(time, opened, opened + CLAW.lift));
+  if (time < arrived) rise = far * (1 - easeInOut(progress(time, start, arrived)));
+  else if (time >= opened) rise = far * easeIn(progress(time, opened, opened + CLAW.lift));
   const angle = CLAW.spread * easeOut(progress(time, opening, opened)) * (1 - easeInOut(progress(time, opened, opened + CLAW.lift * 0.6)));
   return { rise, letterRise: time < opening ? rise : 0, angle };
 }
@@ -86,11 +117,10 @@ export function WordSwapClawDemo() {
   const leftRefs = useRef<(SVGGElement | null)[]>([]);
   const rightRefs = useRef<(SVGGElement | null)[]>([]);
   const [pieces, setPieces] = useState<Piece[] | null>(null);
-  const playheadRef = useRef(0);
-  const runningRef = useRef(false);
-  const frameRef = useRef(0);
-  const lastRef = useRef(0);
-  const [playing, setPlaying] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const box = useFittedViewBox(sceneRef);
+  // Lift letters far enough to leave through the top of the page, not just the drawing.
+  const far = Math.max(CLAW.far, FONT.baseline - box.y + 60);
 
   useEffect(() => {
     document.fonts.ready.then(() => {
@@ -105,7 +135,7 @@ export function WordSwapClawDemo() {
         letterRefs.current[index]?.setAttribute("transform", `translate(${x} 0)`);
         return;
       }
-      const pose = piece.kind === "remove" ? pickPose(time, piece.start) : dropPose(time, piece.start);
+      const pose = piece.kind === "remove" ? pickPose(time, piece.start, far) : dropPose(time, piece.start, far);
       const centre = piece.fromX + (piece.left + piece.right) / 2;
       letterRefs.current[index]?.setAttribute("transform", `translate(${piece.fromX} ${-pose.letterRise})`);
       clawRefs.current[index]?.setAttribute("transform", `translate(${centre} ${CLAW.grabY - CLAW.reach - pose.rise})`);
@@ -114,71 +144,61 @@ export function WordSwapClawDemo() {
     });
   }
 
-  function stop() {
-    runningRef.current = false;
-    cancelAnimationFrame(frameRef.current);
-    setPlaying(false);
-  }
-
-  function tick(now: number) {
-    if (!runningRef.current) return;
-    playheadRef.current = Math.min(END, playheadRef.current + now - lastRef.current);
-    lastRef.current = now;
-    paint(playheadRef.current);
-    if (playheadRef.current >= END) stop();
-    else frameRef.current = requestAnimationFrame(tick);
-  }
-
-  function play() {
-    if (playheadRef.current >= END) playheadRef.current = 0;
-    if (runningRef.current) return;
-    runningRef.current = true;
-    lastRef.current = performance.now();
-    setPlaying(true);
-    frameRef.current = requestAnimationFrame(tick);
-  }
-
-  function replay() {
-    stop();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    playheadRef.current = reduced ? END : 0;
-    paint(playheadRef.current);
-    if (!reduced) play();
-  }
-
   useEffect(() => {
     if (!pieces) return;
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motion.matches) {
-      playheadRef.current = END;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       paint(END);
       return;
     }
-    paint(0);
+    const cycle = FADE + END + HOLD + FADE;
+    let t = FADE;
+    let last = 0;
+    let raf = 0;
+    let running = false;
+
+    function frame() {
+      paint(Math.min(END, Math.max(0, t - FADE)));
+      const fadingOut = t - (FADE + END + HOLD);
+      const opacity = t < FADE ? t / FADE : fadingOut > 0 ? 1 - fadingOut / FADE : 1;
+      if (svgRef.current) svgRef.current.style.opacity = String(Math.max(0, opacity));
+    }
+
+    function loop(now: number) {
+      // Cap the step so a long gap (a background tab) doesn't skip the animation.
+      t = (t + Math.min(64, now - last)) % cycle;
+      last = now;
+      frame();
+      raf = requestAnimationFrame(loop);
+    }
+
+    frame();
+    // Only run while the scene is on screen.
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        observer.disconnect();
-        play();
+      if (entry.isIntersecting && !running) {
+        running = true;
+        last = performance.now();
+        raf = requestAnimationFrame(loop);
+      } else if (!entry.isIntersecting && running) {
+        running = false;
+        cancelAnimationFrame(raf);
       }
-    }, { threshold: 0.35 });
+    }, { threshold: 0.2 });
     if (sceneRef.current) observer.observe(sceneRef.current);
     return () => {
       observer.disconnect();
-      runningRef.current = false;
-      cancelAnimationFrame(frameRef.current);
+      cancelAnimationFrame(raf);
     };
-    // The observer owns this measured scene; playback uses its current closures.
+    // paint reads the latest refs and measurements; DEPS restart the loop when they change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pieces]);
+  }, [pieces, far]);
 
-  const buttonClass = "rounded-lg px-3 py-1.5 text-sm text-foreground/65 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--craft-accent)";
   // Single letters skip letter-spacing: negative spacing shrinks their box past the ink, and moving text then leaves unpainted trails.
   const type = { fill: "currentColor", fontFamily: FONT.family, fontSize: FONT.size, fontWeight: FONT.weight };
   const line = { ...type, letterSpacing: FONT.spacing };
 
   return (
-    <div ref={sceneRef} className="not-prose overflow-hidden border border-foreground/10 bg-(--craft-surface) text-foreground">
-      <svg className="block w-full" viewBox="0 0 1000 500" role="img" aria-labelledby="swap-title swap-description">
+    <div ref={sceneRef} className="craft-fill not-prose relative min-h-[26rem] w-full overflow-hidden text-foreground">
+      <svg ref={svgRef} className="absolute inset-0 block h-full w-full" viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} role="img" aria-labelledby="swap-title swap-description">
         <title id="swap-title">Word swap claw</title>
         <desc id="swap-description">Claws lift the letters b, u, l and d out of “build it”, the remaining letters slide together, and new claws drop in s, h and p to spell “ship it”.</desc>
         <g visibility="hidden" aria-hidden="true" {...line}>
@@ -188,12 +208,12 @@ export function WordSwapClawDemo() {
         {!pieces && <text x="500" y={FONT.baseline} textAnchor="middle" {...line}>{FROM}</text>}
         {pieces?.map((piece, index) => (
           <g key={`${piece.kind}-${index}`} aria-hidden="true">
-            <g ref={(node) => { letterRefs.current[index] = node; }} transform={`translate(${piece.fromX} ${piece.kind === "add" ? -CLAW.far : 0})`}>
+            <g ref={(node) => { letterRefs.current[index] = node; }} transform={`translate(${piece.fromX} ${piece.kind === "add" ? -far : 0})`}>
               <text x="0" y={FONT.baseline} {...type}>{piece.char}</text>
             </g>
             {piece.kind !== "keep" && (
-              <g ref={(node) => { clawRefs.current[index] = node; }} transform={`translate(0 ${-CLAW.far * 2})`} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M 0 -600 V 0" />
+              <g ref={(node) => { clawRefs.current[index] = node; }} transform={`translate(0 ${-far * 2})`} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M 0 -4000 V 0" />
                 <g ref={(node) => { leftRefs.current[index] = node; }}>
                   <path d={`M 0 0 L ${piece.left - (piece.left + piece.right) / 2 - CLAW.knuckle} ${CLAW.reach * 0.45} L ${piece.left - (piece.left + piece.right) / 2 - 1.5} ${CLAW.reach}`} />
                 </g>
@@ -206,12 +226,6 @@ export function WordSwapClawDemo() {
           </g>
         ))}
       </svg>
-      <div className="flex items-center justify-center gap-2 border-t border-foreground/10 px-4 py-3">
-        <button type="button" className={buttonClass} onClick={replay}>Replay</button>
-        <button type="button" className={buttonClass} onClick={() => runningRef.current ? stop() : play()}>
-          {playing ? "Pause" : "Play"}
-        </button>
-      </div>
     </div>
   );
 }

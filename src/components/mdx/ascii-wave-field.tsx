@@ -213,14 +213,12 @@ export function AsciiWaveField({
 
 export function AsciiWaveFieldDemo() {
   return (
-    <CraftFrame label="Ambient field" meta="ASCII · FBM">
-      <div className="relative h-72 w-full overflow-hidden bg-black sm:h-80">
-        <AsciiWaveField />
-        <span className="sr-only">
-          Animated ASCII characters forming drifting wave clouds on a black background.
-        </span>
-      </div>
-    </CraftFrame>
+    <div className="craft-fill relative min-h-72 w-full overflow-hidden bg-black sm:min-h-80">
+      <AsciiWaveField className="absolute inset-0" />
+      <span className="sr-only">
+        Animated ASCII characters forming drifting wave clouds on a black background.
+      </span>
+    </div>
   );
 }
 

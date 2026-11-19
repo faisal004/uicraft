@@ -1,10 +1,12 @@
 import "server-only";
 
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
 import { concepts, getConcept } from "@/lib/concepts";
+import { hasWriteUp, splitCraftSections } from "@/lib/craft-sections";
 
 const contentDirectory = path.join(process.cwd(), "src/content/craft");
 
@@ -23,6 +25,8 @@ export type ContentEntry = {
   concept?: string;
   /** Canonical path, e.g. `/craft/webgl/genie-minimize`. */
   href: string;
+  /** `${href}/how-it-works` when the craft has a write-up, otherwise undefined. */
+  howItWorksHref?: string;
 };
 
 export type ContentDocument = ContentEntry & {
@@ -33,10 +37,31 @@ function toDate(value: unknown) {
   return value ? new Date(value as string).toISOString().slice(0, 10) : undefined;
 }
 
+// A shallow clone (common on CI) makes every file look like it changed in the
+// oldest fetched commit, so only trust git when the full history is present.
+const fullHistory = (() => {
+  try {
+    return execFileSync("git", ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" }).trim() === "false";
+  } catch {
+    return false;
+  }
+})();
+
+/** The date of the last commit that touched the file, as YYYY-MM-DD. */
+function lastCommitDate(file: string) {
+  if (!fullHistory) return undefined;
+  try {
+    return execFileSync("git", ["log", "-1", "--format=%cs", "--", file], { encoding: "utf8" }).trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function readDocument(filename: string): ContentDocument {
   const slug = filename.replace(/\.mdx$/, "");
   const source = fs.readFileSync(path.join(contentDirectory, filename), "utf8");
   const { data, content } = matter(source);
+  const file = path.join(contentDirectory, filename);
 
   if (!data.title || !data.description || !data.kind) {
     throw new Error(`${filename} is missing required frontmatter.`);
@@ -52,19 +77,23 @@ function readDocument(filename: string): ContentDocument {
     );
   }
 
+  const href = kind === "craft" ? `/craft/${concept}/${slug}` : "/craft";
+  const writeUp = kind === "craft" && hasWriteUp(splitCraftSections(content));
+
   return {
     slug,
     title: String(data.title),
     seoTitle: data.seoTitle ? String(data.seoTitle) : undefined,
     description: String(data.description),
     publishedAt,
-    updatedAt: toDate(data.updatedAt) ?? publishedAt,
+    updatedAt: lastCommitDate(file) ?? toDate(data.updatedAt) ?? publishedAt,
     category: data.category ? String(data.category) : undefined,
     preview: data.preview ? String(data.preview) : undefined,
     order: Number(data.order ?? 999),
     kind,
     concept,
-    href: kind === "craft" ? `/craft/${concept}/${slug}` : "/craft",
+    href,
+    howItWorksHref: writeUp ? `${href}/how-it-works` : undefined,
     body: content,
   };
 }
@@ -87,6 +116,7 @@ export function getAllContent(): ContentEntry[] {
       kind: document.kind,
       concept: document.concept,
       href: document.href,
+      howItWorksHref: document.howItWorksHref,
     }))
     .sort((a, b) => a.order - b.order);
 }
