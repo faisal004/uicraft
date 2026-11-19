@@ -126,8 +126,8 @@ export function MdxPage({ document, view = "craft" }: { document: ContentDocumen
     <div className="flex min-w-0 flex-1 flex-col">
       <CraftHeader document={document} />
       <div className="min-w-0 px-4 py-10 sm:px-8 sm:py-12 lg:px-12">
-        <div className="mx-auto grid max-w-6xl gap-12 xl:grid-cols-[minmax(0,1fr)_13rem]">
-          <article className="mx-auto w-full max-w-3xl min-w-0 pb-24">
+        <div className={BODY_GRID}>
+          <article className="mx-auto w-full max-w-3xl min-w-0 pb-24 [&>:first-child]:mt-0">
             <CraftBlock
               preview={renderMdx(sections.preview)}
               code={sections.implementation ? renderMdx(sections.implementation) : undefined}
@@ -146,6 +146,9 @@ export function MdxPage({ document, view = "craft" }: { document: ContentDocumen
   );
 }
 
+// The How it works page: an article column and, on wide screens, the "On this page" rail.
+const BODY_GRID = "mx-auto grid max-w-6xl gap-12 xl:grid-cols-[minmax(0,1fr)_13rem]";
+
 const dateFormat = new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" });
 
 function CraftHeader({ document }: { document: ContentDocument }) {
@@ -156,7 +159,9 @@ function CraftHeader({ document }: { document: ContentDocument }) {
 
   return (
     <header className="border-b border-foreground/10 px-4 py-6 sm:px-8 lg:px-12">
-      <div className="mx-auto flex max-w-6xl items-start justify-between gap-4">
+      {/* Same grid as the body below, so the title lines up with the article column. */}
+      <div className={BODY_GRID}>
+        <div className="mx-auto flex w-full max-w-3xl min-w-0 items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground/55">
             {concept ? (
@@ -182,6 +187,7 @@ function CraftHeader({ document }: { document: ContentDocument }) {
           </p>
         </div>
         <ShareButton path={document.howItWorksHref ?? document.href} />
+        </div>
       </div>
     </header>
   );

@@ -366,4 +366,12 @@ const DEMO_COPY = [
   "Scroll a little and the video lets go of the cover. The corner nearest the dock leaves first and the rest of the sheet follows, stretching on the way, until it lands in the small player.",
   "Scroll back up and it unfolds into the cover again. Once it is docked, the mini player is a button that brings you back to the top.",
   "Nothing about the layout changes. The cover and the dock are empty boxes; one WebGL plane is drawn between them, and every point on it runs a slightly delayed copy of the scroll position.",
+  "The tray itself is nothing special: a baking sheet, a few millimetres of water, and a drop of dish soap to break the surface tension. The paint goes in last, one colour at a time, from a dropper held just above the water.",
+  "White spreads fastest. It races to the edges and leaves a thin skin behind, and every colour that follows has to push through it. That is where the cloud shapes come from: dense pigment meeting a surface that is already crowded.",
+  "Ochre is the slowest. It sinks a little before it spreads, so it arrives late and sits under everything else like a shadow. Filmed from above, it reads as depth even though the whole tray is flat.",
+  "The camera runs at a high frame rate and the footage is slowed down four times. Real time is too quick to follow; at quarter speed you can watch one cell of colour split, curl, and fold back into its neighbour.",
+  "Lighting matters more than the paint. A single soft light from one side picks out the ridges where pigments meet, and a black card on the other side keeps the water from reflecting the ceiling.",
+  "Most takes are thrown away. The good ones have a moment, usually around the eight-second mark, where the whole surface seems to hold still before it starts moving again in a new direction.",
+  "That pause is the part worth keeping. It is the frame this post opens on, and the one the mini player keeps showing in the corner while you read.",
+  "If you made it this far, scroll back to the top and watch the sheet unfold out of the corner and stretch back over the cover.",
 ];

@@ -365,7 +365,7 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
 .craft-preview > :last-child {
   margin-bottom: 0;
 }
-.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child) {
+.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child, > .craft-fill:first-child) {
   padding: 0;
 }
 .craft-preview > .border:first-child,
@@ -374,7 +374,7 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
   border-width: 0;
   border-radius: 0;
 }
-.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child) > :not(:first-child) {
+.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child, > .craft-fill:first-child) > :not(:first-child) {
   margin-inline: 1.25rem;
   margin-bottom: 1rem;
 }
