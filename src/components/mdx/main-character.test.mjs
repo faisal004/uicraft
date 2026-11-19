@@ -69,26 +69,50 @@ test("every flower blossom meets the top of its own stem", () => {
   assert.ok(blossoms > 0, "checked the flower patches");
 });
 
-test("birds flap, gusts fade, and reduced motion keeps the atmosphere still", () => {
+test("white birds beat jointed wings, wrap, and hold still for reduced motion", () => {
   const scene = new THREE.Scene();
   const animate = helpers.buildAtmosphere(scene);
   const birds = scene.children.filter((object) => object.isGroup);
-  const gusts = scene.children.filter((object) => object.isMesh);
   assert.equal(birds.length, 7);
-  animate(0, 0, false);
-  const wing = birds[0].children[1];
-  const start = wing.rotation.x;
-  animate(0.2, 0, false);
-  assert.notEqual(wing.rotation.x, start);
-  assert.ok(gusts.some((gust) => gust.visible && gust.material.opacity > 0));
+  assert.equal(scene.children.length, 7, "only birds: no wind gusts");
+  // The body is white (the old birds were dark slate).
+  const body = birds[0].children.find((child) => child.isMesh);
+  const { r, g, b } = body.material.color;
+  assert.ok(Math.min(r, g, b) > 0.9, "white body");
+  // Each wing is a shoulder group holding a wrist group (two jointed parts).
+  const shoulders = birds[0].children.filter((child) => child.isGroup);
+  assert.equal(shoulders.length, 2);
+  const wrist = shoulders[0].children.find((child) => child.isGroup);
+  assert.ok(wrist, "outer wing hangs off the inner wing");
+
+  // Find a moment where the bird is flapping and check both joints move.
+  let moved = false;
+  for (let time = 0; time < 10 && !moved; time += 0.25) {
+    animate(time, 0, false);
+    const shoulder = shoulders[0].rotation.x;
+    const wristAngle = wrist.rotation.x;
+    animate(time + 0.05, 0, false);
+    moved = shoulders[0].rotation.x !== shoulder && wrist.rotation.x !== wristAngle;
+  }
+  assert.ok(moved, "inner and outer wing both move through a wingbeat");
+
+  // Both wings lift and drop together (mirror-symmetric stroke). Measured in
+  // the bird's own frame, since the whole bird also banks.
+  for (const time of [0.3, 1.1, 2.2, 4.7]) {
+    animate(time, 0, false);
+    scene.updateMatrixWorld(true);
+    const tipY = (shoulder) => {
+      const wristGroup = shoulder.children.find((child) => child.isGroup);
+      return birds[0].worldToLocal(wristGroup.localToWorld(new THREE.Vector3(-0.07, 0, 0.2))).y;
+    };
+    assert.ok(Math.abs(tipY(shoulders[0]) - tipY(shoulders[1])) < 1e-6, `wingtips stay level at t=${time}`);
+  }
+
   for (const time of [1, 3.5, 5, 15, 45, 10_000]) {
     animate(time, time * 0.55, false);
     for (const bird of birds) {
       assert.ok(Math.abs(bird.position.x) <= 20, "flight wraps within the scene");
-      assert.ok(bird.scale.x >= 0 && bird.scale.x <= 1);
-    }
-    for (const gust of gusts.filter((gust) => gust.visible)) {
-      assert.ok(gust.material.opacity >= 0 && gust.material.opacity <= 0.65);
+      assert.ok(bird.scale.x >= 0 && bird.scale.x <= 1.15 + 1e-9);
     }
   }
   animate(1, 0, true);
@@ -97,5 +121,4 @@ test("birds flap, gusts fade, and reduced motion keeps the atmosphere still", ()
   animate(30, 0, true);
   scene.updateMatrixWorld(true);
   assert.deepEqual(birds.map((bird) => bird.matrix.toArray()), positions);
-  assert.ok(gusts.every((gust) => !gust.visible));
 });

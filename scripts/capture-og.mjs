@@ -107,8 +107,8 @@ async function capture(browser, { slug, concept }, tmp) {
   const started = Date.now();
 
   await page.goto(`${BASE}/craft/${concept}/${slug}`, { waitUntil: "networkidle" });
-  // Hide the Next.js dev badge.
-  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  // Hide the Next.js dev badge, and control panels a demo marks with data-og-hide.
+  await page.addStyleTag({ content: "nextjs-portal, [data-og-hide] { display: none !important; }" });
   if (ZOOM[slug]) {
     await page.addStyleTag({ content: `.craft-stage > :not(h1) { zoom: ${ZOOM[slug]}; }` });
   }

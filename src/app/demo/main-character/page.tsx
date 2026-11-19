@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { MainCharacter } from "./main-character";
+import { MainCharacter } from "@/components/mdx/main-character";
 
 export const metadata: Metadata = {
   title: "Main Character Demo",

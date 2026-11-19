@@ -522,49 +522,61 @@ function buildProps(scene: THREE.Scene) {
   return props;
 }
 
-// ---------- birds and passing wind ----------
+// ---------- birds ----------
 
 function buildAtmosphere(scene: THREE.Scene) {
-  const feather = new THREE.MeshLambertMaterial({ color: 0x38434a, side: THREE.DoubleSide });
-  const wingShape = new THREE.Shape([
-    new THREE.Vector2(0.06, 0), new THREE.Vector2(0.015, 0.12),
-    new THREE.Vector2(-0.12, 0.32), new THREE.Vector2(-0.16, 0.25),
-    new THREE.Vector2(-0.1, 0.08), new THREE.Vector2(-0.07, 0),
-  ]);
-  const wingGeometry = new THREE.ShapeGeometry(wingShape).rotateX(Math.PI / 2);
-  const bodyGeometry = new THREE.SphereGeometry(1, 10, 6).scale(0.13, 0.035, 0.045);
+  // White gull-like birds. The body is a streamlined ellipsoid with a head,
+  // beak and fanned tail. Each wing has two jointed parts (inner arm and outer
+  // hand with dark tips), and the outer part lags behind the inner one, so the
+  // wingbeat bends like a real stroke instead of flapping as a flat card.
+  const white = new THREE.MeshLambertMaterial({ color: 0xf8f8f4, side: THREE.DoubleSide });
+  const wingGrey = new THREE.MeshLambertMaterial({ color: 0xe2e6ea, side: THREE.DoubleSide });
+  const tipDark = new THREE.MeshLambertMaterial({ color: 0x3a3f46, side: THREE.DoubleSide });
+  const beakMat = new THREE.MeshLambertMaterial({ color: 0xf2b134 });
+  const flat = (pts: [number, number][]) =>
+    new THREE.ShapeGeometry(new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)))).rotateX(Math.PI / 2);
+  // Wing shapes lie in the x/z plane and reach out along +z (x is forward).
+  const innerWing = flat([[0.06, 0], [0.05, 0.17], [-0.03, 0.18], [-0.09, 0.05], [-0.08, 0]]);
+  const outerWing = flat([[0.05, 0], [0.0, 0.14], [-0.07, 0.2], [-0.06, 0.09], [-0.03, 0]]);
+  const wingTip = flat([[0.0, 0.14], [-0.07, 0.2], [-0.065, 0.13]]);
+  const tail = flat([[0, 0.035], [-0.11, 0.06], [-0.12, 0], [-0.11, -0.06], [0, -0.035]]);
+  const bodyGeometry = new THREE.SphereGeometry(1, 12, 8).scale(0.16, 0.05, 0.055);
+  const headGeometry = new THREE.SphereGeometry(0.045, 10, 8);
+  const beakGeometry = new THREE.ConeGeometry(0.013, 0.055, 6).rotateZ(-Math.PI / 2);
+
   const birds = Array.from({ length: 7 }, (_, i) => {
     const root = new THREE.Group();
-    const body = new THREE.Mesh(bodyGeometry, feather);
-    body.castShadow = true;
-    root.add(body);
+    const add = (parent: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      parent.add(m);
+      return m;
+    };
+    add(root, bodyGeometry, white, 0, 0, 0);
+    add(root, headGeometry, white, 0.14, 0.025, 0);
+    add(root, beakGeometry, beakMat, 0.195, 0.02, 0);
+    add(root, tail, white, -0.13, 0.005, 0);
+
+    // side 1 reaches +z, side -1 is mirrored to reach -z.
     const wings = [1, -1].map((side) => {
-      const wing = new THREE.Mesh(wingGeometry, feather);
-      wing.scale.z = side;
-      wing.position.z = side * 0.025;
-      wing.castShadow = true;
-      root.add(wing);
-      return wing;
+      const shoulder = new THREE.Group();
+      shoulder.position.set(0.02, 0.02, side * 0.04);
+      shoulder.scale.z = side;
+      root.add(shoulder);
+      add(shoulder, innerWing, white, 0, 0, 0);
+      const wrist = new THREE.Group();
+      wrist.position.set(0, 0, 0.17);
+      shoulder.add(wrist);
+      add(wrist, outerWing, wingGrey, 0, 0, 0);
+      add(wrist, wingTip, tipDark, 0, 0.001, 0);
+      return { shoulder, wrist, side };
     });
+    root.scale.setScalar(1.15);
     const dir = i < 4 ? 1 : -1;
     root.rotation.y = dir > 0 ? 0 : Math.PI;
     scene.add(root);
     return { root, wings, dir, phase: i * 1.7 };
-  });
-
-  const windCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-2, 0, 0), new THREE.Vector3(-1, 0.04, 0.05),
-    new THREE.Vector3(0, 0.08, 0.2), new THREE.Vector3(0.6, 0.12, 0.05),
-    new THREE.Vector3(0.75, 0.18, -0.3), new THREE.Vector3(0.4, 0.2, -0.5),
-    new THREE.Vector3(0.18, 0.16, -0.22), new THREE.Vector3(0.6, 0.1, 0.14),
-    new THREE.Vector3(1.7, 0.03, 0.24),
-  ]);
-  const windGeometry = new THREE.TubeGeometry(windCurve, 64, 0.018, 5, false);
-  const gusts = Array.from({ length: 3 }, () => {
-    const material = new THREE.MeshBasicMaterial({ color: 0xfffcf0, transparent: true, opacity: 0, depthWrite: false });
-    const gust = new THREE.Mesh(windGeometry, material);
-    scene.add(gust);
-    return gust;
   });
 
   return (time: number, offset: number, reducedMotion: boolean) => {
@@ -572,23 +584,26 @@ function buildAtmosphere(scene: THREE.Scene) {
     for (let i = 0; i < birds.length; i++) {
       const { root, wings, dir, phase } = birds[i];
       const x = wrap(-8 + i * 2.3 + dir * t * 1.9 - offset);
-      root.position.set(x, 3.4 + (i % 4) * 0.22 + Math.sin(t * 2 + phase) * 0.09, -3 + (i % 3) * 1.3);
+      // Flap-and-glide: a burst of wingbeats, then a glide with wings held
+      // in a shallow V, like gulls cruising over a park.
+      const flapping = smooth(-0.2, 0.2, Math.sin(t * 0.8 + phase * 1.3));
+      const beat = t * 9 + phase;
+      const stroke = Math.sin(beat) * 0.75 * flapping;
+      const lagged = Math.sin(beat - 0.7) * 0.55 * flapping;
+      const glide = (1 - flapping) * -0.15; // slight upward V while gliding
+      for (const w of wings) {
+        // The shoulder rotates after its mirror scale, so it needs the side
+        // sign; the wrist rotates inside the mirrored space, so it doesn't.
+        w.shoulder.rotation.x = -w.side * (stroke + glide);
+        w.wrist.rotation.x = -(lagged + glide * 0.5);
+      }
+      // The body lifts a touch on each downstroke and banks gently.
+      const lift = Math.sin(beat + Math.PI / 2) * 0.03 * flapping;
+      root.position.set(x, 3.4 + (i % 4) * 0.22 + Math.sin(t * 0.9 + phase) * 0.12 + lift, -3 + (i % 3) * 1.3);
       root.visible = Math.abs(x) < FADE_OUT;
-      root.scale.setScalar(edgeFade(x));
-      const flap = Math.sin(t * 7 + phase) * 0.65;
-      wings[0].rotation.x = flap;
-      wings[1].rotation.x = -flap;
-      root.rotation.z = Math.sin(t * 1.2 + phase) * 0.06;
-    }
-    for (let i = 0; i < gusts.length; i++) {
-      const life = ((t + i * 5) % 15) / 3.5;
-      const gust = gusts[i];
-      gust.visible = !reducedMotion && life < 1;
-      if (!gust.visible) continue;
-      const x = wrap(-9 + life * 18 - offset);
-      gust.position.set(x, 0.65 + i * 0.3, -2.8 + i * 2.4);
-      gust.material.opacity = Math.sin(life * Math.PI) * 0.65 * edgeFade(x);
-      gust.rotation.y = Math.sin(t * 0.3 + i) * 0.18;
+      root.scale.setScalar(1.15 * edgeFade(x));
+      root.rotation.x = Math.sin(t * 0.6 + phase) * 0.12;
+      root.rotation.z = Math.sin(t * 0.9 + phase) * 0.05;
     }
   };
 }
@@ -624,14 +639,22 @@ type Walker = {
   phase: number;
 };
 
-export function MainCharacter() {
+type MainCharacterProps = {
+  /** Show the Tweakpane panel. */
+  controls?: boolean;
+  /** Starting zoom; small frames (like a landing tile) zoom in on the hero. */
+  zoom?: number;
+};
+
+export function MainCharacter({ controls = true, zoom = 1 }: MainCharacterProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLDivElement>(null);
   // One mutable settings object: Tweakpane edits it in place, the loop reads it every frame.
-  const settings = useRef({ crowdSpeed: 1, heroSpeed: 0.55, trails: true, pixel: 2, zoom: 1 });
+  const settings = useRef({ crowdSpeed: 1, heroSpeed: 0.55, trails: true, pixel: 2, zoom });
 
   // Tweakpane builds DOM as soon as it loads, so import it on the client only.
   useEffect(() => {
+    if (!controls) return;
     let dispose = () => {};
     let cancelled = false;
     import("tweakpane").then(({ Pane }) => {
@@ -651,7 +674,7 @@ export function MainCharacter() {
       cancelled = true;
       dispose();
     };
-  }, []);
+  }, [controls]);
 
   useEffect(() => {
     const host = hostRef.current!;
@@ -813,12 +836,25 @@ export function MainCharacter() {
       }
 
       renderer.render(scene, camera);
-      raf = requestAnimationFrame(tick);
+      if (onScreen) raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+
+    // Only render while the scene is on screen (it can sit below the fold on
+    // the landing page), and pick up smoothly when it scrolls back into view.
+    let onScreen = false;
+    const io = new IntersectionObserver(([entry]) => {
+      const was = onScreen;
+      onScreen = entry.isIntersecting;
+      if (onScreen && !was) {
+        last = performance.now();
+        raf = requestAnimationFrame(tick);
+      }
+    });
+    io.observe(host);
 
     return () => {
       cancelAnimationFrame(raf);
+      io.disconnect();
       ro.disconnect();
       const shared = new Set<THREE.BufferGeometry>(Object.values(pg));
       scene.traverse((o) => {
@@ -835,8 +871,22 @@ export function MainCharacter() {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={hostRef} className="absolute inset-0" />
-      <div ref={paneRef} className="absolute top-3 right-3 z-10 w-64" />
+      <div
+        ref={hostRef}
+        role="img"
+        aria-label="An isometric pixel-art park. A person in a yellow cap and orange hoodie walks slowly along a path while a crowd rushes past them in both directions."
+        className="absolute inset-0"
+      />
+      {controls && <div ref={paneRef} data-og-hide className="absolute top-3 right-3 z-10 w-64" />}
+    </div>
+  );
+}
+
+/** The craft page demo: the scene filling the stage, with the Tweakpane panel. */
+export function MainCharacterDemo() {
+  return (
+    <div className="craft-fill relative min-h-[30rem] w-full overflow-hidden bg-[#050505] sm:min-h-[36rem]">
+      <MainCharacter />
     </div>
   );
 }

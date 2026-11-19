@@ -2,9 +2,9 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { BitmapTimer } from "@/components/landing/bitmap-timer";
 import { CellBar, plateCaptionClassName } from "@/components/landing/cell-bar";
 import { ClawDot } from "@/components/landing/claw-dot";
+import { MainCharacterPlate } from "@/components/landing/main-character-plate";
 import { SnapDismiss } from "@/components/landing/snap-dismiss";
 import type { ContentEntry } from "@/lib/content";
 
@@ -18,7 +18,7 @@ export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
   const plates: Plate[] = [
     { slug: "svg-claw", use: "as a wordmark", demo: <ClawDot /> },
     { slug: "thanos-snap", use: "as a dismiss", demo: <SnapDismiss /> },
-    { slug: "bitmap-device", use: "as a timer", demo: <BitmapTimer /> },
+    { slug: "main-character", use: "as a hero scene", demo: <MainCharacterPlate /> },
   ];
 
   return (
