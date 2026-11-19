@@ -77,6 +77,9 @@ const ACTIONS = {
   "genie-minimize": async (page) => {
     await page.waitForTimeout(300);
     await page.locator('button[aria-label="Minimise Player"]').evaluate((button) => button.click());
+    // Let it pour into the Dock, then click its Dock thumbnail so it pours back out.
+    await page.waitForTimeout(1600);
+    await page.locator('button[aria-label^="Restore"]:not([disabled])').first().evaluate((button) => button.click());
   },
 };
 
