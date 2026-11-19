@@ -47,6 +47,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: document.updatedAt,
       authors: [author.url],
       images: [image],
+      ...(document.ogVideo
+        ? { videos: [{ url: new URL(document.ogVideo, siteUrl).href, width: 1200, height: 630, type: "video/mp4" }] }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",

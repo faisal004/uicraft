@@ -27,6 +27,9 @@ export type ContentEntry = {
   href: string;
   /** `${href}/how-it-works` when the craft has a write-up, otherwise undefined. */
   howItWorksHref?: string;
+  /** Captured social preview files under public/og (see scripts/capture-og.mjs), when present. */
+  ogImageFile?: string;
+  ogVideo?: string;
 };
 
 export type ContentDocument = ContentEntry & {
@@ -55,6 +58,14 @@ function lastCommitDate(file: string) {
   } catch {
     return undefined;
   }
+}
+
+const ogDirectory = path.join(process.cwd(), "public/og");
+
+/** The absolute path of a captured social preview file, if it exists. */
+function ogFile(name: string) {
+  const file = path.join(ogDirectory, name);
+  return fs.existsSync(file) ? file : undefined;
 }
 
 function readDocument(filename: string): ContentDocument {
@@ -94,6 +105,8 @@ function readDocument(filename: string): ContentDocument {
     concept,
     href,
     howItWorksHref: writeUp ? `${href}/how-it-works` : undefined,
+    ogImageFile: ogFile(`${slug}.png`),
+    ogVideo: ogFile(`${slug}.mp4`) ? `/og/${slug}.mp4` : undefined,
     body: content,
   };
 }
@@ -117,6 +130,8 @@ export function getAllContent(): ContentEntry[] {
       concept: document.concept,
       href: document.href,
       howItWorksHref: document.howItWorksHref,
+      ogImageFile: document.ogImageFile,
+      ogVideo: document.ogVideo,
     }))
     .sort((a, b) => a.order - b.order);
 }
