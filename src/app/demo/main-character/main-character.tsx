@@ -184,20 +184,47 @@ function ditherMat(color: number, fade: Fade, flat = false) {
 
 // ---------- people ----------
 
+function contour(points: [number, number][], depth = 1, start = 0, length = Math.PI * 2) {
+  return new THREE.LatheGeometry(points.map(([radius, y]) => new THREE.Vector2(radius, y)), 24, start, length).scale(depth, 1, 1);
+}
+
+function sneaker(points: [number, number][], bevel: number) {
+  const shape = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
+  return new THREE.ExtrudeGeometry(shape, {
+    depth: 0.065, steps: 1, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3,
+  }).translate(0, 0, -0.0325);
+}
+
+const TORSO: [number, number][] = [[0, -0.17], [0.115, -0.17], [0.12, -0.145], [0.108, -0.07], [0.123, 0.025], [0.151, 0.09], [0.14, 0.125], [0.09, 0.16], [0.045, 0.18], [0, 0.18]];
+
 const pg = {
-  leg: new THREE.CapsuleGeometry(0.055, 0.34, 4, 8).translate(0, -0.225, 0),
-  shoe: new THREE.BoxGeometry(0.17, 0.06, 0.09),
-  hips: new THREE.CapsuleGeometry(0.09, 0.1, 4, 8).rotateX(Math.PI / 2),
-  torso: new THREE.CapsuleGeometry(0.12, 0.22, 4, 12).scale(0.8, 1, 1.25),
-  arm: new THREE.CapsuleGeometry(0.045, 0.3, 4, 8).translate(0, -0.19, 0),
-  hand: new THREE.SphereGeometry(0.045, 8, 6),
-  head: new THREE.SphereGeometry(0.11, 14, 10),
-  hair: new THREE.SphereGeometry(0.118, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
-  capTop: new THREE.SphereGeometry(0.122, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5),
-  capBrim: new THREE.BoxGeometry(0.13, 0.02, 0.17),
-  band: new THREE.TorusGeometry(0.135, 0.017, 6, 18, Math.PI).rotateY(Math.PI / 2),
-  cup: new THREE.CylinderGeometry(0.05, 0.05, 0.045, 12).rotateX(Math.PI / 2),
-  pack: new THREE.BoxGeometry(0.13, 0.28, 0.24),
+  thigh: contour([[0, -0.28], [0.041, -0.26], [0.048, -0.18], [0.062, -0.055], [0.056, 0.015], [0, 0.035]]),
+  shin: contour([[0, -0.27], [0.032, -0.25], [0.036, -0.17], [0.048, -0.065], [0.042, 0.015], [0, 0.035]]),
+  shoe: sneaker([[-0.06, -0.03], [0.095, -0.03], [0.105, -0.02], [0.099, -0.006], [0.07, 0.004], [0.02, 0.018], [0, 0.036], [-0.043, 0.036], [-0.063, 0.012]], 0.006),
+  sole: sneaker([[-0.064, -0.005], [0.099, -0.005], [0.11, 0], [0.102, 0.005], [-0.064, 0.005]], 0.002),
+  hips: new THREE.SphereGeometry(1, 16, 10).scale(0.08, 0.075, 0.125),
+  torso: contour(TORSO, 0.7),
+  jacket: contour(TORSO, 0.7, Math.PI / 2 + 0.45, Math.PI * 2 - 0.9),
+  jacketEdge: contour(TORSO, 0.705, Math.PI / 2 + 0.45, 0.065),
+  sleeve: contour([[0, -0.145], [0.044, -0.145], [0.048, -0.1], [0.054, -0.015], [0.04, 0.025], [0, 0.035]]),
+  forearm: contour([[0, -0.165], [0.025, -0.15], [0.032, -0.09], [0.035, -0.02], [0.029, 0.035], [0, 0.045]]),
+  hand: new THREE.CapsuleGeometry(0.022, 0.018, 6, 12).scale(1, 1, 0.65),
+  neck: new THREE.CylinderGeometry(0.038, 0.043, 0.09, 10),
+  head: contour([[0, -0.115], [0.035, -0.105], [0.061, -0.08], [0.08, -0.035], [0.086, 0.025], [0.081, 0.065], [0.06, 0.095], [0, 0.115]], 1.05),
+  detail: new THREE.SphereGeometry(1, 8, 6),
+  hair: new THREE.SphereGeometry(0.103, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.62).scale(0.92, 1.2, 0.87),
+  capTop: new THREE.SphereGeometry(0.105, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5).scale(1, 0.8, 0.95),
+  capBrim: new THREE.SphereGeometry(1, 16, 8).scale(0.085, 0.009, 0.092),
+  band: new THREE.TorusGeometry(0.125, 0.012, 8, 24, Math.PI).rotateY(Math.PI / 2).scale(1, 1.4, 1),
+  cup: new THREE.CylinderGeometry(0.037, 0.037, 0.028, 12).rotateX(Math.PI / 2),
+  pack: new THREE.CapsuleGeometry(0.105, 0.12, 4, 8).scale(0.65, 1, 1),
+  strap: new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.13, 0.81, 0.09),
+    new THREE.Vector3(-0.04, 0.91, 0.11),
+    new THREE.Vector3(0.055, 0.86, 0.125),
+    new THREE.Vector3(0.088, 0.76, 0.11),
+    new THREE.Vector3(0.06, 0.65, 0.09),
+  ]), 16, 0.01, 6, false),
   bag: new THREE.BoxGeometry(0.07, 0.18, 0.2),
 };
 
@@ -215,14 +242,19 @@ type Look = {
 type Person = {
   root: THREE.Group;
   body: THREE.Group;
+  chest: THREE.Group;
+  head: THREE.Group;
   legL: THREE.Object3D;
   legR: THREE.Object3D;
   armL: THREE.Object3D;
   armR: THREE.Object3D;
+  knees: THREE.Object3D[];
+  elbows: THREE.Object3D[];
+  feet: THREE.Object3D[];
   mats: THREE.Material[];
 };
 
-function makePerson(look: Look, material: (c: number) => THREE.Material, shadow: boolean): Person {
+function makePerson(look: Look, material: (c: number) => THREE.Material, shadow: boolean, detailed = false): Person {
   const mats = new Map<number, THREE.Material>();
   const mat = (c: number) => {
     if (!mats.has(c)) mats.set(c, material(c));
@@ -231,50 +263,105 @@ function makePerson(look: Look, material: (c: number) => THREE.Material, shadow:
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
+  const chest = new THREE.Group();
+  body.add(chest);
   const mesh = (parent: THREE.Object3D, g: THREE.BufferGeometry, c: number, x: number, y: number, z: number) => {
     const m = new THREE.Mesh(g, mat(c));
     m.position.set(x, y, z);
     m.castShadow = shadow;
+    m.receiveShadow = shadow;
     parent.add(m);
     return m;
   };
-  const pivot = (x: number, y: number, z: number) => {
+  const pivot = (x: number, y: number, z: number, parent: THREE.Group = body) => {
     const p = new THREE.Group();
     p.position.set(x, y, z);
-    body.add(p);
+    parent.add(p);
     return p;
   };
 
-  const legL = pivot(0, 0.5, 0.075);
-  const legR = pivot(0, 0.5, -0.075);
+  const legL = pivot(0, 0.55, 0.075);
+  const legR = pivot(0, 0.55, -0.075);
+  const knees: THREE.Object3D[] = [];
+  const feet: THREE.Object3D[] = [];
   for (const leg of [legL, legR]) {
-    mesh(leg, pg.leg, look.pants, 0, 0, 0);
-    mesh(leg, pg.shoe, look.shoes, 0.03, -0.47, 0);
+    mesh(leg, pg.thigh, look.pants, 0, 0, 0);
+    const knee = new THREE.Group();
+    knee.position.y = -0.25;
+    leg.add(knee);
+    knees.push(knee);
+    mesh(knee, pg.shin, look.pants, 0, 0, 0);
+    const foot = new THREE.Group();
+    foot.position.y = -0.25;
+    knee.add(foot);
+    feet.push(foot);
+    mesh(foot, pg.shoe, look.shoes, 0.02, -0.008, 0);
+    if (detailed) mesh(foot, pg.sole, 0xc9c7c1, 0.02, -0.043, 0);
   }
-  mesh(body, pg.hips, look.pants, 0, 0.53, 0);
-  mesh(body, pg.torso, look.top, 0, 0.75, 0);
-  const armL = pivot(0, 0.91, 0.175);
-  const armR = pivot(0, 0.91, -0.175);
+  mesh(body, pg.hips, look.pants, 0, 0.57, 0);
+  const shirt = mesh(chest, pg.torso, detailed ? 0xe9e1cf : look.top, 0, 0.75, 0);
+  if (detailed) {
+    shirt.scale.set(0.95, 0.98, 0.95);
+    mesh(chest, pg.jacket, look.top, 0, 0.75, 0);
+    mesh(chest, pg.jacketEdge, 0xb9642b, 0, 0.75, 0);
+    mesh(chest, pg.jacketEdge, 0xb9642b, 0, 0.75, 0).scale.z = -1;
+  }
+  const armL = pivot(-0.008, 0.865, 0.14, chest);
+  const armR = pivot(-0.008, 0.865, -0.14, chest);
+  armL.rotation.x = -0.09;
+  armR.rotation.x = 0.09;
+  const elbows: THREE.Object3D[] = [];
   for (const arm of [armL, armR]) {
-    mesh(arm, pg.arm, look.top, 0, 0, 0);
-    mesh(arm, pg.hand, look.skin, 0, -0.38, 0);
+    mesh(arm, pg.sleeve, look.top, 0, 0, 0);
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.17;
+    arm.add(elbow);
+    elbows.push(elbow);
+    mesh(elbow, pg.forearm, detailed ? look.top : look.skin, 0, 0, 0);
+    mesh(elbow, pg.hand, look.skin, 0, -0.17, 0);
   }
-  mesh(body, pg.head, look.skin, 0, 1.08, 0);
+  mesh(chest, pg.neck, look.skin, 0, 0.945, 0);
+  const head = new THREE.Group();
+  chest.add(head);
+  mesh(head, pg.head, look.skin, 0, 1.065, 0);
+  mesh(head, pg.hair, look.hair, -0.015, 1.08, 0);
+  if (detailed) {
+    mesh(head, pg.detail, look.skin, 0.09, 1.055, 0).scale.set(0.025, 0.025, 0.019);
+    for (const side of [-1, 1]) {
+      mesh(head, pg.detail, look.skin, -0.005, 1.055, side * 0.084).scale.set(0.018, 0.029, 0.014);
+      mesh(head, pg.detail, 0x30251f, 0.079, 1.085, side * 0.043).scale.set(0.006, 0.008, 0.007);
+      mesh(head, pg.detail, look.hair, 0.077, 1.101, side * 0.044).scale.set(0.01, 0.004, 0.016);
+    }
+    mesh(head, pg.detail, 0x925d45, 0.076, 1.02, 0).scale.set(0.005, 0.004, 0.02);
+    mesh(chest, pg.neck, 0xe9e1cf, 0, 0.923, 0).scale.set(1.35, 0.16, 1.35);
+  }
   if (look.cap !== undefined) {
-    mesh(body, pg.capTop, look.cap, -0.005, 1.1, 0);
-    mesh(body, pg.capBrim, look.cap, 0.11, 1.115, 0);
-  } else {
-    mesh(body, pg.hair, look.hair, -0.012, 1.095, 0);
+    mesh(head, pg.capTop, look.cap, -0.012, 1.14, 0);
+    mesh(head, pg.capBrim, look.cap, 0.075, 1.14, 0).rotation.z = -0.08;
   }
   if (look.headphones !== undefined) {
-    mesh(body, pg.band, look.headphones, 0, 1.1, 0);
-    mesh(body, pg.cup, look.headphones, 0, 1.07, 0.125);
-    mesh(body, pg.cup, look.headphones, 0, 1.07, -0.125);
+    mesh(head, pg.band, look.headphones, -0.012, 1.075, 0);
+    for (const side of [-1, 1]) {
+      mesh(head, pg.cup, look.headphones, -0.012, 1.055, side * 0.12);
+      mesh(head, pg.cup, 0x36383c, -0.012, 1.055, side * 0.103).scale.set(0.9, 0.9, 0.45);
+    }
   }
-  if (look.extra === "pack") mesh(body, pg.pack, look.cap !== undefined ? 0x2f3b4c : 0x4a4038, -0.16, 0.66, 0);
+  if (look.extra === "pack") {
+    const color = look.cap !== undefined ? 0x2f3b4c : 0x4a4038;
+    mesh(chest, pg.pack, color, -0.13, 0.75, 0);
+    if (detailed) {
+      for (const side of [-1, 1]) mesh(chest, pg.strap, color, 0, 0, 0).scale.z = side;
+      mesh(chest, pg.pack, 0x26313f, -0.195, 0.69, 0).scale.set(0.45, 0.45, 0.8);
+    }
+  }
   if (look.extra === "bag") mesh(body, pg.bag, 0x5b4636, 0, 0.6, 0.2);
 
-  return { root, body, legL, legR, armL, armR, mats: [...mats.values()] };
+  for (const child of head.children) child.position.y -= 1.055;
+  head.position.y = 1.055;
+  for (const child of chest.children) child.position.y -= 0.62;
+  chest.position.y = 0.62;
+
+  return { root, body, chest, head, legL, legR, armL, armR, knees, elbows, feet, mats: [...mats.values()] };
 }
 
 function pose(p: Person, phase: number, stride: number) {
@@ -283,21 +370,34 @@ function pose(p: Person, phase: number, stride: number) {
   p.legR.rotation.z = -s;
   p.armL.rotation.z = -s * 0.8;
   p.armR.rotation.z = s * 0.8;
-  p.body.position.y = Math.abs(Math.cos(phase)) * 0.035;
-  p.body.rotation.x = Math.sin(phase) * 0.04;
+  p.knees[0].rotation.z = -Math.max(0, Math.cos(phase)) * stride * 1.5;
+  p.knees[1].rotation.z = -Math.max(0, -Math.cos(phase)) * stride * 1.5;
+  p.elbows[0].rotation.z = 0.18 + s * 0.15;
+  p.elbows[1].rotation.z = 0.18 - s * 0.15;
+  // Keep the lower sole on the path as weight passes between the legs.
+  const left = s + p.knees[0].rotation.z;
+  const right = -s + p.knees[1].rotation.z;
+  p.feet[0].rotation.z = -left;
+  p.feet[1].rotation.z = -right;
+  p.body.position.y = 0.25 * (Math.cos(s) + Math.max(Math.cos(left), Math.cos(right))) - 0.5;
+  p.body.rotation.y = Math.sin(phase) * stride * 0.12;
+  p.body.position.z = Math.sin(phase) * stride * 0.025;
+  p.chest.rotation.set(Math.sin(phase) * stride * 0.045, -Math.sin(phase) * stride * 0.2, -0.045);
+  p.head.rotation.y = 0.12 + Math.sin(phase * 0.5) * stride * 0.04;
+  p.head.rotation.z = 0.045;
 }
 
 // ---------- props ----------
 
-type Prop = { group: THREE.Group; x: number; fade: Fade };
+type Prop = { group: THREE.Group; x: number; fade: Fade; foliage?: THREE.Group };
 
 function buildProps(scene: THREE.Scene) {
   const props: Prop[] = [];
-  const place = (x: number, z: number, make: (g: THREE.Group, m: (c: number, flat?: boolean) => THREE.Material) => void) => {
+  const place = (x: number, z: number, make: (g: THREE.Group, m: (c: number, flat?: boolean) => THREE.Material) => THREE.Group | void) => {
     const fade = { value: 1 };
     const g = new THREE.Group();
     g.position.z = z;
-    make(g, (c, flat = true) => ditherMat(c, fade, flat));
+    const foliage = make(g, (c, flat = true) => ditherMat(c, fade, flat));
     g.traverse((o) => {
       if (o instanceof THREE.Mesh) {
         o.castShadow = true;
@@ -305,7 +405,7 @@ function buildProps(scene: THREE.Scene) {
       }
     });
     scene.add(g);
-    props.push({ group: g, x, fade });
+    props.push({ group: g, x, fade, foliage: foliage || undefined });
   };
   const add = (g: THREE.Group, geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
     const m = new THREE.Mesh(geo, mat);
@@ -315,20 +415,37 @@ function buildProps(scene: THREE.Scene) {
   };
 
   const leafColors = [0x3e6b2f, 0x4d7f37, 0x5d9140, 0x35602a];
+  const blossomGeometry = new THREE.IcosahedronGeometry(0.065, 1);
   const tree = (x: number, z: number, s: number) =>
     place(x, z, (g, m) => {
       add(g, new THREE.CylinderGeometry(0.09 * s, 0.13 * s, 1.4 * s, 7), m(0x5a4030), 0, 0.7 * s, 0);
+      const crown = new THREE.Group();
+      crown.position.y = 1.3 * s;
+      g.add(crown);
+      const blossom = rand() < 0.4 ? m(pick([0xf1becb, 0xf6dedb, 0xf9eddf])) : undefined;
       for (let i = 0; i < 7; i++) {
         const r = (0.45 + rand() * 0.35) * s;
-        add(
-          g,
+        const leaves = add(
+          crown,
           new THREE.IcosahedronGeometry(r, 1),
           m(pick(leafColors)),
           (rand() - 0.5) * 0.9 * s,
-          (1.6 + rand() * 0.9) * s,
+          (0.3 + rand() * 0.9) * s,
           (rand() - 0.5) * 0.9 * s,
         );
+        if (blossom) {
+          for (let j = 0; j < 4; j++) {
+            const angle = rand() * Math.PI * 2;
+            const height = rand() * 0.8;
+            const radius = Math.sqrt(1 - height * height) * r;
+            add(crown, blossomGeometry, blossom,
+              leaves.position.x + Math.cos(angle) * radius,
+              leaves.position.y + height * r,
+              leaves.position.z + Math.sin(angle) * radius).scale.setScalar(s);
+          }
+        }
       }
+      return crown;
     });
   const bush = (x: number, z: number, s: number) =>
     place(x, z, (g, m) => {
@@ -351,12 +468,34 @@ function buildProps(scene: THREE.Scene) {
       add(g, new THREE.BoxGeometry(1.2, 0.26, 0.05), wood, 0, 0.56, -0.2);
       for (const sx of [-0.5, 0.5]) add(g, new THREE.BoxGeometry(0.05, 0.36, 0.34), iron, sx, 0.18, 0);
     });
+  const petalShape = new THREE.Shape();
+  for (let i = 0; i <= 40; i++) {
+    const angle = (i / 40) * Math.PI * 2;
+    const radius = 0.034 + 0.014 * Math.cos(angle * 5);
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (i === 0) petalShape.moveTo(x, y);
+    else petalShape.lineTo(x, y);
+  }
+  const petals = new THREE.ShapeGeometry(petalShape).rotateX(-Math.PI / 2);
+  const flowerStem = new THREE.CylinderGeometry(0.005, 0.007, 1, 5);
+  const flowerCenter = new THREE.SphereGeometry(0.012, 8, 6).scale(1, 0.5, 1);
+  const flowerLeaf = new THREE.SphereGeometry(1, 8, 4).scale(0.032, 0.008, 0.012);
   const flowers = (x: number, z: number) =>
     place(x, z, (g, m) => {
       const c = pick([0xf2d16b, 0xe59bb6, 0xf5f1e6, 0xd96a5a]);
+      const stemMat = m(0x426b2a, false);
+      const petalMat = m(c, false);
+      petalMat.side = THREE.DoubleSide;
+      const centerMat = m(0xd7a342, false);
       for (let i = 0; i < 6; i++) {
-        add(g, new THREE.CylinderGeometry(0.01, 0.01, 0.2, 3), m(0x4a7a2c), (rand() - 0.5) * 0.5, 0.1, (rand() - 0.5) * 0.4);
-        add(g, new THREE.IcosahedronGeometry(0.05, 0), m(c), (rand() - 0.5) * 0.5, 0.21, (rand() - 0.5) * 0.4);
+        const px = (rand() - 0.5) * 0.5;
+        const pz = (rand() - 0.5) * 0.4;
+        const height = 0.14 + rand() * 0.14;
+        add(g, flowerStem, stemMat, px, height / 2, pz).scale.y = height;
+        add(g, petals, petalMat, px, height, pz);
+        add(g, flowerCenter, centerMat, px, height + 0.003, pz);
+        add(g, flowerLeaf, stemMat, px + 0.022, height * 0.45, pz).rotation.z = 0.5;
       }
     });
 
@@ -381,6 +520,77 @@ function buildProps(scene: THREE.Scene) {
     tree(x + rand() * 6, 8.5 + rand() * 4, 1 + rand() * 0.3);
   }
   return props;
+}
+
+// ---------- birds and passing wind ----------
+
+function buildAtmosphere(scene: THREE.Scene) {
+  const feather = new THREE.MeshLambertMaterial({ color: 0x38434a, side: THREE.DoubleSide });
+  const wingShape = new THREE.Shape([
+    new THREE.Vector2(0.06, 0), new THREE.Vector2(0.015, 0.12),
+    new THREE.Vector2(-0.12, 0.32), new THREE.Vector2(-0.16, 0.25),
+    new THREE.Vector2(-0.1, 0.08), new THREE.Vector2(-0.07, 0),
+  ]);
+  const wingGeometry = new THREE.ShapeGeometry(wingShape).rotateX(Math.PI / 2);
+  const bodyGeometry = new THREE.SphereGeometry(1, 10, 6).scale(0.13, 0.035, 0.045);
+  const birds = Array.from({ length: 7 }, (_, i) => {
+    const root = new THREE.Group();
+    const body = new THREE.Mesh(bodyGeometry, feather);
+    body.castShadow = true;
+    root.add(body);
+    const wings = [1, -1].map((side) => {
+      const wing = new THREE.Mesh(wingGeometry, feather);
+      wing.scale.z = side;
+      wing.position.z = side * 0.025;
+      wing.castShadow = true;
+      root.add(wing);
+      return wing;
+    });
+    const dir = i < 4 ? 1 : -1;
+    root.rotation.y = dir > 0 ? 0 : Math.PI;
+    scene.add(root);
+    return { root, wings, dir, phase: i * 1.7 };
+  });
+
+  const windCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-2, 0, 0), new THREE.Vector3(-1, 0.04, 0.05),
+    new THREE.Vector3(0, 0.08, 0.2), new THREE.Vector3(0.6, 0.12, 0.05),
+    new THREE.Vector3(0.75, 0.18, -0.3), new THREE.Vector3(0.4, 0.2, -0.5),
+    new THREE.Vector3(0.18, 0.16, -0.22), new THREE.Vector3(0.6, 0.1, 0.14),
+    new THREE.Vector3(1.7, 0.03, 0.24),
+  ]);
+  const windGeometry = new THREE.TubeGeometry(windCurve, 64, 0.018, 5, false);
+  const gusts = Array.from({ length: 3 }, () => {
+    const material = new THREE.MeshBasicMaterial({ color: 0xfffcf0, transparent: true, opacity: 0, depthWrite: false });
+    const gust = new THREE.Mesh(windGeometry, material);
+    scene.add(gust);
+    return gust;
+  });
+
+  return (time: number, offset: number, reducedMotion: boolean) => {
+    const t = reducedMotion ? 0 : time;
+    for (let i = 0; i < birds.length; i++) {
+      const { root, wings, dir, phase } = birds[i];
+      const x = wrap(-8 + i * 2.3 + dir * t * 1.9 - offset);
+      root.position.set(x, 3.4 + (i % 4) * 0.22 + Math.sin(t * 2 + phase) * 0.09, -3 + (i % 3) * 1.3);
+      root.visible = Math.abs(x) < FADE_OUT;
+      root.scale.setScalar(edgeFade(x));
+      const flap = Math.sin(t * 7 + phase) * 0.65;
+      wings[0].rotation.x = flap;
+      wings[1].rotation.x = -flap;
+      root.rotation.z = Math.sin(t * 1.2 + phase) * 0.06;
+    }
+    for (let i = 0; i < gusts.length; i++) {
+      const life = ((t + i * 5) % 15) / 3.5;
+      const gust = gusts[i];
+      gust.visible = !reducedMotion && life < 1;
+      if (!gust.visible) continue;
+      const x = wrap(-9 + life * 18 - offset);
+      gust.position.set(x, 0.65 + i * 0.3, -2.8 + i * 2.4);
+      gust.material.opacity = Math.sin(life * Math.PI) * 0.65 * edgeFade(x);
+      gust.rotation.y = Math.sin(t * 0.3 + i) * 0.18;
+    }
+  };
 }
 
 // ---------- palettes ----------
@@ -483,6 +693,8 @@ export function MainCharacter() {
     scene.add(ground);
 
     const props = buildProps(scene);
+    const animateAtmosphere = buildAtmosphere(scene);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     // Crowd: lanes behind the hero only, so he is never covered.
     const walkers: Walker[] = [];
@@ -525,7 +737,7 @@ export function MainCharacter() {
       });
     }
 
-    const hero = makePerson(HERO, (c) => new THREE.MeshLambertMaterial({ color: c }), true);
+    const hero = makePerson(HERO, (c) => new THREE.MeshLambertMaterial({ color: c }), true, true);
     hero.root.position.z = HERO_Z;
     scene.add(hero.root);
 
@@ -544,6 +756,7 @@ export function MainCharacter() {
     ro.observe(host);
 
     let offset = 0;
+    let elapsed = 0;
     let heroPhase = 0;
     let lastPixel = settings.current.pixel;
     let lastZoom = settings.current.zoom;
@@ -561,6 +774,7 @@ export function MainCharacter() {
       }
 
       offset += heroSpeed * dt;
+      elapsed += dt;
       groundTex.offset.x = (offset / TEX_TILE) % 1;
 
       for (const p of props) {
@@ -568,7 +782,13 @@ export function MainCharacter() {
         p.fade.value = edgeFade(x);
         p.group.visible = p.fade.value > 0;
         p.group.position.x = x;
+        if (p.foliage) {
+          const breeze = reducedMotion.matches ? 0 : Math.sin(elapsed * 1.4 + p.x * 0.7 + p.group.position.z);
+          p.foliage.rotation.z = breeze * 0.025;
+          p.foliage.rotation.x = breeze * 0.015;
+        }
       }
+      animateAtmosphere(elapsed, offset, reducedMotion.matches);
 
       heroPhase += heroSpeed * dt * 5.5;
       pose(hero, heroPhase, 0.42);
