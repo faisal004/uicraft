@@ -213,9 +213,9 @@ export function ImageBitmap({
 
   return (
     <div
-      className={`w-full overflow-hidden border border-(--demo-border) bg-(--demo-bg) text-(--demo-ink) [--demo-bg:#fff] [--demo-bar:#eeeeeb] [--demo-border:#d8d8d4] [--demo-ink:#181916] [--demo-muted:#595b55] [--demo-subtle:#696b64] [--demo-track:#d8d8d4] dark:[--demo-bg:#2b2b2b] dark:[--demo-bar:#242424] dark:[--demo-border:#4b4b4b] dark:[--demo-ink:#f4f4f4] dark:[--demo-muted:#bdbdbd] dark:[--demo-subtle:#a3a3a3] dark:[--demo-track:#4b4b4b] ${className}`}
+      className={`craft-fill flex w-full flex-col overflow-hidden border border-(--demo-border) bg-(--demo-bg) text-(--demo-ink) [--demo-bg:#fff] [--demo-bar:#eeeeeb] [--demo-border:#d8d8d4] [--demo-ink:#181916] [--demo-muted:#595b55] [--demo-subtle:#696b64] [--demo-track:#d8d8d4] dark:[--demo-bg:#2b2b2b] dark:[--demo-bar:#242424] dark:[--demo-border:#4b4b4b] dark:[--demo-ink:#f4f4f4] dark:[--demo-muted:#bdbdbd] dark:[--demo-subtle:#a3a3a3] dark:[--demo-track:#4b4b4b] ${className}`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-(--demo-border) bg-(--demo-bar) px-4 py-3 sm:px-5">
+      <div data-craft-frame-bar className="flex items-center justify-between gap-3 border-b border-(--demo-border) bg-(--demo-bar) px-4 py-3 sm:px-5">
         <span className="text-xs font-medium">Image / bitmap</span>
         <span className="font-mono text-[11px] tabular-nums text-(--demo-subtle)">
           {img ? `${cols} × ${Math.max(1, Math.round((cols * img.naturalHeight) / img.naturalWidth))} samples` : "Choose an image"}
@@ -231,7 +231,7 @@ export function ImageBitmap({
           e.target.value = "";
         }}
       />
-      <div className="grid md:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid flex-1 grid-rows-[1fr_auto] md:grid-cols-[minmax(0,1fr)_280px] md:grid-rows-[1fr]">
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -243,7 +243,7 @@ export function ImageBitmap({
             setDragging(false);
             loadFile(e.dataTransfer.files?.[0]);
           }}
-          className={`flex h-80 min-w-0 items-center justify-center overflow-hidden bg-[#111214] p-5 sm:h-[430px] sm:p-8 ${dragging ? "outline-2 outline-offset-[-8px] outline-white/70" : ""}`}
+          className={`flex min-h-80 min-w-0 items-center justify-center overflow-hidden bg-[#111214] p-5 sm:min-h-[430px] sm:p-8 ${dragging ? "outline-2 outline-offset-[-8px] outline-white/70" : ""}`}
         >
           {img ? (
             <canvas

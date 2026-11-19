@@ -148,7 +148,8 @@ export function PageToc({ items }: { items: TocItem[] }) {
   }, [targetX, targetY]);
 
   if (items.length < 2) return null;
-  const height = rows.at(-1)?.bottom ?? 0;
+  // Rows measure as zero while the list is hidden, which would give a negative height.
+  const height = Math.max(0, rows.at(-1)?.bottom ?? 0);
   const path = railPath(rows);
 
   const jump = (event: MouseEvent<HTMLAnchorElement>, id: string) => {

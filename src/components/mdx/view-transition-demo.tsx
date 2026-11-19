@@ -1,114 +1,210 @@
 "use client";
 
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 
-export function ViewTransitionDemo() {
-  const [open, setOpen] = useState(false);
-  const artwork = (
-    <div className="vt-art" role="img" aria-label="Illustrated desert mountains at sunset">
-      <span className="vt-sun" aria-hidden="true" />
-      <span className="vt-art-label">FIELD NOTES<br />THE WEST</span>
-      <span className="vt-art-number">01</span>
-    </div>
-  );
+type Post = {
+  id: string;
+  tag: string;
+  date: string;
+  minutes: number;
+  title: string;
+  excerpt: string;
+  body: string[];
+  // Three colours paint each cover: sky, near hills, far hills.
+  palette: [string, string, string];
+  sun: string;
+};
 
-  function toggle() {
+const POSTS: Post[] = [
+  {
+    id: "desert",
+    tag: "Travel",
+    date: "Nov 12",
+    minutes: 4,
+    title: "Where the light stays longer",
+    excerpt: "The stillness of the desert in the last hour before dark.",
+    body: [
+      "The last hour of daylight changes the shape of everything. Rocks that looked flat at noon grow long shadows, and the ridge behind camp turns the colour of a clay pot.",
+      "We stopped talking around six. Not on purpose; there just wasn't much to add. The wind dropped, the sun sat on the far hills for a long time, and then it was gone all at once.",
+      "Go back to the journal and watch the cover return to its card. It's the same element the whole way; only the page around it changes.",
+    ],
+    palette: ["#cc846b", "#a95f50", "#63483f"],
+    sun: "#f2d1a5",
+  },
+  {
+    id: "coast",
+    tag: "Notes",
+    date: "Oct 28",
+    minutes: 6,
+    title: "A week of grey water",
+    excerpt: "Seven mornings on the same cold beach, and why I didn't mind.",
+    body: [
+      "It rained for six of the seven days. The sea and the sky met somewhere in the middle and agreed to be the same colour.",
+      "Each morning I walked to the end of the breakwater and back. By Thursday the gulls had stopped bothering to move.",
+      "On the last day the cloud lifted for twenty minutes. I've thought about those twenty minutes more than the rest of the trip.",
+    ],
+    palette: ["#8fa8b3", "#5f7e8c", "#34505c"],
+    sun: "#e6eef0",
+  },
+  {
+    id: "forest",
+    tag: "Essay",
+    date: "Oct 3",
+    minutes: 5,
+    title: "Learning the names of trees",
+    excerpt: "A small notebook, a borrowed field guide, and a lot of oaks.",
+    body: [
+      "I started with the ones outside my window and got all three wrong. The field guide was patient about it.",
+      "Bark is the trick. Leaves fall, but bark stays, and once you see the difference between a beech and a birch you can't stop seeing it.",
+      "Forty-one trees so far. Most of them are oaks, and I'm fairly sure about at least half.",
+    ],
+    palette: ["#a9b88f", "#6f8a5c", "#3e5536"],
+    sun: "#f1edc9",
+  },
+];
+
+export function ViewTransitionDemo() {
+  const [openId, setOpenId] = useState<string | null>(null);
+  // The post whose cover and title carry a view-transition-name. Only one element may hold a
+  // name at a time, so it stays on the last post opened, which is also the one we return to.
+  const [activeId, setActiveId] = useState(POSTS[0].id);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const post = POSTS.find((item) => item.id === openId);
+
+  function show(nextId: string | null) {
+    const update = () => {
+      setOpenId(nextId);
+      // Start the new view at its top, whether the demo or the page is the one scrolled.
+      const page = pageRef.current;
+      page?.scrollTo({ top: 0 });
+      if (page && page.getBoundingClientRect().top < 0) page.scrollIntoView();
+    };
+
     if (
       !document.startViewTransition ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
-      setOpen((current) => !current);
+      if (nextId) setActiveId(nextId);
+      update();
       return;
     }
 
+    // Name the clicked card first, so the browser's "before" snapshot can find it.
+    if (nextId) flushSync(() => setActiveId(nextId));
     document.startViewTransition(() => {
-      flushSync(() => setOpen((current) => !current));
+      flushSync(update);
     });
   }
 
+  const named = (id: string, part: "cover" | "title") =>
+    id === activeId ? { viewTransitionName: `vt-${part}` } : undefined;
+
   return (
-    <div className="vt-demo mt-10">
-      <div className="vt-header">
-        <span className="vt-wordmark">FIELD NOTES <span>/ VOL. 01</span></span>
-        <button type="button" onClick={toggle} aria-expanded={open} aria-controls="vt-story">
-          {open ? <ArrowLeft size={16} aria-hidden="true" /> : null}
-          {open ? "Back to cover" : "Read the story"}
-          {open ? null : <ArrowUpRight size={16} aria-hidden="true" />}
-        </button>
-      </div>
-      <div id="vt-story" className={open ? "vt-detail" : "vt-cover"}>
-        {artwork}
-        <div className="vt-copy">
-          <div className="vt-meta"><span>TRAVEL JOURNAL</span><span>04 MIN READ</span></div>
-          <h3>Where the light stays longer</h3>
-          <p>{open
-            ? "The last hour of daylight changes the shape of everything. Open the story, then return to the cover to follow the same image in reverse."
-            : "A short story about the stillness of the desert at dusk."}</p>
-          <div className="vt-copy-footer"><span>01 / THE WEST</span><span>FIELD NOTES</span></div>
-        </div>
-      </div>
+    <div ref={pageRef} className="vt-blog craft-fill">
+      <header className="vt-bar">
+        <span className="vt-logo">Field Notes</span>
+        <nav aria-label="Journal">
+          <span>Journal</span>
+          <span>About</span>
+        </nav>
+      </header>
+
+      {post ? (
+        <article className="vt-post">
+          <button type="button" className="vt-back" onClick={() => show(null)}>
+            <ArrowLeft size={14} aria-hidden="true" /> All posts
+          </button>
+          <p className="vt-meta">
+            {post.tag} · {post.date} · {post.minutes} min read
+          </p>
+          <h2 className="vt-post-title" style={named(post.id, "title")}>
+            {post.title}
+          </h2>
+          <Cover post={post} style={named(post.id, "cover")} />
+          {post.body.map((paragraph) => (
+            <p key={paragraph.slice(0, 20)} className="vt-body">
+              {paragraph}
+            </p>
+          ))}
+        </article>
+      ) : (
+        <main className="vt-home">
+          <h2 className="vt-intro">Slow travel, written down.</h2>
+          <ul className="vt-grid">
+            {POSTS.map((item) => (
+              <li key={item.id}>
+                <button type="button" className="vt-card" onClick={() => show(item.id)}>
+                  <Cover post={item} style={named(item.id, "cover")} />
+                  <span className="vt-meta">
+                    {item.tag} · {item.date}
+                  </span>
+                  <span className="vt-card-title" style={named(item.id, "title")}>
+                    {item.title}
+                  </span>
+                  <span className="vt-excerpt">{item.excerpt}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </main>
+      )}
 
       <style>{`
-        .vt-demo {
-          padding: clamp(1.25rem, 4vw, 2.5rem);
-          border: 1px solid #ded8cf;
-          border-radius: .75rem;
-          background: #f5f2ec;
-          color: #292823;
+        .vt-blog {
+          --vt-paper: #f6f3ee; --vt-ink: #24221e; --vt-muted: #6f6a61; --vt-line: #e2dcd2; --vt-accent: #a6563e;
+          position: relative;
+          min-height: 32rem;
+          width: 100%;
+          overflow-y: auto;
+          background: var(--vt-paper);
+          color: var(--vt-ink);
           font-family: system-ui, sans-serif;
         }
-        .vt-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1.25rem; border-bottom: 1px solid #d8d0c6; }
-        .vt-wordmark { font-size: .8rem; font-weight: 750; }
-        .vt-wordmark span { margin-left: .35rem; color: #857f75; font-weight: 500; }
-        .vt-header button {
-          display: inline-flex;
-          align-items: center;
-          gap: .75rem;
-          padding: .65rem .9rem;
-          border: 1px solid #292823;
-          border-radius: .4rem;
-          background: #292823;
-          color: #fffaf2;
-          font-size: .8rem;
-          font-weight: 600;
-          cursor: pointer;
-          white-space: nowrap;
-        }
-        .vt-header button:hover { background: #45433d; }
-        .vt-header button:focus-visible { outline: 2px solid #a6563e; outline-offset: 3px; }
-        .vt-header button svg { flex: none; }
-        .vt-cover, .vt-detail { display: grid; align-items: center; gap: clamp(1.5rem, 5vw, 3rem); margin: 2.5rem auto 0; }
-        .vt-cover { max-width: 43rem; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); }
-        .vt-detail { max-width: 42rem; gap: 2rem; }
-        .vt-art {
-          view-transition-name: uicraft-cover;
-          position: relative;
-          isolation: isolate;
-          overflow: hidden;
-          aspect-ratio: 4 / 5;
-          border-radius: .25rem;
-          background: #cc846b;
-          box-shadow: 0 16px 30px #34251d26;
-        }
-        .vt-sun { position: absolute; top: 24%; left: 55%; width: 32%; aspect-ratio: 1; border-radius: 50%; background: #f2d1a5; }
-        .vt-art::before, .vt-art::after { content: ""; position: absolute; left: -15%; width: 130%; height: 52%; border-radius: 50% 50% 0 0; }
-        .vt-art::before { bottom: -18%; background: #a95f50; transform: rotate(-9deg); }
-        .vt-art::after { bottom: -33%; background: #63483f; transform: rotate(12deg); }
-        .vt-art-label, .vt-art-number { position: absolute; z-index: 1; color: #fff8ee; font-family: ui-monospace, monospace; font-weight: 600; }
-        .vt-art-label { top: 7%; left: 8%; font-size: clamp(.6rem, 1.6vw, .85rem); line-height: 1.5; }
-        .vt-art-number { right: 8%; bottom: 7%; font-size: clamp(1.5rem, 4vw, 2.5rem); line-height: 1; }
-        .vt-copy { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
-        .vt-meta, .vt-copy-footer { display: flex; justify-content: space-between; gap: 1rem; font: 600 .65rem/1.4 ui-monospace, monospace; color: #a6563e; }
-        .vt-copy h3 { margin: 1.25rem 0 0; max-width: 18ch; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.08; font-weight: 550; text-wrap: balance; }
-        .vt-copy > p { max-width: 46ch; margin: 1rem 0 0; color: #6d695f; font-size: .9rem; line-height: 1.7; text-wrap: pretty; }
-        .vt-copy-footer { margin-top: 2rem; padding-top: .9rem; border-top: 1px solid #d8d0c6; color: #857f75; }
-        .vt-detail .vt-art { width: 100%; aspect-ratio: 16 / 9; }
-        .vt-detail .vt-copy { width: 100%; }
-        ::view-transition-group(uicraft-cover) { animation-duration: 450ms; animation-timing-function: ease-in-out; }
-        @media (max-width: 600px) { .vt-cover { max-width: 26rem; grid-template-columns: 1fr; } .vt-cover .vt-art { width: min(100%, 14rem); } }
+        .dark .vt-blog { --vt-paper: #12110f; --vt-ink: #efebe4; --vt-muted: #a39d92; --vt-line: #2a2722; --vt-accent: #e0937a; }
+        .vt-bar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 1rem clamp(1rem, 4vw, 2.5rem); border-bottom: 1px solid var(--vt-line); background: var(--vt-paper); }
+        .vt-logo { font-family: Georgia, serif; font-size: 1.05rem; font-style: italic; }
+        .vt-bar nav { display: flex; gap: 1.25rem; font-size: .8rem; color: var(--vt-muted); }
+        .vt-home, .vt-post { margin: 0 auto; padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem) 4rem; }
+        .vt-home { max-width: 64rem; }
+        .vt-post { max-width: 42rem; }
+        .vt-intro { margin: 0 0 2rem; max-width: 16ch; font-family: Georgia, serif; font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 400; line-height: 1.05; text-wrap: balance; }
+        .vt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: clamp(1rem, 3vw, 2rem); margin: 0; padding: 0; list-style: none; }
+        .vt-card { display: flex; flex-direction: column; gap: .5rem; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+        .vt-card:focus-visible { outline: 2px solid var(--vt-accent); outline-offset: 6px; }
+        .vt-card .vt-cover { aspect-ratio: 4 / 3; margin-bottom: .5rem; }
+        .vt-card:hover .vt-card-title { text-decoration: underline; text-underline-offset: 4px; }
+        .vt-meta { margin: 0; font: 600 .68rem/1.4 ui-monospace, monospace; letter-spacing: .04em; text-transform: uppercase; color: var(--vt-accent); }
+        .vt-card-title { width: fit-content; font-family: Georgia, serif; font-size: 1.35rem; line-height: 1.15; }
+        .vt-excerpt { font-size: .85rem; line-height: 1.6; color: var(--vt-muted); }
+        .vt-back { display: inline-flex; align-items: center; gap: .4rem; margin-bottom: 2rem; padding: 0; border: 0; background: none; color: var(--vt-muted); font: inherit; font-size: .8rem; cursor: pointer; }
+        .vt-back:hover { color: var(--vt-ink); }
+        .vt-back:focus-visible { outline: 2px solid var(--vt-accent); outline-offset: 4px; }
+        .vt-post-title { width: fit-content; margin: .75rem 0 1.75rem; font-family: Georgia, serif; font-size: clamp(2rem, 5vw, 3rem); font-weight: 400; line-height: 1.08; text-wrap: balance; }
+        .vt-post .vt-cover { aspect-ratio: 16 / 9; margin-bottom: 2rem; }
+        .vt-body { margin: 0 0 1.25rem; font-family: Georgia, serif; font-size: 1.05rem; line-height: 1.75; color: var(--vt-ink); }
+        .vt-cover { display: block; position: relative; isolation: isolate; overflow: hidden; width: 100%; border-radius: .35rem; background: var(--sky); }
+        .vt-cover::before, .vt-cover::after { content: ""; position: absolute; left: -15%; width: 130%; height: 55%; border-radius: 50% 50% 0 0; }
+        .vt-cover::before { bottom: -20%; background: var(--near); transform: rotate(-8deg); }
+        .vt-cover::after { bottom: -36%; background: var(--far); transform: rotate(11deg); }
+        .vt-sun { position: absolute; top: 22%; left: 58%; width: 22%; aspect-ratio: 1; border-radius: 50%; background: var(--sun); }
+        ::view-transition-group(vt-cover), ::view-transition-group(vt-title) { animation-duration: 450ms; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
       `}</style>
     </div>
+  );
+}
+
+function Cover({ post, style }: { post: Post; style?: CSSProperties }) {
+  const [sky, near, far] = post.palette;
+  return (
+    <span
+      className="vt-cover"
+      role="img"
+      aria-label={`Illustrated cover for “${post.title}”`}
+      style={{ ...style, "--sky": sky, "--near": near, "--far": far, "--sun": post.sun } as CSSProperties}
+    >
+      <span className="vt-sun" aria-hidden="true" />
+    </span>
   );
 }

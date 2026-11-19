@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useId, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 
-import { CraftFrame } from "@/components/mdx/craft-controls";
 
 // Lanyard badge: an ID card hanging from a strap. It is the pull cord's Verlet rope with one more
 // point on the end: a heavy point for the card. The strap and the card's top edge are one chain;
@@ -670,23 +669,12 @@ function LanyardScene({ showPhysics = false }: { showPhysics?: boolean }) {
 }
 
 export function LanyardBadgeDemo() {
-  const [showPhysics, setShowPhysics] = useState(false);
   return (
-    <CraftFrame label="Lanyard badge" meta="Verlet rope · CSS 3D">
-      <div className="surface-grid relative flex h-[480px] justify-center overflow-hidden">
-        <LanyardScene showPhysics={showPhysics} />
-        <button
-          type="button"
-          aria-pressed={showPhysics}
-          onClick={() => setShowPhysics((s) => !s)}
-          className="absolute bottom-3 right-3 border border-(--demo-border) bg-(--demo-bg) px-3 py-1.5 font-mono text-[11px] text-(--demo-ink) hover:bg-(--demo-bar)"
-        >
-          {showPhysics ? "Hide physics" : "Show physics"}
-        </button>
-        <p className="pointer-events-none absolute bottom-4 left-4 font-mono text-[11px] text-(--demo-subtle)">
-          Drag, throw, or tap the badge
-        </p>
-      </div>
-    </CraftFrame>
+    <div className="craft-fill surface-grid relative flex min-h-[30rem] w-full justify-center overflow-hidden">
+      <LanyardScene />
+      <p className="pointer-events-none absolute bottom-4 left-0 right-0 text-center font-mono text-[11px] text-(--demo-subtle)">
+        Drag, throw, or tap the badge
+      </p>
+    </div>
   );
 }

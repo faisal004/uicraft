@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
@@ -204,13 +205,17 @@ function PullCordScene({
   replayKey = 0,
   physics = PHYSICS,
   guides = false,
+  look = "plain",
 }: {
   stage: Stage;
   replayKey?: number;
   physics?: Physics;
   guides?: boolean; // draw the rest and trigger lines and a live stretch readout
+  look?: "plain" | "real"; // "real" draws a ceiling rose, a braided cord, and a turned wooden pull
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const braidRef = useRef<SVGPathElement>(null);
+  const id = useId();
   const stretchRef = useRef<SVGTextElement>(null);
   const physicsRef = useRef(physics);
   const pathRef = useRef<SVGPathElement>(null);
@@ -234,6 +239,7 @@ function PullCordScene({
     wake.current();
   }, [physics]);
 
+  const real = look === "real";
   const canGrab = stage >= 4;
   const canToggle = stage >= 5;
   const showPoints = stage <= 3;
@@ -250,7 +256,9 @@ function PullCordScene({
     }
 
     function draw() {
-      pathRef.current?.setAttribute("d", ropePath(points));
+      const d = ropePath(points);
+      pathRef.current?.setAttribute("d", d);
+      braidRef.current?.setAttribute("d", d);
       const end = points[points.length - 1];
       const before = points[points.length - 2];
       const angle = (Math.atan2(end.y - before.y, end.x - before.x) * 180) / Math.PI - 90;
@@ -384,17 +392,49 @@ function PullCordScene({
       className="block overflow-visible text-(--demo-ink)"
       aria-hidden={canToggle ? undefined : true}
     >
-      <rect x={ANCHOR.x - 14} y={-4} width={28} height={8} rx={3} fill="currentColor" opacity={0.25} />
+      {real ? (
+        <defs>
+          <radialGradient id={`${id}-wood`} cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stopColor={armed ? "#fdba74" : "#e8c9a0"} />
+            <stop offset="55%" stopColor={armed ? "#f97316" : "#b07a48"} />
+            <stop offset="100%" stopColor={armed ? "#c2410c" : "#6b4423"} />
+          </radialGradient>
+          <linearGradient id={`${id}-metal`} x1="0" x2="1">
+            <stop offset="0%" stopColor="#8a8d93" />
+            <stop offset="45%" stopColor="#e5e7eb" />
+            <stop offset="100%" stopColor="#6b6e74" />
+          </linearGradient>
+        </defs>
+      ) : (
+        <rect x={ANCHOR.x - 14} y={-4} width={28} height={8} rx={3} fill="currentColor" opacity={0.25} />
+      )}
       {guides && stage >= 4 ? <Guides showTrigger={canToggle} stretchRef={stretchRef} /> : null}
       <path
         ref={pathRef}
         d={ropePath(REST)}
         fill="none"
         stroke="currentColor"
-        strokeWidth={2}
+        strokeWidth={real ? 2.4 : 2}
         strokeLinecap="round"
-        opacity={0.75}
+        opacity={real ? 0.85 : 0.75}
       />
+      {real ? (
+        <>
+          {/* Short gaps in a page-coloured stroke read as the twist of a braided cord. */}
+          <path
+            ref={braidRef}
+            d={ropePath(REST)}
+            fill="none"
+            stroke="var(--craft-page)"
+            strokeWidth={2.4}
+            strokeDasharray="1.2 2.6"
+            opacity={0.35}
+          />
+          {/* The ceiling rose the cord drops out of. */}
+          <rect x={ANCHOR.x - 22} y={-8} width={44} height={14} rx={7} fill="currentColor" opacity={0.9} />
+          <rect x={ANCHOR.x - 4} y={5} width={8} height={6} rx={1.5} fill={`url(#${id}-metal)`} />
+        </>
+      ) : null}
       {showPoints
         ? REST.map((p, i) => (
             <circle
@@ -425,24 +465,36 @@ function PullCordScene({
           className="group cursor-grab touch-none outline-none active:cursor-grabbing"
         >
           {/* A bigger invisible circle makes the handle easy to catch with a finger. */}
-          <circle cy={12} r={24} fill="transparent" />
+          <circle cy={real ? 20 : 12} r={real ? 28 : 24} fill="transparent" />
           <circle
-            cy={12}
-            r={17}
+            cy={real ? 21 : 12}
+            r={real ? 20 : 17}
             fill="none"
             stroke="currentColor"
             strokeWidth={1.5}
             className="opacity-0 transition-opacity group-focus-visible:opacity-60"
           />
-          <rect
-            x={-6}
-            y={0}
-            width={12}
-            height={24}
-            rx={6}
-            fill={armed ? "#f97316" : "currentColor"}
-            className="transition-[fill] duration-150"
-          />
+          {real ? (
+            <>
+              {/* A metal crimp, then a turned wooden pull with a soft highlight. */}
+              <rect x={-2.5} y={-1} width={5} height={8} rx={1.2} fill={`url(#${id}-metal)`} />
+              <path
+                d="M 0 6 C 6 6 10.5 15 10.5 23 C 10.5 30 6 35 0 35 C -6 35 -10.5 30 -10.5 23 C -10.5 15 -6 6 0 6 Z"
+                fill={`url(#${id}-wood)`}
+              />
+              <ellipse cx={-3.6} cy={17} rx={2} ry={4.5} fill="#fff" opacity={0.35} />
+            </>
+          ) : (
+            <rect
+              x={-6}
+              y={0}
+              width={12}
+              height={24}
+              rx={6}
+              fill={armed ? "#f97316" : "currentColor"}
+              className="transition-[fill] duration-150"
+            />
+          )}
         </g>
       ) : null}
     </svg>
@@ -451,14 +503,20 @@ function PullCordScene({
 
 export function PullCordDemo() {
   return (
-    <CraftFrame label="Pull cord" meta="SVG · Verlet rope">
-      <div className="surface-grid relative flex h-[340px] justify-center overflow-hidden">
-        <PullCordScene stage={5} />
-        <p className="pointer-events-none absolute bottom-4 left-0 right-0 text-center font-mono text-[11px] text-(--demo-subtle)">
-          Pull the cord down and let go
+    <div className="craft-fill surface-grid relative flex min-h-[30rem] w-full justify-center overflow-hidden text-(--demo-ink)">
+      {/* The words switch with the theme class, so the right one is there on the first paint. */}
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/3 px-4 text-center select-none">
+        <p className="font-heading text-[clamp(3.5rem,13vw,9rem)] leading-none tracking-tight">
+          <span className="dark:hidden">Light</span>
+          <span className="hidden dark:inline">Dark</span>
+        </p>
+        <p className="mt-5 font-mono text-xs text-(--demo-subtle)">
+          Pull the cord to turn the lights <span className="dark:hidden">off</span>
+          <span className="hidden dark:inline">on</span>
         </p>
       </div>
-    </CraftFrame>
+      <PullCordScene stage={5} look="real" />
+    </div>
   );
 }
 

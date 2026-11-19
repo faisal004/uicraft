@@ -1,8 +1,9 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CraftFrame } from "@/components/mdx/craft-controls";
+import { DeparturesBoard } from "@/components/mdx/departures-board";
 
 const FONT: Record<string, string> = {
   " ": "00000000000000000000000000000000000",
@@ -265,53 +266,9 @@ export function WorldClockBoard({
 
 const SAMPLE = clockLines(DEFAULT_CITIES, new Date("2026-10-04T23:45:00Z"));
 
-function BoardFrame({
-  children,
-  label,
-  meta,
-  onReplay,
-}: {
-  children: ReactNode;
-  label: string;
-  meta: string;
-  onReplay?: () => void;
-}) {
-  return (
-    <CraftFrame
-      label={label}
-      meta={meta}
-      leading={<span className="size-2 bg-emerald-400 shadow-[0_0_8px_rgb(74_222_128/0.7)]" />}
-    >
-      <div className="surface-grid p-5 sm:p-8">
-        <div className="relative">
-          {children}
-          {onReplay ? (
-            <button
-              type="button"
-              onClick={onReplay}
-              className="absolute top-3 right-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55 outline-none transition-colors duration-150 hover:text-white focus-visible:text-white"
-            >
-              Replay
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </CraftFrame>
-  );
-}
-
+// The live craft is an airport departures board built from the same 5×7 tiles.
 export function WorldClockBoardDemo() {
-  const [replay, setReplay] = useState(0);
-
-  return (
-    <BoardFrame
-      label="Board online"
-      meta="WC–01"
-      onReplay={() => setReplay((value) => value + 1)}
-    >
-      <WorldClockBoard replay={replay} className="pt-10" />
-    </BoardFrame>
-  );
+  return <DeparturesBoard className="craft-fill flex min-h-[28rem] flex-col justify-center px-[clamp(16px,4vw,56px)] py-10" />;
 }
 
 export function WorldClockBitmapWorkshop() {

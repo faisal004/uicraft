@@ -4,7 +4,6 @@ import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import { useEffect, useRef } from "react";
 
-import { CraftFrame } from "@/components/mdx/craft-controls";
 
 // Genie video: a blog cover video that folds into a docked mini player as you scroll, and back out
 // when you return. The video is drawn on a WebGL plane. Two invisible DOM boxes mark where it starts
@@ -326,8 +325,7 @@ export function GenieVideoDemo() {
   );
 
   return (
-    <CraftFrame label="Genie video" meta="WebGL · scroll">
-      <div className="relative h-[28rem] w-full overflow-hidden bg-(--demo-bg) sm:h-[32rem]">
+    <div className="craft-fill relative min-h-[28rem] w-full overflow-hidden sm:min-h-[32rem]">
         <div ref={scrollerRef} className="absolute inset-0 overflow-y-auto overscroll-contain">
           <div className="px-5 pt-6 sm:px-8 sm:pt-8">
             {/* Start marker: the cover. */}
@@ -359,8 +357,7 @@ export function GenieVideoDemo() {
           onClick={() => scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
           className="pointer-events-none absolute right-3 bottom-3 aspect-video w-[min(40%,200px)] cursor-pointer rounded-[16px] outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) focus-visible:ring-offset-2"
         />
-      </div>
-    </CraftFrame>
+    </div>
   );
 }
 
