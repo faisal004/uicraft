@@ -43,6 +43,17 @@ import { LiquidGlassDemo } from "@/components/mdx/liquid-glass";
 import { LiquidGlassThumbnail } from "@/components/mdx/thumbnails/liquid-glass";
 import { VideoBurstDemo } from "@/components/mdx/video-burst";
 import { VideoBurstThumbnail } from "@/components/mdx/thumbnails/video-burst";
+import {
+  ConstraintExplainer,
+  PullCordDemo,
+  PullCordLoop,
+  PullCordPlayground,
+  PullCordStep,
+  VerletExplainer,
+} from "@/components/mdx/pull-cord";
+import { PullCordThumbnail } from "@/components/mdx/thumbnails/pull-cord";
+import { LanyardBadgeDemo } from "@/components/mdx/lanyard-badge";
+import { LanyardBadgeThumbnail } from "@/components/mdx/thumbnails/lanyard-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotMatrixTickerThumbnail } from "@/components/mdx/thumbnails/dot-matrix-ticker";
 import { TastefulButtonThumbnail } from "@/components/mdx/thumbnails/tasteful-button";
@@ -89,6 +100,13 @@ export const mdxComponents = {
   GenieMinimizeDemo,
   LiquidGlassDemo,
   VideoBurstDemo,
+  PullCordDemo,
+  PullCordStep,
+  PullCordLoop,
+  PullCordPlayground,
+  VerletExplainer,
+  ConstraintExplainer,
+  LanyardBadgeDemo,
 };
 
 export const previewCrafts: Record<string, React.ComponentType> = {
@@ -98,6 +116,8 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "genie-minimize": GenieMinimizeThumbnail,
   "liquid-glass": LiquidGlassThumbnail,
   "video-burst": VideoBurstThumbnail,
+  "pull-cord": PullCordThumbnail,
+  "lanyard-badge": LanyardBadgeThumbnail,
   "tasteful-button": TastefulButtonThumbnail,
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,

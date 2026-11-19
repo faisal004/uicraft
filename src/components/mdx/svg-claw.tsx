@@ -12,6 +12,37 @@ const TEE = { barLeft: 5, barRight: 64, stemLeft: 18, stemRight: 44, barY: 231, 
 const BAR = { grip: 46, hold: 4, startX: 1100, start: 2650 };
 const END = BAR.start + CLAW_END + 300;
 
+// The drawing is laid out on a 1000×500 board. The SVG grows its viewBox to fill
+// whatever box it sits in (scaled up to at most MAX_SCALE), so the board stays
+// centred and claws can travel in from the real edge of the page.
+const BOARD = { width: 1000, height: 500 };
+const MAX_SCALE = 1.1;
+
+function useFittedViewBox(ref: React.RefObject<HTMLElement | null>) {
+  const [box, setBox] = useState({ x: 0, y: 0, width: BOARD.width, height: BOARD.height });
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (!width || !height) return;
+      const scale = Math.min(width / BOARD.width, height / BOARD.height, MAX_SCALE);
+      const w = width / scale;
+      const h = height / scale;
+      setBox({ x: -(w - BOARD.width) / 2, y: -(h - BOARD.height) / 2, width: w, height: h });
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return box;
+}
+
+// One loop: fade in, play, hold the finished word, fade out, start again.
+const HOLD = 1600;
+const FADE = 350;
+
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const progress = (time: number, start: number, end: number) => clamp((time - start) / (end - start));
 const easeOut = (value: number) => 1 - Math.pow(1 - value, 3);
@@ -51,11 +82,11 @@ export function SvgClawDemo() {
   const secondGuidesRef = useRef<SVGGElement>(null);
   const textMeasureRef = useRef<SVGTextElement>(null);
   const [teeX, setTeeX] = useState(638);
-  const playheadRef = useRef(0);
-  const runningRef = useRef(false);
-  const frameRef = useRef(0);
-  const lastRef = useRef(0);
-  const [playing, setPlaying] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const box = useFittedViewBox(sceneRef);
+  // Start each claw just past the page edge it comes in from.
+  const startY = Math.min(DOT.startY, box.y - 160);
+  const startX = Math.max(BAR.startX, box.x + box.width + 160);
 
   useEffect(() => {
     document.fonts.ready.then(() => {
@@ -65,7 +96,7 @@ export function SvgClawDemo() {
 
   function paint(time: number) {
     const targetJointY = DOT.y - DOT.grip;
-    const first = clawPose(time, DOT.start, targetJointY - DOT.startY, DOT.hold);
+    const first = clawPose(time, DOT.start, targetJointY - startY, DOT.hold);
     const jointY = targetJointY - first.offset;
     carriageRef.current?.setAttribute("transform", `translate(${DOT.x} ${jointY}) rotate(90)`);
     upperRef.current?.setAttribute("transform", `rotate(${-first.angle})`);
@@ -74,7 +105,7 @@ export function SvgClawDemo() {
     guidesRef.current?.setAttribute("opacity", String(first.guide));
 
     const targetX = teeX + TEE.barRight + BAR.grip;
-    const second = clawPose(time, BAR.start, BAR.startX - targetX, BAR.hold);
+    const second = clawPose(time, BAR.start, startX - targetX, BAR.hold);
     const jointX = targetX + second.offset;
     secondCarriageRef.current?.setAttribute("transform", `translate(${jointX} ${TEE.barY + TEE.barHeight / 2}) scale(-1 1)`);
     secondUpperRef.current?.setAttribute("transform", `rotate(${-second.angle})`);
@@ -86,67 +117,56 @@ export function SvgClawDemo() {
     secondGuidesRef.current?.setAttribute("opacity", String(second.guide));
   }
 
-  function stop() {
-    runningRef.current = false;
-    cancelAnimationFrame(frameRef.current);
-    setPlaying(false);
-  }
-
-  function tick(now: number) {
-    if (!runningRef.current) return;
-    playheadRef.current = Math.min(END, playheadRef.current + now - lastRef.current);
-    lastRef.current = now;
-    paint(playheadRef.current);
-    if (playheadRef.current >= END) stop();
-    else frameRef.current = requestAnimationFrame(tick);
-  }
-
-  function play() {
-    if (playheadRef.current >= END) playheadRef.current = 0;
-    if (runningRef.current) return;
-    runningRef.current = true;
-    lastRef.current = performance.now();
-    setPlaying(true);
-    frameRef.current = requestAnimationFrame(tick);
-  }
-
-  function replay() {
-    stop();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    playheadRef.current = reduced ? END : 0;
-    paint(playheadRef.current);
-    if (!reduced) play();
-  }
-
   useEffect(() => {
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motion.matches) {
-      playheadRef.current = END;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       paint(END);
       return;
     }
-    paint(0);
+    const cycle = FADE + END + HOLD + FADE;
+    let t = FADE;
+    let last = 0;
+    let raf = 0;
+    let running = false;
+
+    function frame() {
+      paint(Math.min(END, Math.max(0, t - FADE)));
+      const fadingOut = t - (FADE + END + HOLD);
+      const opacity = t < FADE ? t / FADE : fadingOut > 0 ? 1 - fadingOut / FADE : 1;
+      if (svgRef.current) svgRef.current.style.opacity = String(Math.max(0, opacity));
+    }
+
+    function loop(now: number) {
+      // Cap the step so a long gap (a background tab) doesn't skip the animation.
+      t = (t + Math.min(64, now - last)) % cycle;
+      last = now;
+      frame();
+      raf = requestAnimationFrame(loop);
+    }
+
+    frame();
+    // Only run while the scene is on screen.
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        observer.disconnect();
-        play();
+      if (entry.isIntersecting && !running) {
+        running = true;
+        last = performance.now();
+        raf = requestAnimationFrame(loop);
+      } else if (!entry.isIntersecting && running) {
+        running = false;
+        cancelAnimationFrame(raf);
       }
-    }, { threshold: 0.35 });
+    }, { threshold: 0.2 });
     if (sceneRef.current) observer.observe(sceneRef.current);
     return () => {
       observer.disconnect();
-      runningRef.current = false;
-      cancelAnimationFrame(frameRef.current);
+      cancelAnimationFrame(raf);
     };
-    // The observer owns this measured scene; playback uses its current closures.
+    // paint reads the latest refs and measurements; DEPS restart the loop when they change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teeX]);
-
-  const buttonClass = "rounded-lg px-3 py-1.5 text-sm text-foreground/65 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--craft-accent)";
+  }, [teeX, startX, startY]);
 
   return (
-    <div ref={sceneRef} className="not-prose overflow-hidden border border-foreground/10 bg-(--craft-surface) text-foreground">
-      <svg className="block w-full" viewBox="0 0 1000 500" role="img" aria-labelledby="claw-title claw-description">
+    <div ref={sceneRef} className="craft-fill not-prose relative min-h-[26rem] w-full overflow-hidden text-foreground">
+      <svg ref={svgRef} className="absolute inset-0 block h-full w-full" viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} role="img" aria-labelledby="claw-title claw-description">
         <title id="claw-title">SVG claw</title>
         <desc id="claw-description">Two mechanical claws complete “build it”: one places the dot of the first i, and the other places the crossbar of the final t.</desc>
         <defs>
@@ -172,7 +192,7 @@ export function SvgClawDemo() {
           <path d={`M ${teeX + TEE.barLeft - 15} ${TEE.barY + TEE.barHeight / 2} H ${teeX + TEE.barRight + 15}`} />
         </g>
         <g ref={carriageRef} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M -500 0 H 0" />
+          <path d="M -4000 0 H 0" />
           <g ref={upperRef}><path d="M 0 0 L 28 -25 L 56 -7" /></g>
           <g ref={lowerRef}><path d="M 0 0 L 28 25 L 56 7" /></g>
           <circle r="9" fill="var(--craft-surface)" />
@@ -180,18 +200,12 @@ export function SvgClawDemo() {
         <g ref={dotRef} fill="currentColor"><rect x={-DOT.size / 2} y={-DOT.size / 2} width={DOT.size} height={DOT.size} rx="1" /></g>
         <rect ref={barRef} x={teeX + TEE.barLeft} y={TEE.barY} width={TEE.barRight - TEE.barLeft} height={TEE.barHeight} fill="currentColor" />
         <g ref={secondCarriageRef} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M -500 0 H 0" />
+          <path d="M -4000 0 H 0" />
           <g ref={secondUpperRef}><path d="M 0 0 L 28 -25 L 56 -7" /></g>
           <g ref={secondLowerRef}><path d="M 0 0 L 28 25 L 56 7" /></g>
           <circle r="9" fill="var(--craft-surface)" />
         </g>
       </svg>
-      <div className="flex items-center justify-center gap-2 border-t border-foreground/10 px-4 py-3">
-        <button type="button" className={buttonClass} onClick={replay}>Replay</button>
-        <button type="button" className={buttonClass} onClick={() => runningRef.current ? stop() : play()}>
-          {playing ? "Pause" : "Play"}
-        </button>
-      </div>
     </div>
   );
 }

@@ -128,22 +128,27 @@ export function ThanosSnapDemo() {
     }, 1_200 + 1_100);
   };
 
+  const gone = status === "gone";
+
+  // No box of its own: the text inherits the page's colour, so it works on light and dark pages.
   return (
-    <div style={{ border: "1px solid var(--demo-border, #dadce0)", fontFamily: "Arial, sans-serif" }}>
-      <div style={{ minHeight: 220, padding: 32, background: "white", color: "#202124" }}>
-        <div style={{ position: "relative", maxWidth: 640, margin: "0 auto" }}>
-          <div ref={contentRef}>
-            <h3 style={{ margin: 0, fontSize: "clamp(1.75rem, 5vw, 3rem)", letterSpacing: "-0.04em", whiteSpace: "nowrap" }}>Thanos Snap</h3>
-            <p style={{ margin: "20px 0 0", maxWidth: 560, fontSize: 16, lineHeight: 1.7, color: "#4d5156" }}>A single line and paragraph become tiny pieces of dust, then drift away from left to right.</p>
-          </div>
+    <div style={{ width: "100%", maxWidth: 640, padding: 32, fontFamily: "Arial, sans-serif", color: "inherit" }}>
+      <div style={{ position: "relative" }}>
+        <div ref={contentRef}>
+          <h3 style={{ margin: 0, fontSize: "clamp(2.25rem, 7vw, 4rem)", letterSpacing: "-0.04em", whiteSpace: "nowrap" }}>Thanos Snap</h3>
+          <p style={{ margin: "20px 0 0", maxWidth: 560, fontSize: 17, lineHeight: 1.7, opacity: 0.7 }}>A single line and paragraph become tiny pieces of dust, then drift away from left to right.</p>
         </div>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--demo-border, #dadce0)", padding: 16 }}>
-        <span role="status" style={{ fontSize: 12, color: "#5f6368" }}>{status === "gone" ? "Gone. Reset to replay." : status === "dissolving" ? "Dissolving…" : "Ready to snap."}</span>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" onClick={snap} disabled={status !== "ready"} style={{ border: 0, padding: "9px 14px", background: "#202124", color: "white", cursor: "pointer", opacity: status === "ready" ? 1 : 0.4 }}>Snap</button>
-          <button type="button" onClick={reset} style={{ border: "1px solid #dadce0", padding: "8px 14px", background: "white", color: "#202124", cursor: "pointer" }}>Reset</button>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 32 }}>
+        <button
+          type="button"
+          onClick={gone ? reset : snap}
+          disabled={status === "dissolving"}
+          style={{ border: "1px solid currentColor", borderRadius: 999, padding: "9px 18px", background: "transparent", color: "inherit", font: "inherit", fontSize: 14, cursor: "pointer", opacity: status === "dissolving" ? 0.4 : 1 }}
+        >
+          {gone ? "Bring it back" : "Snap"}
+        </button>
+        <span role="status" style={{ fontSize: 12, opacity: 0.55 }}>{gone ? "Gone." : status === "dissolving" ? "Dissolving…" : ""}</span>
       </div>
     </div>
   );

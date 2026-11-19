@@ -86,6 +86,10 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
                 <SidebarMenu>
                   {group.crafts.map((craft, index) => {
                     const isActive = pathname === craft.href;
+                    const isHowItWorks = pathname === craft.howItWorksHref;
+                    // The write-up link only opens under the craft you're on, so the
+                    // list stays one line per craft.
+                    const isOpen = Boolean(craft.howItWorksHref) && (isActive || isHowItWorks);
 
                     return (
                       <SidebarMenuItem key={craft.slug}>
@@ -96,6 +100,7 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
                           className={cn(
                             "h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) data-active:bg-(--craft-accent-soft) data-active:font-medium data-active:text-(--craft-accent)",
                             isActive && "text-(--craft-accent)",
+                            isHowItWorks && "font-medium text-foreground",
                           )}
                         >
                           <span className="w-4 font-mono text-[10px] tabular-nums text-current opacity-40">
@@ -103,6 +108,39 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
                           </span>
                           <span>{craft.title}</span>
                         </SidebarMenuButton>
+                        {craft.howItWorksHref ? (
+                          <div
+                            inert={!isOpen}
+                            className={cn(
+                              "grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none",
+                              isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                            )}
+                          >
+                            <div className="overflow-hidden">
+                              <Link
+                                href={craft.howItWorksHref}
+                                onClick={closeMobileSidebar}
+                                aria-current={isHowItWorks ? "page" : undefined}
+                                className={cn(
+                                  "group/how relative flex h-7 items-center pr-2 pl-8 text-[12px] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--craft-accent)",
+                                  isHowItWorks
+                                    ? "font-medium text-(--craft-accent)"
+                                    : "text-foreground/45 hover:text-foreground",
+                                )}
+                              >
+                                {/* A small elbow from the craft's number down into the link. */}
+                                <span
+                                  aria-hidden="true"
+                                  className={cn(
+                                    "absolute top-0 left-[15px] h-1/2 w-2.5 rounded-bl-[5px] border-b border-l transition-colors",
+                                    isHowItWorks ? "border-(--craft-accent)/60" : "border-foreground/20",
+                                  )}
+                                />
+                                How it works
+                              </Link>
+                            </div>
+                          </div>
+                        ) : null}
                       </SidebarMenuItem>
                     );
                   })}

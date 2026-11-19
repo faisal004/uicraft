@@ -31,6 +31,7 @@ export function TextToParticles({
   stage = "animate",
   compact = false,
   replay = 0,
+  bare = false,
 }: {
   text?: string;
   sampleGap?: number;
@@ -39,6 +40,7 @@ export function TextToParticles({
   stage?: Stage;
   compact?: boolean;
   replay?: number;
+  bare?: boolean; // no dark panel: fill the space and draw in the page's text colour
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const message = text.trim().slice(0, 24) || "SNAP";
@@ -59,6 +61,8 @@ export function TextToParticles({
     let lastTime = performance.now();
     let visible = true;
     let font = "800 20px system-ui, sans-serif";
+    // In bare mode the particles follow the theme: read the canvas's CSS colour as it's drawn.
+    const ink = () => (bare ? getComputedStyle(canvas).color : "#f7f7f4");
 
     const rebuild = () => {
       const rect = canvas.getBoundingClientRect();
@@ -78,7 +82,7 @@ export function TextToParticles({
       maskContext.fillStyle = "white";
       maskContext.textAlign = "center";
       maskContext.textBaseline = "middle";
-      let fontSize = Math.min(140, height * 0.3, width * 0.18);
+      let fontSize = Math.min(bare ? 240 : 140, height * 0.3, width * 0.18);
       font = `800 ${fontSize}px system-ui, sans-serif`;
       maskContext.font = font;
       while (maskContext.measureText(message).width > width * 0.82 && fontSize > 20) {
@@ -142,11 +146,11 @@ export function TextToParticles({
         context.font = font;
         context.textAlign = "center";
         context.textBaseline = "middle";
-        context.fillStyle = "#f7f7f4";
+        context.fillStyle = ink();
         context.fillText(message, width / 2, height / 2);
         return;
       }
-      context.fillStyle = "#f7f7f4";
+      context.fillStyle = ink();
       context.globalAlpha = 0.18 + ease(formationTime / duration) * 0.82;
       context.beginPath();
 
@@ -191,11 +195,15 @@ export function TextToParticles({
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
     };
-  }, [compact, duration, message, particleSize, replay, sampleGap, stage]);
+  }, [bare, compact, duration, message, particleSize, replay, sampleGap, stage]);
 
   return (
     <div
-      className={`relative overflow-hidden border border-white/10 bg-[#090a0b] ${compact ? "h-52" : "h-[30rem]"}`}
+      className={
+        bare
+          ? "craft-fill relative min-h-[30rem] w-full overflow-hidden text-(--demo-ink)"
+          : `relative overflow-hidden border border-white/10 bg-[#090a0b] ${compact ? "h-52" : "h-[30rem]"}`
+      }
     >
       <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
       <span className="sr-only">Particles converge to form the text {message}.</span>
@@ -205,9 +213,7 @@ export function TextToParticles({
 
 export function TextToParticlesDemo() {
   return (
-    <CraftFrame label="Text to particles" meta="Canvas 2D">
-      <TextToParticles />
-    </CraftFrame>
+    <TextToParticles bare />
   );
 }
 

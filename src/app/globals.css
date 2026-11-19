@@ -265,6 +265,97 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
 /* Craft demo block: many demos ship their own bordered frame. When one does,
    the preview panel becomes that frame instead of nesting a box in a box.
    `.craft-bleed` opts an unframed demo into filling the panel edge to edge. */
+/* The full-page craft stage: the demo sits on a grid that fades out from the
+   middle, over a soft accent glow. Framed demos lose their box here so the
+   stage itself is the frame; their label bar stays as a quiet caption. */
+.craft-stage {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 100%;
+  padding: 2.5rem 1rem;
+  overflow: hidden;
+}
+.craft-stage::before,
+.craft-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.craft-stage::before {
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, var(--demo-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--demo-grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 95% 90% at 50% 50%, #000 55%, transparent 100%);
+}
+.craft-stage::after {
+  z-index: -2;
+  background: radial-gradient(ellipse 55% 45% at 50% 45%, var(--craft-accent-soft), transparent 70%);
+}
+.craft-stage > * {
+  width: 100%;
+  max-width: 60rem;
+  margin-block: 0;
+}
+.craft-stage > .border,
+.craft-stage > :not(.border) > .border:only-child {
+  border-color: transparent;
+  background: transparent;
+}
+/* The stage says nothing but the demo: a framed demo's label bar is dropped. */
+.craft-stage [data-craft-frame-bar] {
+  display: none;
+}
+/* The stage already draws the grid; a demo's own .surface-grid would show as a box. */
+.craft-stage .surface-grid {
+  background-image: none;
+}
+.craft-stage > p {
+  max-width: 34rem;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (min-width: 640px) {
+  .craft-stage {
+    padding-inline: 2rem;
+  }
+}
+/* A demo marked .craft-fill takes the whole stage, edge to edge, and draws on
+   the stage's grid. Outside the stage it keeps its own min height. */
+.craft-stage:has(> .craft-fill) {
+  padding: 0;
+  gap: 0;
+}
+.craft-stage > .craft-fill {
+  flex: 1;
+  max-width: none;
+}
+/* A caption floats over the bottom of a filled stage instead of pushing the demo up. */
+.craft-stage:has(> .craft-fill) > p {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: auto;
+  max-width: calc(100% - 2rem);
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--craft-page) 85%, transparent);
+  backdrop-filter: blur(8px);
+  text-align: left;
+  font-size: 12px;
+}
+
 .craft-preview {
   padding: 1.25rem;
 }
@@ -274,7 +365,7 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
 .craft-preview > :last-child {
   margin-bottom: 0;
 }
-.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child) {
+.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child, > .craft-fill:first-child) {
   padding: 0;
 }
 .craft-preview > .border:first-child,
@@ -283,7 +374,7 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
   border-width: 0;
   border-radius: 0;
 }
-.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child) > :not(:first-child) {
+.craft-preview:has(> .border:first-child, > :first-child:not(.border) > .border:first-child, > .craft-bleed:first-child, > .craft-fill:first-child) > :not(:first-child) {
   margin-inline: 1.25rem;
   margin-bottom: 1rem;
 }

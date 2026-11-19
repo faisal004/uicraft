@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-import { CraftFrame, RangeControl } from "@/components/mdx/craft-controls";
 
 // Liquid glass: a lens you drag over a page. The page is painted once into a 2D canvas and uploaded
 // as a texture. A fragment shader then draws every pixel: outside the lens it copies the page (plus
@@ -418,44 +417,10 @@ export function LiquidGlass({
 }
 
 export function LiquidGlassDemo() {
-  const [shape, setShape] = useState<LensShape>("pill");
-  const [refraction, setRefraction] = useState(40);
-  const [dispersion, setDispersion] = useState(0.25);
-
   return (
-    <CraftFrame label="Liquid glass" meta="WebGL · drag">
-      <LiquidGlass shape={shape} refraction={refraction} dispersion={dispersion} />
-      <div className="grid gap-3 border-t border-(--demo-border) p-4 sm:grid-cols-3">
-        <fieldset className="grid content-start gap-3 border border-(--demo-border) bg-(--demo-bg) p-3.5">
-          <legend className="sr-only">Lens shape</legend>
-          <span aria-hidden="true" className="font-heading text-xs text-(--demo-muted)">
-            Shape
-          </span>
-          <div className="grid grid-cols-3 gap-1">
-            {(Object.keys(SHAPES) as LensShape[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={shape === option}
-                onClick={() => setShape(option)}
-                className="border border-(--demo-border) px-2 py-1.5 text-xs capitalize text-(--demo-muted) outline-none hover:text-(--demo-ink) focus-visible:ring-2 focus-visible:ring-(--craft-accent) aria-pressed:bg-(--demo-ink) aria-pressed:text-(--demo-bg)"
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-        <RangeControl label="Refraction" value={refraction} min={0} max={80} step={1} unit="px" onChange={setRefraction} />
-        <RangeControl
-          label="Rainbow"
-          value={dispersion}
-          min={0}
-          max={0.6}
-          step={0.05}
-          decimals={2}
-          onChange={setDispersion}
-        />
-      </div>
-    </CraftFrame>
+    <div className="craft-fill grid min-h-[24rem] w-full place-items-center p-4 sm:p-8">
+      {/* The cover is laid out at 16:10, so it grows to the largest 16:10 box the page allows. */}
+      <LiquidGlass className="w-[min(100%,calc((100dvh-6rem)*1.6))] shadow-[0_30px_80px_-30px_rgb(0_0_0/0.45)]" />
+    </div>
   );
 }
