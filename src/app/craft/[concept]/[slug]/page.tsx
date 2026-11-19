@@ -60,6 +60,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: document.updatedAt,
       authors: [author.url],
       tags: document.category ? [document.category, "Interaction design"] : ["Interaction design"],
+      ...(document.ogVideo
+        ? { videos: [{ url: new URL(document.ogVideo, siteUrl).href, width: 1200, height: 630, type: "video/mp4" }] }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",

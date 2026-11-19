@@ -1,3 +1,5 @@
+import fs from "node:fs";
+
 import { getConcept } from "@/lib/concepts";
 import { getContentBySlug } from "@/lib/content";
 import { createSocialImage, socialImageSize } from "@/lib/social-image";
@@ -13,6 +15,13 @@ export default async function OpenGraphImage({
 }) {
   const { slug } = await params;
   const document = getContentBySlug(slug);
+
+  // A screenshot captured by `npm run og` shows the craft itself, so prefer it over the text card.
+  if (document?.ogImageFile) {
+    return new Response(fs.readFileSync(document.ogImageFile), {
+      headers: { "Content-Type": "image/png" },
+    });
+  }
 
   return createSocialImage({
     title: document?.title ?? "UICraft",
