@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
-import { CraftFrame } from "@/components/mdx/craft-controls";
 import {
   DEFAULT_SETTINGS,
   EFFECTS,
@@ -164,7 +163,7 @@ export function VideoBurst({
       className={
         page
           ? "relative bg-[#07080b] text-white"
-          : "relative h-[30rem] overflow-y-auto overscroll-contain bg-[#07080b] text-white outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) focus-visible:ring-inset"
+          : "absolute inset-0 overflow-y-auto overscroll-contain bg-[#07080b] text-white outline-none focus-visible:ring-2 focus-visible:ring-(--craft-accent) focus-visible:ring-inset"
       }
     >
       {/* The stage stays stuck in view while the spacer below gives the scroll its length. */}
@@ -206,12 +205,13 @@ export function VideoBurst({
 }
 
 export function VideoBurstDemo() {
+  // Fills the craft stage edge to edge; the hero scrolls inside its own box.
   return (
-    <CraftFrame label="Video burst" meta="WebGL · scroll">
+    <div className="craft-fill relative min-h-[30rem] w-full overflow-hidden bg-[#07080b] sm:min-h-[32rem]">
       <VideoBurst src="/burst-video-720.mp4" poster="/burst-video-poster.jpg">
         <p className="font-mono text-[10px] tracking-[0.3em] text-white/70 uppercase">Above the treeline</p>
         <h3 className="mt-3 font-heading text-3xl text-white sm:text-5xl">Still water</h3>
       </VideoBurst>
-    </CraftFrame>
+    </div>
   );
 }
