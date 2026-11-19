@@ -7,10 +7,10 @@ const MainCharacter = dynamic(() => import("@/components/mdx/main-character").th
   ssr: false,
 });
 
-/** The Main Character scene as a landing tile: no controls, zoomed in on the hero. */
+/** The landing artwork, without the craft's controls. */
 export function MainCharacterPlate() {
   return (
-    <div className="absolute inset-0 bg-[#050505]">
+    <div className="absolute inset-0 bg-[#050505]" role="img" aria-label="A walker in a yellow cap moving through a busy park">
       <MainCharacter controls={false} zoom={1.6} />
     </div>
   );

@@ -4,27 +4,25 @@ import type { ReactNode } from "react";
 
 import { CellBar, plateCaptionClassName } from "@/components/landing/cell-bar";
 import { ClawDot } from "@/components/landing/claw-dot";
-import { MainCharacterPlate } from "@/components/landing/main-character-plate";
 import { SnapDismiss } from "@/components/landing/snap-dismiss";
 import type { ContentEntry } from "@/lib/content";
 
 type Plate = { slug: string; use: string; demo: ReactNode };
 
 /**
- * Three small crafts put to work: each plate uses a craft's technique for
+ * Small crafts put to work: each plate uses a craft's technique for
  * something you might ship, and links to the craft that teaches it.
  */
 export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
   const plates: Plate[] = [
     { slug: "svg-claw", use: "as a wordmark", demo: <ClawDot /> },
     { slug: "thanos-snap", use: "as a dismiss", demo: <SnapDismiss /> },
-    { slug: "main-character", use: "as a hero scene", demo: <MainCharacterPlate /> },
   ];
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <CellBar>
-        <span>Three crafts, put to work</span>
+        <span>Two crafts, put to work</span>
         <Link
           href="/craft"
           className="shrink-0 text-(--craft-accent) transition-opacity duration-150 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4"
@@ -33,7 +31,7 @@ export function LandingPlates({ crafts }: { crafts: ContentEntry[] }) {
         </Link>
       </CellBar>
       {/* A 1px gap over a tinted background draws every inner border at any column count. */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-foreground/10 sm:grid-cols-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-foreground/10 sm:grid-cols-2">
         {plates.map((plate, index) => {
           const craft = crafts.find((item) => item.slug === plate.slug);
           if (!craft) return null;

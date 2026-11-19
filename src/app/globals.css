@@ -244,6 +244,14 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
   line-height: 0.86;
 }
 
+@media (min-width: 640px) {
+  .hero-title {
+    max-width: 20ch;
+    font-size: clamp(2rem, min(3.6vw, 7vh), 4rem);
+    line-height: 1.05;
+  }
+}
+
 ::view-transition-old(root) {
   animation: 200ms ease-out both theme-fade-out;
   mix-blend-mode: normal;
