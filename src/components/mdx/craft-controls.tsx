@@ -13,7 +13,7 @@ export function CraftFrame({
 }) {
   return (
     <div className="not-prose my-6 overflow-hidden border border-(--demo-border) bg-(--demo-bg) text-(--demo-ink)">
-      <div className="flex items-center justify-between border-b border-(--demo-border) bg-(--demo-bar) px-4 py-2.5">
+      <div data-craft-frame-bar className="flex items-center justify-between border-b border-(--demo-border) bg-(--demo-bar) px-4 py-2.5">
         <span className="flex items-center gap-2.5">
           {leading}
           <span className="font-heading text-xs text-(--demo-ink)">{label}</span>

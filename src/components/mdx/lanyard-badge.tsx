@@ -10,7 +10,7 @@ import { CraftFrame } from "@/components/mdx/craft-controls";
 // spring turns it around its strap when it swings sideways, so it shows its back now and then.
 // The strap is an SVG path; the card is plain HTML moved with a CSS 3D transform.
 
-const PHOTO = "/craft/lanyard-badge/faisal.jpg";
+const PHOTO = "/assets/lanyard-badge/faisal.jpg";
 
 // The scene is a fixed 360 × 460 box, 1 unit per CSS pixel. The anchor sits just above the top.
 const WIDTH = 360;

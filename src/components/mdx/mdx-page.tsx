@@ -4,12 +4,15 @@ import rehypePrettyCode from "rehype-pretty-code";
 import { CodeBlock } from "@/components/mdx/code-block";
 import { CraftIndex } from "@/components/mdx/craft-index";
 import { CraftBlock } from "@/components/mdx/craft-block";
-import { PageToc, type TocItem } from "@/components/mdx/page-toc";
+import { PageToc } from "@/components/mdx/page-toc";
 import { ShareButton } from "@/components/share-button";
 import { mdxComponents } from "@/components/mdx/registry";
 import Link from "next/link";
 import { getConcept } from "@/lib/concepts";
 import type { ContentDocument } from "@/lib/content";
+import { slugify, splitCraftSections, type TocItem } from "@/lib/craft-sections";
+
+export type CraftView = "craft" | "how-it-works";
 
 function mdxLinkTarget(href?: string) {
   if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return {};
@@ -59,20 +62,6 @@ const prettyCodeOptions = {
   defaultLang: "plaintext",
 };
 
-function stripMarkdown(text: string) {
-  return text
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[`*_]/g, "")
-    .trim();
-}
-
-function slugify(text: string) {
-  return stripMarkdown(text)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function textOf(node: React.ReactNode): string {
   if (typeof node === "string" || typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(textOf).join("");
@@ -80,48 +69,6 @@ function textOf(node: React.ReactNode): string {
     return textOf((node.props as { children?: React.ReactNode }).children);
   }
   return "";
-}
-
-// Splits a craft body into the live demo (everything before the first h2),
-// the optional `## Implementation` source, and the article that follows.
-// Headings inside fenced code are ignored.
-function splitCraftSections(body: string) {
-  const lines = body.split("\n");
-  const sections: { title: string; lines: string[] }[] = [];
-  const preview: string[] = [];
-  const toc: TocItem[] = [];
-  let fence: string | undefined;
-
-  for (const line of lines) {
-    const fenceMatch = /^\s*(```|~~~)/.exec(line);
-    if (fenceMatch) {
-      if (!fence) fence = fenceMatch[1];
-      else if (line.trim().startsWith(fence)) fence = undefined;
-    }
-
-    const heading = fence ? null : /^(#{2,3})\s+(.+?)\s*$/.exec(line);
-    if (heading?.[1] === "##") sections.push({ title: heading[2], lines: [] });
-    (sections.at(-1)?.lines ?? preview).push(line);
-
-    const inImplementation = sections.at(-1)?.title.toLowerCase() === "implementation";
-    if (heading && !inImplementation) {
-      const title = stripMarkdown(heading[2]);
-      toc.push({ id: slugify(title), title, depth: heading[1].length as 2 | 3 });
-    }
-  }
-
-  const implementation = sections.find((section) => section.title.toLowerCase() === "implementation");
-  const article = sections
-    .filter((section) => section !== implementation)
-    .map((section) => section.lines.join("\n"))
-    .join("\n\n");
-
-  return {
-    preview: preview.join("\n").trim(),
-    implementation: implementation?.lines.slice(1).join("\n").trim(),
-    article: article.trim(),
-    toc,
-  };
 }
 
 function renderMdx(source: string) {
@@ -138,7 +85,7 @@ function renderMdx(source: string) {
   );
 }
 
-export function MdxPage({ document }: { document: ContentDocument }) {
+export function MdxPage({ document, view = "craft" }: { document: ContentDocument; view?: CraftView }) {
   if (document.kind === "introduction") {
     return (
       <div className="min-w-0 px-5 py-16 sm:px-10 sm:py-20 lg:px-14 xl:px-20">
@@ -158,68 +105,84 @@ export function MdxPage({ document }: { document: ContentDocument }) {
     );
   }
 
-  const concept = document.concept ? getConcept(document.concept) : undefined;
   const sections = splitCraftSections(document.body);
+
+  // The craft page is the demo and nothing else: no title, no chips, no tabs.
+  // The write-up, when there is one, is linked from the sidebar.
+  if (view === "craft") {
+    return (
+      <section id="demo" aria-labelledby="craft-title" className="craft-stage">
+        <h1 id="craft-title" className="sr-only">
+          {document.title}
+        </h1>
+        {renderMdx(sections.preview)}
+      </section>
+    );
+  }
+
   const toc: TocItem[] = [{ id: "demo", title: "Demo", depth: 2 }, ...sections.toc];
-  const publishedAt = document.publishedAt
-    ? new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric" }).format(
-        new Date(`${document.publishedAt}T00:00:00`),
-      )
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col">
+      <CraftHeader document={document} />
+      <div className="min-w-0 px-4 py-10 sm:px-8 sm:py-12 lg:px-12">
+        <div className="mx-auto grid max-w-6xl gap-12 xl:grid-cols-[minmax(0,1fr)_13rem]">
+          <article className="mx-auto w-full max-w-3xl min-w-0 pb-24">
+            <CraftBlock
+              preview={renderMdx(sections.preview)}
+              code={sections.implementation ? renderMdx(sections.implementation) : undefined}
+            />
+            {sections.article ? renderMdx(sections.article) : null}
+          </article>
+
+          <aside className="hidden xl:block">
+            <div className="sticky top-14">
+              <PageToc items={toc} />
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const dateFormat = new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" });
+
+function CraftHeader({ document }: { document: ContentDocument }) {
+  const concept = document.concept ? getConcept(document.concept) : undefined;
+  const updatedAt = document.updatedAt
+    ? dateFormat.format(new Date(`${document.updatedAt}T00:00:00`))
     : undefined;
 
   return (
-    <div className="min-w-0 px-4 py-10 sm:px-8 sm:py-14 lg:px-12">
-      <div className="mx-auto grid max-w-6xl gap-12 xl:grid-cols-[minmax(0,1fr)_13rem]">
-        <article className="mx-auto w-full max-w-3xl min-w-0 pb-24">
-          <header>
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="font-heading text-balance text-4xl leading-tight tracking-tight sm:text-[2.75rem]">
-                {document.title}
-              </h1>
-              <ShareButton path={document.href} />
-            </div>
-            <p className="mt-3 max-w-2xl text-pretty text-base leading-7 text-(--craft-muted)">
-              {document.description}
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-foreground/60">
-              {concept ? (
-                <Link
-                  href={`/craft/${concept.slug}`}
-                  className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1 hover:border-(--craft-accent) hover:text-(--craft-accent)"
-                >
-                  {concept.title}
-                </Link>
-              ) : null}
-              {document.category ? (
-                <span className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1">
-                  {document.category}
-                </span>
-              ) : null}
-              {publishedAt ? (
-                <time
-                  dateTime={document.publishedAt}
-                  className="border border-foreground/10 bg-(--craft-muted-surface) px-2 py-1 font-mono tabular-nums"
-                >
-                  {publishedAt}
-                </time>
-              ) : null}
-            </div>
-          </header>
-
-          <CraftBlock
-            preview={renderMdx(sections.preview)}
-            code={sections.implementation ? renderMdx(sections.implementation) : undefined}
-          />
-
-          {sections.article ? renderMdx(sections.article) : null}
-        </article>
-
-        <aside className="hidden xl:block">
-          <div className="sticky top-14">
-            <PageToc items={toc} />
+    <header className="border-b border-foreground/10 px-4 py-6 sm:px-8 lg:px-12">
+      <div className="mx-auto flex max-w-6xl items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground/55">
+            {concept ? (
+              <Link href={`/craft/${concept.slug}`} className="hover:text-(--craft-accent)">
+                {concept.title}
+              </Link>
+            ) : null}
+            <span aria-hidden="true">/</span>
+            <Link href={document.href} className="hover:text-(--craft-accent)">
+              {document.title}
+            </Link>
+            {updatedAt ? (
+              <time dateTime={document.updatedAt} className="font-mono tabular-nums">
+                Updated {updatedAt}
+              </time>
+            ) : null}
           </div>
-        </aside>
+          <h1 className="font-heading mt-2 text-balance text-2xl leading-tight tracking-tight sm:text-3xl">
+            How {document.title} works
+          </h1>
+          <p className="mt-1.5 max-w-2xl text-pretty text-sm leading-6 text-(--craft-muted)">
+            {document.description}
+          </p>
+        </div>
+        <ShareButton path={document.howItWorksHref ?? document.href} />
       </div>
-    </div>
+    </header>
   );
 }
