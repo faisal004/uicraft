@@ -35,6 +35,9 @@ const ZOOM = { "tasteful-button": 3, "waving-flag": 2.5 };
 
 // Crafts that only move when touched get a scripted touch while the video records.
 const ACTIONS = {
+  // The next card in the fan overlaps this one's centre, so fire its click directly.
+  "line-landscapes": (page) =>
+    page.getByRole("button", { name: "Open the postcard from the Coast" }).evaluate((button) => button.click()),
   "tasteful-button": async (page) => {
     const button = page.locator(".craft-stage button").first();
     await button.hover();

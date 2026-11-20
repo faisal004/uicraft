@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import {
   DotMatrixTickerDemo,
   DotMatrixTickerPlayground,
@@ -32,6 +33,7 @@ import {
 } from "@/components/mdx/ascii-wave-field";
 import { SvgClawDemo } from "@/components/mdx/svg-claw";
 import { SvgClawThumbnail } from "@/components/mdx/thumbnails/svg-claw";
+import { LineLandscapes } from "@/components/mdx/line-landscapes";
 import { WordSwapClawDemo } from "@/components/mdx/word-swap-claw";
 import { WordSwapClawThumbnail } from "@/components/mdx/thumbnails/word-swap-claw";
 import { GenieVideoDemo } from "@/components/mdx/genie-video";
@@ -96,6 +98,7 @@ export const mdxComponents = {
   AsciiWaveFieldStep,
   ThemeToggle,
   SvgClawDemo,
+  LineLandscapes,
   WordSwapClawDemo,
   GenieVideoDemo,
   GenieVideoFigure,
@@ -114,6 +117,7 @@ export const mdxComponents = {
 
 export const previewCrafts: Record<string, React.ComponentType> = {
   "svg-claw": SvgClawThumbnail,
+  "line-landscapes": () => createElement(LineLandscapes, { thumbnail: true }),
   "word-swap-claw": WordSwapClawThumbnail,
   "genie-video": GenieVideoThumbnail,
   "genie-minimize": GenieMinimizeThumbnail,
