@@ -40,8 +40,9 @@ export default function Home() {
               <div>
                 <Link
                   href="/"
-                  className="font-heading text-sm normal-case text-foreground transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
+                  className="font-heading flex items-center gap-2.5 text-sm normal-case text-foreground transition-opacity duration-150 hover:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-4"
                 >
+                  <span className="size-3 rounded-full bg-(--craft-accent)" aria-hidden="true" />
                   UICraft
                 </Link>
               </div>
