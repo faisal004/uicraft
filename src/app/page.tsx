@@ -7,7 +7,7 @@ import { MainCharacterPlate } from "@/components/landing/main-character-plate";
 import { LandingPlates } from "@/components/landing-plates";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getCraftContent } from "@/lib/content";
-import { author, siteConfig, siteUrl } from "@/lib/site";
+import { author, links, siteConfig, siteUrl } from "@/lib/site";
 
 const cellClassName = "relative flex min-w-0 flex-col border-foreground/10";
 const bodyClassName = "flex min-h-0 flex-1 flex-col justify-center p-5 sm:p-8";
@@ -51,13 +51,12 @@ export default function Home() {
                   Faisal Husain
                 </a>{" "}
                 ·{" "}
-                <a
-                  href="https://github.com/faisal004/uicraft"
-                  target="_blank"
-                  rel="noreferrer"
-                  className={barLinkClassName}
-                >
-                  Source on GitHub
+                <a href={links.repo} target="_blank" rel="noreferrer" className={barLinkClassName}>
+                  Star on GitHub
+                </a>{" "}
+                ·{" "}
+                <a href={links.contact} target="_blank" rel="noreferrer" className={barLinkClassName}>
+                  Say hi
                 </a>
               </span>
               {/* On phones this bar is the only one at the top, so the toggle lives here. */}

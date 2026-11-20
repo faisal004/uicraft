@@ -386,3 +386,62 @@ figure[data-rehype-pretty-code-figure] [data-highlighted-line] {
   margin-inline: 1.25rem;
   margin-bottom: 1rem;
 }
+
+/* SpinStar: hovering a `.star-trigger` spins the star two points round and splits light out of it. */
+.spin-star {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--star-size);
+  height: var(--star-size);
+  flex: none;
+}
+.spin-star__icon {
+  transition: color 200ms ease, fill 200ms ease;
+}
+.spin-star__ray {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5px;
+  height: calc(var(--star-size) * 0.35);
+  margin: calc(var(--star-size) * -0.175) 0 0 -0.75px;
+  border-radius: 999px;
+  background: var(--ray-color);
+  opacity: 0;
+  pointer-events: none;
+}
+.star-trigger:is(:hover, :focus-visible) .spin-star__icon {
+  color: #fbbf24;
+  fill: #fbbf24;
+  /* 144deg is two points of a five-point star, so it lands upright. */
+  animation: spin-star-spin 720ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.star-trigger:is(:hover, :focus-visible) .spin-star__ray {
+  animation: spin-star-ray 560ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+}
+@keyframes spin-star-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  35% { transform: rotate(60deg) scale(1.3); }
+  100% { transform: rotate(144deg) scale(1); }
+}
+@keyframes spin-star-ray {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--ray-angle)) translateY(calc(var(--star-size) * -0.4)) scaleY(0);
+  }
+  45% {
+    opacity: 1;
+    transform: rotate(var(--ray-angle)) translateY(calc(var(--star-size) * -0.8)) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateY(calc(var(--star-size) * -1.05)) scaleY(0.2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .star-trigger:is(:hover, :focus-visible) .spin-star__icon,
+  .star-trigger:is(:hover, :focus-visible) .spin-star__ray {
+    animation: none;
+  }
+}

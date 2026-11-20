@@ -27,3 +27,9 @@ export const author = {
   url: "https://faisalhusa.in",
   sameAs: ["https://github.com/faisal004"],
 } as const;
+
+// Where visitors are nudged to: star the repo, or get in touch.
+export const links = {
+  repo: "https://github.com/faisal004/uicraft",
+  contact: author.url,
+} as const;

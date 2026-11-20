@@ -6,6 +6,7 @@ import { CraftIndex } from "@/components/mdx/craft-index";
 import { CraftBlock } from "@/components/mdx/craft-block";
 import { PageToc } from "@/components/mdx/page-toc";
 import { ShareButton } from "@/components/share-button";
+import { SupportCta, SupportLinks } from "@/components/support-cta";
 import { mdxComponents } from "@/components/mdx/registry";
 import Link from "next/link";
 import { getConcept } from "@/lib/concepts";
@@ -133,11 +134,13 @@ export function MdxPage({ document, view = "craft" }: { document: ContentDocumen
               code={sections.implementation ? renderMdx(sections.implementation) : undefined}
             />
             {sections.article ? renderMdx(sections.article) : null}
+            <SupportCta />
           </article>
 
           <aside className="hidden xl:block">
             <div className="sticky top-14">
               <PageToc items={toc} />
+              <SupportLinks />
             </div>
           </aside>
         </div>

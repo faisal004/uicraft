@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, House } from "lucide-react";
+import { House } from "lucide-react";
+
+import { SpinStar } from "@/components/spin-star";
 
 import {
   Sidebar,
@@ -20,6 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { ConceptGroup } from "@/lib/content";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { links } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
@@ -153,14 +156,14 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
       <SidebarFooter className="grid grid-cols-3 gap-2 border-t border-foreground/10 p-2">
         <ThemeToggle className={footerAction} label="Theme" />
         <a
-          href="https://github.com/faisal004/uicraft"
+          href={links.repo}
           target="_blank"
           rel="noreferrer"
-          aria-label="Source on GitHub"
-          className={footerAction}
+          aria-label="Star UICraft on GitHub"
+          className={cn("star-trigger", footerAction)}
         >
-          <ExternalLink className="size-4" aria-hidden="true" />
-          <span>GitHub</span>
+          <SpinStar size={16} />
+          <span>Star</span>
         </a>
         <Link href="/" onClick={closeMobileSidebar} className={footerAction}>
           <House className="size-4" aria-hidden="true" />
