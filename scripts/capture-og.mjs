@@ -27,7 +27,7 @@ const HEIGHT = 630;
 const CLIP_SECONDS = 4;
 
 // How long to let a craft settle before the screenshot, in ms.
-const SETTLE = { "text-to-particles": 4500, "world-clock-board": 3500, "svg-claw": 3200, "word-swap-claw": 4200 };
+const SETTLE = { "text-to-particles": 4500, "vault-card": 3300, "world-clock-board": 3500, "svg-claw": 3200, "word-swap-claw": 4200 };
 
 // Small crafts get a close-up: the demo is enlarged with CSS zoom, so it renders sharp at the bigger
 // size while the stage's grid stays at its usual scale.
