@@ -61,6 +61,7 @@ const prettyCodeOptions = {
   theme: "github-dark-default",
   keepBackground: false,
   defaultLang: "plaintext",
+  grid: false,
 };
 
 function textOf(node: React.ReactNode): string {

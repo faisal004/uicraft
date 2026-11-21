@@ -230,6 +230,7 @@ figure[data-rehype-pretty-code-figure] code {
 
 figure[data-rehype-pretty-code-figure] [data-line] {
   min-width: 100%;
+  min-height: 1lh;
   padding-inline: 1.25rem;
 }
 

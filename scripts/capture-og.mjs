@@ -35,6 +35,20 @@ const ZOOM = { "tasteful-button": 3, "waving-flag": 2.5 };
 
 // Crafts that only move when touched get a scripted touch while the video records.
 const ACTIONS = {
+  "tear-off-ticket": async (page) => {
+    const corner = page.locator("[data-ticket-corner]");
+    const box = await corner.boundingBox();
+    const x = box.x + box.width * 0.8;
+    const y = box.y + box.height * 0.42;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    for (let step = 1; step <= 28; step++) {
+      await page.mouse.move(x + step * 4.25, y - step * 0.4);
+      await page.waitForTimeout(32);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(1600);
+  },
   // The next card in the fan overlaps this one's centre, so fire its click directly.
   "line-landscapes": (page) =>
     page.getByRole("button", { name: "Open the postcard from the Coast" }).evaluate((button) => button.click()),

@@ -34,6 +34,7 @@ import {
 import { SvgClawDemo } from "@/components/mdx/svg-claw";
 import { SvgClawThumbnail } from "@/components/mdx/thumbnails/svg-claw";
 import { LineLandscapes } from "@/components/mdx/line-landscapes";
+import { TearOffTicket } from "@/components/mdx/tear-off-ticket";
 import { WordSwapClawDemo } from "@/components/mdx/word-swap-claw";
 import { WordSwapClawThumbnail } from "@/components/mdx/thumbnails/word-swap-claw";
 import { GenieVideoDemo } from "@/components/mdx/genie-video";
@@ -99,6 +100,7 @@ export const mdxComponents = {
   ThemeToggle,
   SvgClawDemo,
   LineLandscapes,
+  TearOffTicket,
   WordSwapClawDemo,
   GenieVideoDemo,
   GenieVideoFigure,
@@ -118,6 +120,7 @@ export const mdxComponents = {
 export const previewCrafts: Record<string, React.ComponentType> = {
   "svg-claw": SvgClawThumbnail,
   "line-landscapes": () => createElement(LineLandscapes, { thumbnail: true }),
+  "tear-off-ticket": () => createElement(TearOffTicket, { thumbnail: true }),
   "word-swap-claw": WordSwapClawThumbnail,
   "genie-video": GenieVideoThumbnail,
   "genie-minimize": GenieMinimizeThumbnail,
