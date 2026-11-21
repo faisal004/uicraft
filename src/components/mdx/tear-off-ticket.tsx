@@ -1,0 +1,510 @@
+"use client";
+
+import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
+
+const WIDTH = 640;
+const HEIGHT = 470;
+const TOP = 74;
+const BOTTOM = 252;
+const SEAM = 380;
+const FRAY = [-2.4, 2.8, -1.7, 2.2, -3.2, 1.6, -2.2, 3, -1.9, 2.5];
+const STEP = (BOTTOM - TOP) / FRAY.length;
+const PULL_DISTANCE = 80;
+const SKEW = 0.28;
+const LAND = 0.75;
+const NEXT_DELAY = 0.5;
+const ENTER_TIME = 0.95;
+const PILE_SCALE = 0.42;
+const PILE_SIZE = 10;
+const FIRST_SERIAL = 42;
+const STUB_X = 470;
+const STUB_Y = 163;
+
+const THEMES = [
+  { title: ["AFTER", "DARK"], show: "MIDNIGHT SCREENING", time: "00:00", paper: "#f6e5b5", stub: "#f3bd63", back: "#ead6a6", emblem: "moon" },
+  { title: ["LOW", "TIDE"], show: "SEASIDE MATINEE", time: "14:30", paper: "#dcebe3", stub: "#f2a07e", back: "#cfdfd6", emblem: "sea" },
+  { title: ["NEON", "RUSH"], show: "LATE SHOW", time: "22:15", paper: "#f4dbe2", stub: "#c4a8ee", back: "#e8ccd5", emblem: "star" },
+  { title: ["SLOW", "BURN"], show: "DOUBLE BILL", time: "19:45", paper: "#e7ebd2", stub: "#b5d08f", back: "#d9dec2", emblem: "sun" },
+] as const;
+
+const RAYS = Array.from({ length: 12 }, (_, index) => {
+  const angle = index * Math.PI / 6;
+  return `M ${round(307 + Math.cos(angle) * 23)} ${round(163 + Math.sin(angle) * 23)} `
+    + `L ${round(307 + Math.cos(angle) * 31)} ${round(163 + Math.sin(angle) * 31)}`;
+}).join(" ");
+
+const EMBLEMS = {
+  moon: { fill: "M 307 126 A 37 37 0 1 0 337 185 A 33 33 0 0 1 307 126 Z M 326 135 l 2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2 Z M 345 151 l 1 3 3 1 -3 1 -1 3 -1 -3 -3 -1 3 -1 Z", stroke: "" },
+  sea: { fill: "M 285 170 A 22 22 0 0 1 329 170 Z", stroke: "M 276 179 q 8 -6 16 0 t 16 0 t 16 0 t 16 0 M 286 190 q 7 -5 14 0 t 14 0 t 14 0" },
+  star: { fill: "M 307 132 L 314 156 L 338 163 L 314 170 L 307 194 L 300 170 L 276 163 L 300 156 Z M 330 134 l 2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z", stroke: "" },
+  sun: { fill: "M 290 163 a 17 17 0 1 0 34 0 a 17 17 0 1 0 -34 0 Z", stroke: RAYS },
+};
+
+function round(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+const grain = (n: number) => Math.sin(n * 91.7) * 1.1;
+const hash = (a: number, b: number) => {
+  const value = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+export const themeFor = (serial: number) => THEMES[(serial - FIRST_SERIAL) % THEMES.length];
+
+export function seatFor(serial: number) {
+  return { row: "ABCDEFGHJK"[Math.floor(hash(serial, 1) * 10)], seat: 1 + Math.floor(hash(serial, 2) * 24) };
+}
+
+export function barcodeFor(serial: number) {
+  let x = 398;
+  let thin = "";
+  let thick = "";
+  for (let bar = 0; bar < 28; bar++) {
+    if (hash(serial, bar + 10) > 0.78) thick += `M ${x} 185 v 14 `;
+    else thin += `M ${x} 185 v 14 `;
+    x += 3 + Math.floor(hash(serial, bar + 50) * 3);
+  }
+  return { thin, thick };
+}
+
+export function tearGeometry(progress: number) {
+  const phase = progress * FRAY.length;
+  const opened = Math.floor(phase);
+  const tip = TOP + (opened + (phase - opened) * 0.3) * STEP;
+  const edge = FRAY.slice(0, opened).map((offset, index) => {
+    const y = TOP + index * STEP;
+    return `L ${round(SEAM + grain(index * 3 + 1))} ${round(y + STEP * 0.25)} `
+      + `L ${round(SEAM + offset)} ${round(y + STEP * 0.5)} `
+      + `L ${round(SEAM + grain(index * 3 + 2))} ${round(y + STEP * 0.75)} L ${SEAM} ${round(y + STEP)}`;
+  }).join(" ");
+
+  return { tip, opened, cut: `M ${SEAM} ${TOP} ${edge} L ${SEAM} ${round(tip)}` };
+}
+
+type Release = { x: number; y: number; vx: number; vy: number };
+type Rest = { x: number; y: number; rotate: number; turns: number; faceUp: boolean };
+
+export function restFor(serial: number, vx: number): Rest {
+  return {
+    x: clamp(300 + (hash(serial, 3) - 0.5) * 280 + vx * 0.3, 130, 520),
+    y: 392 + (hash(serial, 4) - 0.5) * 36,
+    rotate: (hash(serial, 5) - 0.5) * 120,
+    turns: Math.round(clamp(vx / 500, -1, 1)),
+    faceUp: hash(serial, 6) > 0.3,
+  };
+}
+
+export function stubLanding(t: number, release: Release, rest: Rest) {
+  const p = clamp(t / LAND);
+  const time = p * LAND;
+  const ease = p * p * (3 - 2 * p);
+  const out = 1 - (1 - p) ** 3;
+  const ax = 2 * (rest.x - STUB_X - release.x - release.vx * LAND) / LAND ** 2;
+  const ay = 2 * (rest.y - STUB_Y - release.y - release.vy * LAND) / LAND ** 2;
+  const sway = Math.sin(time * 11) * (1 - p) * Math.min(1, time * 4);
+  return {
+    x: release.x + release.vx * time + 0.5 * ax * time ** 2 + sway * 14,
+    y: release.y + release.vy * time + 0.5 * ay * time ** 2,
+    rotate: (rest.rotate + 360 * rest.turns) * out + sway * 10,
+    scale: 1 - (1 - PILE_SCALE) * ease,
+    flip: Math.cos(Math.PI * (rest.faceUp ? 2 : 1) * out),
+    lean: SKEW * (1 - ease),
+    height: 1 - ease,
+  };
+}
+
+export function bodyFall(t: number) {
+  const s = Math.max(0, t - 0.12);
+  return {
+    x: -14 * s,
+    y: 900 * s * s,
+    rotate: -3 * s - 22 * s * s,
+    scale: 1 - 0.3 * clamp(s / 0.8),
+    opacity: clamp((0.95 - t) / 0.4),
+  };
+}
+
+export function ticketEnter(t: number) {
+  if (t <= 0) return { y: -80, rotate: 0, opacity: 0 };
+  const decay = Math.exp(-7 * t);
+  return { y: -80 * decay * Math.cos(11 * t), rotate: -2.5 * decay * Math.sin(11 * t), opacity: clamp(t / 0.16) };
+}
+
+function createPaperSound() {
+  let context: AudioContext | null = null;
+  let noise: AudioBuffer | null = null;
+
+  function burst(delay: number, frequency: number, volume: number, length: number, type: BiquadFilterType = "bandpass") {
+    if (!context || !noise) return;
+    const at = context.currentTime + delay;
+    const source = context.createBufferSource();
+    const filter = context.createBiquadFilter();
+    const gain = context.createGain();
+    source.buffer = noise;
+    filter.type = type;
+    filter.frequency.value = frequency;
+    filter.Q.value = 0.9;
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(volume, at + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+    source.connect(filter).connect(gain).connect(context.destination);
+    source.start(at, Math.random() * 0.8, length + 0.02);
+  }
+
+  return {
+    unlock() {
+      if (!context) {
+        context = new AudioContext();
+        noise = context.createBuffer(1, context.sampleRate, context.sampleRate);
+        const samples = noise.getChannelData(0);
+        for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+      }
+      if (context.state === "suspended") void context.resume();
+    },
+    snap(final: boolean) {
+      let delay = 0;
+      for (let crackle = 0; crackle < (final ? 7 : 3); crackle++) {
+        burst(delay, 1800 + Math.random() * 3000, (final ? 0.35 : 0.22) * (0.6 + Math.random() * 0.4), 0.025 + Math.random() * 0.03);
+        delay += 0.006 + Math.random() * 0.008;
+      }
+      if (final) burst(0, 1200, 0.18, 0.14);
+    },
+    land(delay: number) {
+      burst(delay, 700, 0.3, 0.12, "lowpass");
+      burst(delay + 0.01, 3200, 0.06, 0.04);
+    },
+    tap(delay: number) {
+      burst(delay, 1200, 0.12, 0.06, "lowpass");
+    },
+  };
+}
+
+const paper = createPaperSound();
+
+export function TearOffTicket({ thumbnail = false }: { thumbnail?: boolean }) {
+  const id = useId();
+  const svg = useRef<SVGSVGElement>(null);
+  const drag = useRef<{
+    id: number; x: number; progress: number; unitsPerPixel: number;
+    anchor: { x: number; y: number } | null; samples: { t: number; x: number; y: number }[];
+  } | null>(null);
+  const frame = useRef(0);
+  const heard = useRef(0);
+  const [serial, setSerial] = useState(FIRST_SERIAL);
+  const [pulled, setPulled] = useState(0);
+  const [held, setHeld] = useState<{ x: number; y: number } | null>(null);
+  const [fall, setFall] = useState<{ serial: number; release: Release; rest: Rest; start: number } | null>(null);
+  const [pile, setPile] = useState<{ serial: number; rest: Rest }[]>([]);
+  const [sound, setSound] = useState(true);
+  const [now, setNow] = useState(0);
+  const progress = thumbnail ? 1 : pulled;
+  const done = progress === 1;
+  const { tip, opened, cut } = tearGeometry(progress);
+  const full = tearGeometry(1).cut;
+  const theme = themeFor(serial);
+  const url = (name: string) => `url(#${id}-${name})`;
+  const number = (value: number) => String(value).padStart(4, "0");
+  const elapsed = fall ? Math.max(0, (now - fall.start) / 1000) : 0;
+  const enter = fall ? ticketEnter(elapsed - NEXT_DELAY) : null;
+  const { row, seat } = seatFor(serial);
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  useEffect(() => {
+    if (!fall) return;
+    let raf = requestAnimationFrame(function tick(time) {
+      if (time - fall.start > (NEXT_DELAY + ENTER_TIME) * 1000) {
+        setFall(null);
+        return;
+      }
+      setNow(time);
+      raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [fall]);
+
+  function hear(value: number) {
+    const count = Math.floor(value * FRAY.length);
+    if (count > heard.current && sound) paper.snap(count === FRAY.length);
+    heard.current = Math.max(heard.current, count);
+  }
+
+  function release(pose: { x: number; y: number }, vx: number, vy: number) {
+    const start = performance.now();
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rest = restFor(serial, still ? 0 : clamp(vx, -700, 700));
+    heard.current = 0;
+    setPulled(0);
+    setHeld(null);
+    setSerial(serial + 1);
+    setPile((current) => [...current, { serial, rest }].slice(-PILE_SIZE));
+    if (sound) paper.land(still ? 0 : LAND);
+    if (still) return;
+    if (sound) paper.tap(NEXT_DELAY + 0.14);
+    setNow(start);
+    setFall({ serial, start, rest, release: { ...pose, vx: clamp(vx, -700, 700), vy: clamp(vy, -700, 400) } });
+  }
+
+  function startPull(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0 || fall || drag.current || frame.current || !svg.current) return;
+    if (sound) paper.unlock();
+    const width = svg.current.getBoundingClientRect().width;
+    drag.current = {
+      id: event.pointerId, x: event.clientX, progress, unitsPerPixel: WIDTH / width, anchor: null,
+      samples: [{ t: event.timeStamp, x: event.clientX, y: event.clientY }],
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function movePull(event: PointerEvent<HTMLDivElement>) {
+    const start = drag.current;
+    if (start?.id !== event.pointerId) return;
+    start.samples = [...start.samples.slice(-5), { t: event.timeStamp, x: event.clientX, y: event.clientY }];
+    const next = start.progress + (event.clientX - start.x) * start.unitsPerPixel / PULL_DISTANCE;
+    hear(Math.min(1, next));
+    setPulled((current) => Math.max(current, Math.min(1, next)));
+    if (next >= 1 && !start.anchor) start.anchor = { x: event.clientX, y: event.clientY };
+    if (start.anchor) {
+      setHeld({
+        x: clamp((event.clientX - start.anchor.x) * start.unitsPerPixel, -60, 160),
+        y: clamp((event.clientY - start.anchor.y) * start.unitsPerPixel, -60, 120),
+      });
+    }
+  }
+
+  function endPull(event: PointerEvent<HTMLDivElement>) {
+    const start = drag.current;
+    if (start?.id !== event.pointerId) return;
+    drag.current = null;
+    if (!start.anchor) return;
+    const last = start.samples[start.samples.length - 1];
+    const first = start.samples.find((sample) => last.t - sample.t < 90) ?? last;
+    const seconds = (last.t - first.t) / 1000;
+    const speed = (axis: "x" | "y") => seconds > 0.01 ? (last[axis] - first[axis]) * start.unitsPerPixel / seconds : 0;
+    release({ x: 12 + (held?.x ?? 0), y: -5 + (held?.y ?? 0) }, speed("x"), speed("y"));
+  }
+
+  function activate() {
+    if (drag.current || frame.current || fall) return;
+    if (sound) paper.unlock();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      hear(1);
+      release({ x: 12, y: -5 }, 0, 0);
+      return;
+    }
+
+    const start = performance.now();
+    const duration = 680 * (1 - progress);
+    function advance(now: number) {
+      const amount = Math.min(1, (now - start) / duration);
+      const value = progress + (1 - progress) * amount;
+      hear(value);
+      setPulled(value);
+      frame.current = amount < 1 ? requestAnimationFrame(advance) : 0;
+      if (amount === 1) release({ x: 12, y: -5 }, 160, -240);
+    }
+    frame.current = requestAnimationFrame(advance);
+  }
+
+  const artwork = (name: string, value: number) => {
+    const { title, show, time, paper: base, stub, emblem } = themeFor(value);
+    const bars = barcodeFor(value);
+    const place = seatFor(value);
+    return (
+      <g id={`${id}-${name}`} mask={url("paper")} fill="#342437">
+        <rect x="52" y={TOP} width="488" height={BOTTOM - TOP} fill={base} />
+        <rect x={SEAM} y={TOP} width="160" height={BOTTOM - TOP} fill={stub} />
+        <rect x="62" y="84" width="468" height="158" rx="2" fill="none" stroke="#342437" strokeOpacity=".6" />
+        <path d="M 62 111 H 530 M 62 216 H 530" fill="none" stroke="#342437" strokeOpacity=".65" />
+        <path d="M 380 85 V 241" stroke="#6e443a" strokeOpacity=".6" strokeWidth=".7" strokeDasharray="2 3" />
+        <g fontFamily="monospace" fontWeight="700" fontSize="9" letterSpacing="1.2">
+          <text x="77" y="101">UICRAFT PICTURE HOUSE</text>
+          <text x="397" y="101">BOX OFFICE</text>
+          <text x="77" y="233">{show}</text>
+          <text x="355" y="233" textAnchor="end">{time}</text>
+          <text x="397" y="211">ROW {place.row} · SEAT {place.seat}</text>
+          <text x="397" y="233">NO. {number(value)}</text>
+        </g>
+        <g fontFamily="Georgia, serif" fontSize="51" fontWeight="700" letterSpacing="-2.5">
+          <text x="76" y="158">{title[0]}</text>
+          <text x="76" y="202">{title[1]}</text>
+        </g>
+        <circle cx="307" cy="163" r="37" fill={url("hatch")} stroke="#342437" strokeOpacity=".42" />
+        <path d={EMBLEMS[emblem].fill} />
+        <path d={EMBLEMS[emblem].stroke} fill="none" stroke="#342437" strokeWidth="2.2" strokeLinecap="round" />
+        <g fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="24" letterSpacing="-.6">
+          <text x="397" y="146">ADMIT</text>
+          <text x="397" y="170">ONE</text>
+        </g>
+        <path d={bars.thin} fill="none" stroke="#342437" strokeWidth="1.4" />
+        <path d={bars.thick} fill="none" stroke="#342437" strokeWidth="2.6" />
+        <path d="M 507 104 L 518 93 M 511 93 H 518 V 100" fill="none" stroke="#342437" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    );
+  };
+
+  const tornEdge = (d: string, light: boolean) => (
+    <g mask={url("paper")} fill="none" strokeLinecap="round">
+      <path d={d} stroke="#fff6dc" strokeOpacity=".85" strokeWidth="2.4" strokeDasharray=".3 1.4" />
+      <path d={d} stroke={light ? "#fff6dc" : "#8f6a48"} strokeOpacity={light ? 1 : 0.7} strokeWidth=".8" />
+    </g>
+  );
+
+  const stubPose = (x: number, y: number, rotate: number, scale: number, flip: number, lean = 0) =>
+    `translate(${round(x)} ${round(y)}) rotate(${round(rotate)} ${STUB_X} ${STUB_Y}) `
+    + `translate(${STUB_X} ${STUB_Y}) scale(${round(scale * flip)} ${round(scale)}) translate(${-STUB_X} ${-STUB_Y}) `
+    + `matrix(1 0 ${round(-lean)} 1 ${round(lean * BOTTOM)} 0)`;
+
+  const looseStub = (value: number, faceUp: boolean) => (
+    <>
+      <use href={`#${id}-stub-${value}`} clipPath={url("stub")} />
+      {!faceUp && <rect x={SEAM} y={TOP} width="160" height={BOTTOM - TOP} fill={themeFor(value).back}
+        mask={url("paper")} clipPath={url("stub")} />}
+      {tornEdge(full, true)}
+    </>
+  );
+
+  const landing = fall && elapsed < LAND ? stubLanding(elapsed, fall.release, fall.rest) : null;
+  const body = fall && bodyFall(elapsed);
+
+  return (
+    <div style={{ width: "100%", maxWidth: thumbnail ? "24rem" : "46rem", marginInline: "auto" }}>
+      <style>{`
+        .tear-ticket-corner { position: absolute; top: ${63 / HEIGHT * 100}%; width: 24%; height: ${86 / HEIGHT * 100}%; touch-action: none; cursor: grab; }
+        .tear-ticket-corner:active { cursor: grabbing; }
+        .tear-ticket-stub { transform-origin: ${SEAM}px ${BOTTOM}px; }
+        .tear-ticket-stub[data-detached] { transform: translate(26px, 15px) rotate(5deg); }
+        .tear-ticket-snap { animation: tear-ticket-snap 150ms cubic-bezier(.2,.8,.3,1); }
+        @keyframes tear-ticket-snap { from { transform: translate(2.5px, -1.5px); } }
+        .tear-ticket-controls { position: absolute; top: ${262 / HEIGHT * 100}%; left: 8%; right: 15%; display: flex; align-items: center; justify-content: space-between; gap: .5rem; font: 12px/1.4 system-ui, sans-serif; }
+        .tear-ticket-action { flex: none; min-height: 44px; padding: 0 .55em; border: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+        .tear-ticket-action[aria-pressed="false"] { opacity: .6; }
+        .tear-ticket-action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) { .tear-ticket-snap { animation: none; } }
+      `}</style>
+
+      <div style={{ position: "relative" }}>
+        <svg ref={svg} viewBox={thumbnail ? "37 47 602 236" : `0 0 ${WIDTH} ${HEIGHT}`}
+          style={{ display: "block", width: "100%", overflow: "visible" }}
+          role="img" aria-label={`${theme.title.join(" ")} cinema ticket, ${theme.show.toLowerCase()} at ${theme.time}, `
+            + `row ${row} seat ${seat}, number ${number(serial)}. ${pile.length} torn stubs below.`}>
+          <defs>
+            <mask id={`${id}-paper`} maskUnits="userSpaceOnUse" x="0" y="0" width={WIDTH} height="332">
+              <path fill="white" d="M 58 74 H 371 a 9 9 0 0 0 18 0 H 534 Q 540 74 540 80 V 154 a 9 9 0 0 0 0 18 V 246 Q 540 252 534 252 H 389 a 9 9 0 0 0 -18 0 H 58 Q 52 252 52 246 V 172 a 9 9 0 0 0 0 -18 V 80 Q 52 74 58 74 Z" />
+              {FRAY.slice(1).map((_, index) => (
+                <ellipse key={index} cx={SEAM} cy={TOP + (index + 1) * STEP} rx="1.7" ry="2.7" fill="black" />
+              ))}
+            </mask>
+            <pattern id={`${id}-hatch`} width="4" height="4" patternUnits="userSpaceOnUse">
+              <path d="M -1 1 L 1 -1 M 0 4 L 4 0 M 3 5 L 5 3" stroke="#3b2c36" strokeOpacity=".2" strokeWidth=".65" />
+            </pattern>
+            <linearGradient id={`${id}-fold`} x2="0" y2="1">
+              <stop stopColor="#593023" stopOpacity="0" />
+              <stop offset="1" stopColor="#593023" stopOpacity=".18" />
+            </linearGradient>
+            <linearGradient id={`${id}-crease`} x2="0" y2="1">
+              <stop stopColor="#2a1626" stopOpacity=".3" />
+              <stop offset="1" stopColor="#2a1626" stopOpacity="0" />
+            </linearGradient>
+            {artwork("artwork", serial)}
+            {pile.map((item) => <g key={item.serial}>{artwork(`stub-${item.serial}`, item.serial)}</g>)}
+
+            <clipPath id={`${id}-main`}>
+              <path d={`${cut} V ${BOTTOM} H 0 V ${TOP} Z`} />
+            </clipPath>
+            <clipPath id={`${id}-attached`}>
+              <rect x={SEAM} y={tip} width={WIDTH - SEAM} height={BOTTOM - tip} />
+            </clipPath>
+            <clipPath id={`${id}-peeled`}>
+              <path d={`${cut} H ${WIDTH} V ${TOP} Z`} />
+            </clipPath>
+            <clipPath id={`${id}-body`}>
+              <path d={`${full} V ${BOTTOM} H 0 V ${TOP} Z`} />
+            </clipPath>
+            <clipPath id={`${id}-stub`}>
+              <path d={`${full} H ${WIDTH} V ${TOP} Z`} />
+            </clipPath>
+          </defs>
+
+          {!thumbnail && (
+            <g aria-hidden="true" style={{ filter: "drop-shadow(0 1px 1.5px #0d060c66)" }}>
+              {pile.map(({ serial: value, rest }) => fall?.serial === value && landing ? null : (
+                <g key={value}
+                  transform={stubPose(rest.x - STUB_X, rest.y - STUB_Y, rest.rotate, PILE_SCALE, rest.faceUp ? 1 : -1)}>
+                  {looseStub(value, rest.faceUp)}
+                </g>
+              ))}
+            </g>
+          )}
+
+          <g opacity={enter?.opacity}
+            transform={enter ? `translate(0 ${round(enter.y)}) rotate(${round(enter.rotate)} 296 163)` : undefined}
+            style={{ filter: "drop-shadow(0 8px 9px #170c1740)" }}>
+            <use href={`#${id}-artwork`} clipPath={url("main")} />
+            {tip > TOP && tornEdge(cut, false)}
+            {!done && <use href={`#${id}-artwork`} clipPath={url("attached")} />}
+            {tip > TOP && !done && (
+              <rect x={SEAM} y={tip} width="160" height="12" fill={url("crease")} mask={url("paper")} />
+            )}
+            <g className="tear-ticket-stub" data-detached={thumbnail ? "" : undefined}
+              style={held ? { transform: `translate(${12 + held.x}px, ${held.y - 5}px)` } : undefined}>
+              <g key={opened} className={opened > 0 && !thumbnail ? "tear-ticket-snap" : undefined}>
+                <g transform={`matrix(1 0 ${-SKEW} 1 ${round(SKEW * tip)} 0)`}>
+                  <use href={`#${id}-artwork`} clipPath={url("peeled")} />
+                  {!done && <rect x={SEAM - 4} y={tip - 10} width="164" height="10" fill={url("fold")}
+                    mask={url("paper")} clipPath={url("peeled")} />}
+                  {tip > TOP && tornEdge(cut, true)}
+                </g>
+              </g>
+            </g>
+          </g>
+
+          {fall && body && (
+            <g aria-hidden="true">
+              <g opacity={body.opacity} style={{ filter: "drop-shadow(0 14px 12px #170c1738)" }}
+                transform={`translate(${round(body.x)} ${round(body.y)}) rotate(${round(body.rotate)} 216 163) `
+                  + `translate(216 163) scale(${round(body.scale)}) translate(-216 -163)`}>
+                <use href={`#${id}-stub-${fall.serial}`} clipPath={url("body")} />
+                {tornEdge(full, false)}
+              </g>
+              {landing && (
+                <g style={{ filter: `drop-shadow(0 ${round(2 + 14 * landing.height)}px ${round(2 + 10 * landing.height)}px #170c1738) `
+                  + `brightness(${round(0.72 + 0.28 * Math.abs(landing.flip))})` }}
+                  transform={stubPose(landing.x, landing.y, landing.rotate, landing.scale, landing.flip, landing.lean)}>
+                  {looseStub(fall.serial, landing.flip >= 0)}
+                </g>
+              )}
+            </g>
+          )}
+        </svg>
+
+        {!thumbnail && (
+          <div className="tear-ticket-corner" aria-hidden="true" data-ticket-corner hidden={fall !== null}
+            style={{ left: `${(390 + SKEW * (tip - TOP)) / WIDTH * 100}%` }}
+            onPointerDown={startPull} onPointerMove={movePull} onPointerUp={endPull}
+            onPointerCancel={endPull} onLostPointerCapture={endPull} />
+        )}
+
+        {!thumbnail && (
+          <div className="tear-ticket-controls">
+            <span aria-live="polite">
+              {fall ? "Stub torn off"
+                : serial > FIRST_SERIAL ? `${theme.title.join(" ")} · ticket ${number(serial)}` : "Pull the top-right corner"}
+            </span>
+            <span>
+              <button className="tear-ticket-action" type="button" aria-pressed={sound}
+                onClick={() => { if (!sound) paper.unlock(); setSound(!sound); }}>
+                Sound
+              </button>
+              <button className="tear-ticket-action" type="button" onClick={activate}>
+                {opened > 0 ? "Finish tear" : "Tear ticket"}
+              </button>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
