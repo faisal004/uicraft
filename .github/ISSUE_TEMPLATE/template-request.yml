@@ -1,0 +1,44 @@
+name: Studio template request
+description: Ask for a new free video template on Studio (studio.uicraft.in).
+title: "[Template request]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Studio templates are free animated video effects you edit in the browser and export as MP4, WebM or PNG.
+        Tell us the effect you want, and if you can, link a video that shows it.
+  - type: textarea
+    id: effect
+    attributes:
+      label: What effect do you want?
+      description: Describe what happens on screen, step by step.
+      placeholder: "A photo slides in, a red circle draws around a face, then a label types in underneath."
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Example video
+      description: A link to a video, Reel or Short that uses it, with a timestamp if possible.
+      placeholder: "https://www.youtube.com/watch?v=...&t=42"
+  - type: dropdown
+    id: format
+    attributes:
+      label: Where will you use it?
+      multiple: true
+      options:
+        - YouTube (16:9)
+        - Shorts, Reels or TikTok (9:16)
+        - Feed posts (1:1)
+        - Presentations or other
+  - type: textarea
+    id: edits
+    attributes:
+      label: What should you be able to change?
+      description: For example text, images, colors, language or timing.
+      placeholder: "The photo, the label text and the circle color."
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
