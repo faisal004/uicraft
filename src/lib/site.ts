@@ -28,8 +28,10 @@ export const author = {
   sameAs: ["https://github.com/faisal004"],
 } as const;
 
-// Where visitors are nudged to: star the repo, or get in touch.
+// Where visitors are nudged to: star the repo, get in touch, or try Studio.
 export const links = {
   repo: "https://github.com/faisal004/uicraft",
   contact: author.url,
+  // Sibling product: free animated video templates edited in the browser.
+  studio: "https://studio.uicraft.in",
 } as const;

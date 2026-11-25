@@ -56,6 +56,10 @@ export default function Home() {
                   Star on GitHub
                 </a>{" "}
                 ·{" "}
+                <a href={links.studio} target="_blank" rel="noreferrer" className={barLinkClassName}>
+                  Video templates
+                </a>{" "}
+                ·{" "}
                 <a href={links.contact} target="_blank" rel="noreferrer" className={barLinkClassName}>
                   Say hi
                 </a>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House } from "lucide-react";
+import { ArrowUpRight, House } from "lucide-react";
 
 import { SpinStar } from "@/components/spin-star";
 
@@ -152,6 +152,27 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
             </SidebarGroup>
           );
         })}
+
+        <SidebarGroup className="mt-4 p-0">
+          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-foreground/45">
+            More from UICraft
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<a href={links.studio} target="_blank" rel="noreferrer" />}
+                  onClick={closeMobileSidebar}
+                  className="group/studio h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) hover:text-(--craft-accent)"
+                >
+                  <span>Studio</span>
+                  <span className="text-foreground/45 group-hover/studio:text-current">video templates</span>
+                  <ArrowUpRight className="ml-auto size-3.5 opacity-50" aria-hidden="true" />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="grid grid-cols-3 gap-2 border-t border-foreground/10 p-2">
         <ThemeToggle className={footerAction} label="Theme" />
