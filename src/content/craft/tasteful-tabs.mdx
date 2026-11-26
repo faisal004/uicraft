@@ -1,0 +1,223 @@
+---
+title: Tasteful tabs
+seoTitle: "Animated Segmented Tabs with a Sliding Thumb (shadcn + Tailwind)"
+description: Take shadcn's default tabs to a segmented control with a recessed track, quiet labels, and one raised thumb that glides to your choice.
+publishedAt: 2026-11-26
+category: Tabs
+preview: tasteful-tabs
+concept: design-engineering
+kind: craft
+order: 26
+---
+
+<TastefulTabsDemo />
+
+
+## Implementation
+
+This is the finished component. It uses `@base-ui/react`, the headless library shadcn's Base UI tabs are built on, so install that and paste it in. Swap the three options for your own.
+
+```tsx title="tasteful-tabs.tsx"
+"use client";
+
+import { Tabs } from "@base-ui/react/tabs";
+
+const STYLES = [
+  { value: "satellite", label: "Satellite", note: "Daylight imagery with relief and clouds." },
+  { value: "night", label: "Night", note: "City lights on a dark planet." },
+  { value: "paper", label: "Paper atlas", note: "A flat printed map on warm paper." },
+];
+
+export function TastefulTabs() {
+  return (
+    <Tabs.Root defaultValue="satellite" className="flex flex-col items-center gap-4">
+      <Tabs.List
+        aria-label="Map style"
+        className="relative z-0 flex w-fit items-center rounded-full bg-zinc-100 p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.06)] dark:bg-zinc-900 dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.5)]"
+      >
+        {STYLES.map((style) => (
+          <Tabs.Tab
+            key={style.value}
+            value={style.value}
+            className="h-8 rounded-full px-3.5 text-sm font-medium whitespace-nowrap text-zinc-500 outline-none select-none transition-[color,scale] duration-200 ease-out hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-400/60 active:scale-[0.97] data-[active]:text-zinc-950 motion-reduce:active:scale-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:data-[active]:text-white"
+          >
+            {style.label}
+          </Tabs.Tab>
+        ))}
+        <Tabs.Indicator className="absolute top-(--active-tab-top) left-0 -z-10 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) rounded-full bg-white shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_1px_2px_rgb(0_0_0/0.1),0_2px_6px_-2px_rgb(0_0_0/0.08)] transition-[translate,width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none dark:bg-zinc-700 dark:shadow-[0_0_0_1px_rgb(255_255_255/0.08),inset_0_1px_0_rgb(255_255_255/0.08),0_2px_6px_-1px_rgb(0_0_0/0.5)]" />
+      </Tabs.List>
+      {STYLES.map((style) => (
+        <Tabs.Panel key={style.value} value={style.value} className="text-sm text-zinc-500 outline-none dark:text-zinc-400">
+          {style.note}
+        </Tabs.Panel>
+      ))}
+    </Tabs.Root>
+  );
+}
+```
+
+## How it works
+
+Tabs from a component library already work: they switch, take arrow keys, and tell screen readers which tab is selected. What they don't have is a point of view. We'll keep all of that behaviour and change only how it looks and moves, one small step at a time.
+
+### 01 — Start with shadcn's tabs
+
+This is the stock shadcn `Tabs` with three triggers. `Tabs` holds the selected value, `TabsList` is the row, and each `TabsTrigger` is a button that selects its `value`. Click one, or focus the row and press the arrow keys.
+
+<TastefulTabsStepPreview stage="default" />
+
+```tsx title="tasteful-tabs.tsx"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+export function TastefulTabs() {
+  return (
+    <Tabs defaultValue="satellite">
+      <TabsList aria-label="Map style">
+        <TabsTrigger value="satellite">Satellite</TabsTrigger>
+        <TabsTrigger value="night">Night</TabsTrigger>
+        <TabsTrigger value="paper">Paper atlas</TabsTrigger>
+      </TabsList>
+    </Tabs>
+  )
+}
+```
+
+It's fine. But the selected tab's white background simply appears under the new label, the corners are a little square for a choice this small, and every label is nearly the same weight, so the eye has nowhere to land.
+
+shadcn's file wraps Base UI's `Tabs` and adds a long list of classes. From here on we use the Base UI parts directly, `Tabs.Root`, `Tabs.List`, `Tabs.Tab` and `Tabs.Indicator`, so the only classes on screen are the ones we chose.
+
+### 02 — Shape the track
+
+Make the list a pill with `rounded-full`, a light grey fill, and `p-1` so the tabs sit inside it with a 4px margin all round. Each tab gets a fixed `h-8` height and `px-3.5` of side padding, which keeps it a comfortable target without making the control tall.
+
+<TastefulTabsStepPreview stage="track" />
+
+```tsx title="tasteful-tabs.tsx"
+import { Tabs } from "@base-ui/react/tabs"
+
+const STYLES = [
+  { value: "satellite", label: "Satellite" },
+  { value: "night", label: "Night" },
+  { value: "paper", label: "Paper atlas" },
+]
+
+export function TastefulTabs() {
+  return (
+    <Tabs.Root defaultValue="satellite">
+      <Tabs.List aria-label="Map style" className="flex w-fit items-center rounded-full bg-zinc-100 p-1">
+        {STYLES.map((style) => (
+          <Tabs.Tab
+            key={style.value}
+            value={style.value}
+            className="h-8 rounded-full px-3.5 text-sm font-medium whitespace-nowrap data-[active]:bg-white"
+          >
+            {style.label}
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+    </Tabs.Root>
+  )
+}
+```
+
+Base UI puts a `data-active` attribute on the selected tab, so `data-[active]:bg-white` styles it without any React state of our own.
+
+### 03 — Quiet the labels, raise the selection
+
+Two changes give the control depth. The track gets an inset shadow, a one-pixel darkening along its top edge, so it reads as pressed *into* the page. The selected tab gets the opposite: a hairline ring and two soft shadows, so it reads as raised *out of* the track.
+
+Then the labels. Unselected tabs drop to `text-zinc-500` and darken on hover; only the selected one is near-black. Now the contrast says which one is chosen, and the background just confirms it.
+
+<TastefulTabsStepPreview stage="labels" />
+
+```tsx title="tasteful-tabs.tsx"
+<Tabs.List
+  aria-label="Map style"
+  className="flex w-fit items-center rounded-full bg-zinc-100 p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.06)]"
+>
+  {STYLES.map((style) => (
+    <Tabs.Tab
+      key={style.value}
+      value={style.value}
+      className="h-8 rounded-full px-3.5 text-sm font-medium whitespace-nowrap text-zinc-500 transition-colors duration-200 ease-out hover:text-zinc-900 data-[active]:bg-white data-[active]:text-zinc-950 data-[active]:shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_1px_2px_rgb(0_0_0/0.1),0_2px_6px_-2px_rgb(0_0_0/0.08)]"
+    >
+      {style.label}
+    </Tabs.Tab>
+  ))}
+</Tabs.List>
+```
+
+Click between tabs, though, and the white still blinks off one tab and on another. Three tabs each have their own background, so there's nothing that could move.
+
+### 04 — One thumb for the whole row
+
+Take the background off the tabs and draw it once, as a separate element behind them. Base UI ships that element: `Tabs.Indicator`. It measures the selected tab and writes its position onto itself as CSS variables:
+
+- `--active-tab-left` and `--active-tab-top`: where the tab starts inside the list
+- `--active-tab-width` and `--active-tab-height`: how big it is
+
+The list becomes `relative` so the indicator can be `absolute` inside it, and `z-0` so the indicator's `-z-10` puts it behind the labels but not behind the page. Then the indicator's size and offset come straight from those variables.
+
+<TastefulTabsStepPreview stage="thumb" />
+
+```tsx title="tasteful-tabs.tsx"
+<Tabs.List
+  aria-label="Map style"
+  className="relative z-0 flex w-fit items-center rounded-full bg-zinc-100 p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.06)]"
+>
+  {STYLES.map((style) => (
+    <Tabs.Tab
+      key={style.value}
+      value={style.value}
+      className="h-8 rounded-full px-3.5 text-sm font-medium whitespace-nowrap text-zinc-500 transition-colors duration-200 ease-out hover:text-zinc-900 data-[active]:text-zinc-950"
+    >
+      {style.label}
+    </Tabs.Tab>
+  ))}
+  <Tabs.Indicator className="absolute top-(--active-tab-top) left-0 -z-10 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) rounded-full bg-white shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_1px_2px_rgb(0_0_0/0.1),0_2px_6px_-2px_rgb(0_0_0/0.08)]" />
+</Tabs.List>
+```
+
+We move it with `translate` rather than `left`. A transform doesn't make the browser lay the row out again, so the next step can animate it smoothly. It still jumps for now, because nothing tells it to take time.
+
+### 05 — Give it a curve
+
+Add a transition on just the two properties that change, `translate` and `width`. "Paper atlas" is wider than "Night", so the thumb stretches as it travels.
+
+<TastefulTabsStepPreview stage="motion" />
+
+```tsx title="tasteful-tabs.tsx"
+<Tabs.Indicator className="... transition-[translate,width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]" />
+```
+
+The curve matters more than the duration. `cubic-bezier(0.23, 1, 0.32, 1)` is a strong ease-out: the thumb leaves almost instantly and spends most of its 300ms settling. You clicked, so the response should start right away; a gentle `ease-in-out` would hesitate first and feel sluggish even at the same length.
+
+The thumb also doesn't animate on first paint. The indicator starts at the selected tab, so there's no change to transition until you pick another one.
+
+### 06 — Press, focus, and reduced motion
+
+Three finishing touches, all on the tab:
+
+- `active:scale-[0.97]` shrinks the tab by 3% while it's pressed, so a click feels like it lands. It's added to the transition list as `scale`.
+- `outline-none focus-visible:ring-2` swaps the browser outline for a soft ring that only appears for keyboard focus, not mouse clicks.
+- `motion-reduce:transition-none` on the thumb and `motion-reduce:active:scale-100` on the tab turn the movement off for people who've asked their system for less motion. The selection still changes instantly.
+
+<TastefulTabsStepPreview stage="final" />
+
+```tsx title="tasteful-tabs.tsx"
+<Tabs.Tab
+  key={style.value}
+  value={style.value}
+  className="h-8 rounded-full px-3.5 text-sm font-medium whitespace-nowrap text-zinc-500 outline-none select-none transition-[color,scale] duration-200 ease-out hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-400/60 active:scale-[0.97] data-[active]:text-zinc-950 motion-reduce:active:scale-100"
+>
+  {style.label}
+</Tabs.Tab>
+```
+
+Finally, add a `Tabs.Panel` per option for the content each tab shows, and `dark:` colours for the track, labels and thumb. That's the finished component in the Code tab above.
+
+## Playground
+
+Step through the stages and click between the tabs at each one. Compare how the selection *changes* at 03 with how it *moves* at 05.
+
+<TastefulTabsPlayground />

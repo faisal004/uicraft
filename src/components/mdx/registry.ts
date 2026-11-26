@@ -15,6 +15,12 @@ import {
   TastefulButtonProgression,
   TastefulButtonStepPreview,
 } from "@/components/mdx/tasteful-button-demo";
+import {
+  TastefulTabsDemo,
+  TastefulTabsPlayground,
+  TastefulTabsStepPreview,
+} from "@/components/mdx/tasteful-tabs-demo";
+import { TastefulTabsThumbnail } from "@/components/mdx/thumbnails/tasteful-tabs";
 import { WavingFlagDemo, WavingFlagPlayground, WavingFlagStep } from "@/components/mdx/waving-flag";
 import {
   TextToParticlesDemo,
@@ -80,6 +86,9 @@ export const mdxComponents = {
   TastefulButtonPlayground,
   TastefulButtonProgression,
   TastefulButtonStepPreview,
+  TastefulTabsDemo,
+  TastefulTabsPlayground,
+  TastefulTabsStepPreview,
   DotMatrixTickerDemo,
   DotMatrixTickerPlayground,
   DotMatrixTickerStep,
@@ -139,6 +148,7 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "lanyard-badge": LanyardBadgeThumbnail,
   "main-character": MainCharacterThumbnail,
   "tasteful-button": TastefulButtonThumbnail,
+  "tasteful-tabs": TastefulTabsThumbnail,
   "dot-matrix-ticker": DotMatrixTickerThumbnail,
   "waving-flag": WavingFlagThumbnail,
   "text-to-particles": TextToParticlesThumbnail,

@@ -31,7 +31,7 @@ const SETTLE = { "text-to-particles": 4500, "vault-card": 3300, "world-clock-boa
 
 // Small crafts get a close-up: the demo is enlarged with CSS zoom, so it renders sharp at the bigger
 // size while the stage's grid stays at its usual scale.
-const ZOOM = { "tasteful-button": 3, "waving-flag": 2.5 };
+const ZOOM = { "tasteful-button": 3, "tasteful-tabs": 2.5, "waving-flag": 2.5 };
 
 // Crafts that only move when touched get a scripted touch while the video records.
 const ACTIONS = {
@@ -59,6 +59,12 @@ const ACTIONS = {
     await page.mouse.down();
     await page.waitForTimeout(180);
     await page.mouse.up();
+  },
+  "tasteful-tabs": async (page) => {
+    for (const name of ["Paper atlas", "Night", "Satellite"]) {
+      await page.locator(".craft-stage").getByRole("tab", { name }).click();
+      await page.waitForTimeout(900);
+    }
   },
   "pull-cord": async (page) => {
     const box = await page.locator('.craft-stage [role="switch"]').boundingBox();
