@@ -43,6 +43,7 @@ import { LineLandscapes } from "@/components/mdx/line-landscapes";
 import { TearOffTicket } from "@/components/mdx/tear-off-ticket";
 import { VaultCard } from "@/components/mdx/vault-card";
 import { HoldToShatter } from "@/components/mdx/hold-to-shatter";
+import { GoldenBall } from "@/components/mdx/golden-ball";
 import { TypeTunnelDemo, TypeTunnelThumbnail } from "@/components/mdx/type-tunnel";
 import { WordSwapClawDemo } from "@/components/mdx/word-swap-claw";
 import { WordSwapClawThumbnail } from "@/components/mdx/thumbnails/word-swap-claw";
@@ -115,6 +116,7 @@ export const mdxComponents = {
   TearOffTicket,
   VaultCard,
   HoldToShatter,
+  GoldenBall,
   TypeTunnelDemo,
   WordSwapClawDemo,
   GenieVideoDemo,
@@ -138,6 +140,7 @@ export const previewCrafts: Record<string, React.ComponentType> = {
   "tear-off-ticket": () => createElement(TearOffTicket, { thumbnail: true }),
   "vault-card": () => createElement(VaultCard, { thumbnail: true }),
   "hold-to-shatter": () => createElement(HoldToShatter, { thumbnail: true }),
+  "golden-ball": () => createElement(GoldenBall, { thumbnail: true }),
   "type-tunnel": TypeTunnelThumbnail,
   "word-swap-claw": WordSwapClawThumbnail,
   "genie-video": GenieVideoThumbnail,
