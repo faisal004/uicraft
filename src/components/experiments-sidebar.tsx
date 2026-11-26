@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowUpRight, House } from "lucide-react";
 
+import { DotField } from "@/components/dot-field";
 import { SpinStar } from "@/components/spin-star";
 
 import {
@@ -152,44 +153,43 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
             </SidebarGroup>
           );
         })}
-
-        <SidebarGroup className="mt-4 p-0">
-          <SidebarGroupLabel className="mb-0.5 h-6 px-2 text-[11px] font-medium text-foreground/45">
-            More from UICraft
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<a href={links.studio} target="_blank" rel="noreferrer" />}
-                  onClick={closeMobileSidebar}
-                  className="group/studio h-8 rounded-none px-2 text-[13px] hover:bg-(--craft-accent-soft) hover:text-(--craft-accent)"
-                >
-                  <span>Studio</span>
-                  <span className="text-foreground/45 group-hover/studio:text-current">video templates</span>
-                  <ArrowUpRight className="ml-auto size-3.5 opacity-50" aria-hidden="true" />
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="grid grid-cols-3 gap-2 border-t border-foreground/10 p-2">
-        <ThemeToggle className={footerAction} label="Theme" />
+      {/* The footer sits outside the scrolling list, so Studio stays in view at any scroll position. */}
+      <SidebarFooter className="gap-2 border-t border-foreground/10 p-2">
         <a
-          href={links.repo}
+          href={links.studio}
           target="_blank"
           rel="noreferrer"
-          aria-label="Star UICraft on GitHub"
-          className={cn("star-trigger", footerAction)}
+          onClick={closeMobileSidebar}
+          className="group/studio relative isolate flex h-9 items-center gap-2 overflow-hidden rounded-full border border-[#1f2f9e] bg-[#2f4fd6] pr-3.5 pl-4 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.28),inset_0_-1px_0_rgb(0_0_40/0.2),0_1px_2px_rgb(20_30_120/0.3),0_4px_12px_-2px_rgb(47_79_214/0.4)] [text-shadow:0_1px_1px_rgb(0_0_40/0.35)] transition-[filter,transform] duration-150 ease-out hover:brightness-110 active:translate-y-px active:scale-[0.98] motion-reduce:active:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2f4fd6]"
         >
-          <SpinStar size={16} />
-          <span>Star</span>
+          <DotField className="-z-10" cell={6} />
+          {/* A soft sheen over the dots: lighter at the top, as if lit from above. */}
+          <span aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-b from-white/14 via-white/0 to-black/10" />
+          <span className="text-[13px] font-medium">Studio</span>
+          <span className="truncate text-[12px] text-white/75">video templates</span>
+          <ArrowUpRight
+            className="ml-auto size-3.5 shrink-0 text-white/90 drop-shadow-[0_1px_1px_rgb(0_0_40/0.35)] transition-transform duration-200 ease-out group-hover/studio:translate-x-0.5 group-hover/studio:-translate-y-0.5 motion-reduce:transition-none"
+            aria-hidden="true"
+          />
         </a>
-        <Link href="/" onClick={closeMobileSidebar} className={footerAction}>
-          <House className="size-4" aria-hidden="true" />
-          <span>Home</span>
-        </Link>
+        <div className="grid grid-cols-3 gap-2">
+          <ThemeToggle className={footerAction} label="Theme" />
+          <a
+            href={links.repo}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Star UICraft on GitHub"
+            className={cn("star-trigger", footerAction)}
+          >
+            <SpinStar size={16} />
+            <span>Star</span>
+          </a>
+          <Link href="/" onClick={closeMobileSidebar} className={footerAction}>
+            <House className="size-4" aria-hidden="true" />
+            <span>Home</span>
+          </Link>
+        </div>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
