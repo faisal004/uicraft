@@ -154,7 +154,7 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
           );
         })}
       </SidebarContent>
-      {/* The footer sits outside the scrolling list, so Studio stays in view at any scroll position. */}
+      {/* The footer sits outside the scrolling list, so ReelKit stays in view at any scroll position. */}
       <SidebarFooter className="gap-2 border-t border-foreground/10 p-2">
         <a
           href={links.studio}
@@ -166,7 +166,7 @@ export function ExperimentsSidebar({ groups }: { groups: ConceptGroup[] }) {
           <DotField className="-z-10" cell={6} />
           {/* A soft sheen over the dots: lighter at the top, as if lit from above. */}
           <span aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-b from-white/14 via-white/0 to-black/10" />
-          <span className="text-[13px] font-medium">Studio</span>
+          <span className="text-[13px] font-medium">ReelKit</span>
           <span className="truncate text-[12px] text-white/75">video templates</span>
           <ArrowUpRight
             className="ml-auto size-3.5 shrink-0 text-white/90 drop-shadow-[0_1px_1px_rgb(0_0_40/0.35)] transition-transform duration-200 ease-out group-hover/studio:translate-x-0.5 group-hover/studio:-translate-y-0.5 motion-reduce:transition-none"

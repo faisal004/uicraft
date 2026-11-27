@@ -1,12 +1,12 @@
-name: Studio template request
-description: Ask for a new free video template on Studio (studio.uicraft.in).
+name: ReelKit template request
+description: Ask for a new free video template on ReelKit (reelkitapp.com).
 title: "[Template request]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the idea! Studio templates are free animated video effects you edit in the browser and export as MP4, WebM or PNG.
+        Thanks for the idea! ReelKit templates are free animated video effects you edit in the browser and export as MP4, WebM or PNG.
         Tell us the effect you want, and if you can, link a video that shows it.
   - type: textarea
     id: effect
